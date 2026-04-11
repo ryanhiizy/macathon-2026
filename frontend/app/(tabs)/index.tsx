@@ -10,7 +10,7 @@ import {
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
-import { SegmentedPicker } from "@/components/swift-ui-bridges";
+import { SegmentedPicker } from "@/components/ui-controls";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 
 const FEED_TABS = ["Friends", "Circles"];

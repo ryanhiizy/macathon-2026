@@ -3,7 +3,7 @@ import { Settings02Icon, Fire03Icon } from "@hugeicons/core-free-icons";
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
-import { ProgressBar } from "@/components/swift-ui-bridges";
+import { ProgressBar } from "@/components/ui-controls";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 
 const STATS = [
