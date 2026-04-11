@@ -27,6 +27,3 @@ export const MOCK_USERS: MockUser[] = [
   { id: "a0000000-0000-0000-0000-000000000012", name: "Ella Wu", handle: "@ellawu", color: colors.magenta, letter: "E" },
 ];
 
-export function getUserById(id: string): MockUser | undefined {
-  return MOCK_USERS.find((u) => u.id === id);
-}
