@@ -22,6 +22,7 @@ class PromptProviderError(RuntimeError):
 class PromptResult:
     prompt_text: str
     prompt_id: str
+    source: str
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,7 @@ class VerificationResult:
     passed: bool
     reason: str
     comment: str
+    source: str
 
 
 def build_prompt_instruction(habit: str, participant_count: int) -> str:
@@ -40,7 +42,11 @@ def build_prompt_instruction(habit: str, participant_count: int) -> str:
         f"The photo mode is '{mode}'. "
         f"The participant count is {participant_count}. "
         "Make the prompt one sentence, concrete, visual, and easy to perform in a live camera shot. "
-        "It should feel fun and socially engaging."
+        "It should feel fun and socially engaging. "
+        "Prioritize prompts that are easy to verify from a single image using clear visible cues. "
+        "Good cues include obvious hand gestures (peace sign, thumbs up, fist bump), visible objects (water bottle, book, dumbbell, running shoes), or simple pose/action signals (pointing at the habit item, group huddle, synchronized pose). "
+        "Avoid hard-to-verify or ambiguous requests such as subtle motion states, implied context, or details that are often out of frame. "
+        "For solo prompts require one obvious cue; for group prompts require a shared cue that multiple people can do together."
     )
 
 
@@ -85,7 +91,7 @@ def parse_verification_payload(raw_text: str) -> VerificationResult:
         raise PromptProviderError("Verification provider returned invalid reason")
     if not isinstance(comment, str) or not comment.strip():
         raise PromptProviderError("Verification provider returned invalid comment")
-    return VerificationResult(passed=passed, reason=reason.strip(), comment=comment.strip())
+    return VerificationResult(passed=passed, reason=reason.strip(), comment=comment.strip(), source="provider")
 
 
 def fallback_verify(prompt_text: str, image_bytes: bytes, participant_count: int) -> VerificationResult:
@@ -94,6 +100,7 @@ def fallback_verify(prompt_text: str, image_bytes: bytes, participant_count: int
             passed=False,
             reason="The image looks too small or compressed to confidently judge the prompt.",
             comment="The vibe is shy right now - retake with a clearer shot and bigger scene.",
+            source="fallback",
         )
 
     score_seed = hashlib.sha1(image_bytes + prompt_text.encode("utf-8")).hexdigest()
@@ -110,7 +117,7 @@ def fallback_verify(prompt_text: str, image_bytes: bytes, participant_count: int
         reason = "The photo does not clearly show the core action requested by the prompt yet."
         comment = "Close, but give it one more dramatic retake and make the prompt action obvious."
 
-    return VerificationResult(passed=passed, reason=reason, comment=comment)
+    return VerificationResult(passed=passed, reason=reason, comment=comment, source="fallback")
 
 
 def generate_prompt(
@@ -120,7 +127,11 @@ def generate_prompt(
 ) -> PromptResult:
     provider = settings.prompt_provider
     if provider == "none":
-        return PromptResult(prompt_text=fallback_prompt(habit, participant_count), prompt_id=f"generated_{uuid4()}")
+        return PromptResult(
+            prompt_text=fallback_prompt(habit, participant_count),
+            prompt_id=f"generated_{uuid4()}",
+            source="fallback",
+        )
 
     instruction = build_prompt_instruction(habit, participant_count)
     try:
@@ -136,6 +147,7 @@ def generate_prompt(
             )
             content = response.choices[0].message.content or "{}"
             prompt_text = parse_prompt_payload(content)
+            source = "openai"
         else:
             client = Anthropic(api_key=settings.anthropic_api_key)
             response = client.messages.create(
@@ -146,10 +158,12 @@ def generate_prompt(
             )
             text_blocks = [block.text for block in response.content if getattr(block, "type", "") == "text"]
             prompt_text = parse_prompt_payload("\n".join(text_blocks))
+            source = "anthropic"
     except Exception:
         prompt_text = fallback_prompt(habit, participant_count)
+        source = "fallback"
 
-    return PromptResult(prompt_text=prompt_text, prompt_id=f"generated_{uuid4()}")
+    return PromptResult(prompt_text=prompt_text, prompt_id=f"generated_{uuid4()}", source=source)
 
 
 def verify_photo(
@@ -183,6 +197,7 @@ def verify_photo(
                 ],
             )
             content = response.choices[0].message.content or "{}"
+            source = "openai"
         else:
             client = Anthropic(api_key=settings.anthropic_api_key)
             response = client.messages.create(
@@ -208,6 +223,13 @@ def verify_photo(
             )
             text_blocks = [block.text for block in response.content if getattr(block, "type", "") == "text"]
             content = "\n".join(text_blocks)
-        return parse_verification_payload(content)
+            source = "anthropic"
+        parsed = parse_verification_payload(content)
+        return VerificationResult(
+            passed=parsed.passed,
+            reason=parsed.reason,
+            comment=parsed.comment,
+            source=source,
+        )
     except Exception:
         return fallback_verify(prompt_text, image_bytes, participant_count)

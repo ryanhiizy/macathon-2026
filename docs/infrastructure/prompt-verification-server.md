@@ -64,7 +64,8 @@ Response JSON:
 ```json
 {
   "prompt_text": "Take a photo ...",
-  "id": "generated_..."
+  "id": "generated_...",
+  "source": "openai | anthropic | fallback"
 }
 ```
 
@@ -82,7 +83,8 @@ Response JSON:
 {
   "passed": true,
   "reason": "The scene appears aligned with the prompt and has clear visual intent.",
-  "comment": "Main-character moment detected. Prompt nailed."
+  "comment": "Main-character moment detected. Prompt nailed.",
+  "source": "openai | anthropic | fallback"
 }
 ```
 

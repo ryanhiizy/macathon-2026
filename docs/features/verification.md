@@ -73,3 +73,21 @@ The app reads `YOLO_API_URL` from `src/config/yolo.ts`. Updated manually per ses
 
 **LAN mode (demo day):** `http://<laptop-ip>:8000`
 **Tunnel mode (remote dev):** `https://<tunnel-url>`
+
+## Manual Smoke Results (2026-04-11)
+
+Quick manual checks were run with `curl` against the local backend using real images and live model responses (`"source":"openai"`). These are representative cases to calibrate prompt quality for demo reliability.
+
+| Prompt | Photo scenario | Result |
+|---|---|---|
+| "Snap a solo selfie mid-stride with your running shoes..." | Single-person smiling running-style photo | `passed=false` (reason: no clear mid-stride/shoes cue) |
+| "Snap a solo selfie mid-stride on your favorite running trail..." | Same photo | `passed=false` (reason: missing clear mid-stride/trail evidence) |
+| "Snap a solo selfie holding up a peace sign..." | Same photo, visible peace sign + smile + scenery | `passed=true` |
+| "Snap a solo selfie holding up your fist..." | Same photo (peace sign, not fist) | `passed=false` (correct gesture mismatch) |
+| "Snap a photo of your trio mid-run showing off your running shoes!" | Group shoes image (`3 people shoes.jpeg`) | `passed=false` (reason: shoes visible but no clear mid-run motion) |
+
+### Testing takeaway
+
+- The verifier responds well to explicit, visible cues (gesture/object).
+- Motion-heavy wording like "mid-run" is less reliable from a single still image.
+- Prompt generation should favor easy-to-observe cues to improve pass consistency during demo.
