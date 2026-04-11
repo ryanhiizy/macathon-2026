@@ -58,16 +58,15 @@ Fill in at least:
 Follow [docs/infrastructure/supabase.md](../docs/infrastructure/supabase.md) and complete:
 
 1. Create the project
-2. Run the schema
+2. Run the canonical schema
 3. Create the `snaps` storage bucket
-4. Enable Realtime on `snaps` and `habit_instances`
-5. Enable `pg_cron` and add the missed-window reset job
+4. Apply the storage policies
+5. Enable Realtime on `snaps`, `habit_instances`, `circle_members`, and `likes`
+6. Enable `pg_cron` and add the missed-window reset job
 
 ## Local AI server
 
-The backend manifest is ready, but the actual `yolo_server.py` implementation is still a task on the MVP board.
-
-When that file exists, the expected command will be:
+The server implementation lives at `backend/yolo_server.py`. Start it with:
 
 ```bash
 source yolo-env/bin/activate

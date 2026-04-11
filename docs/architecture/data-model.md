@@ -94,6 +94,9 @@ One row per scheduled habit occurrence.
 - `window_closes_at` (timestamptz) — `scheduled_for + 30 min`
 - `prompt_id` (text) — references the static prompt bank / AI-generated prompt text
 - `prompt_text` (text) — the actual prompt text shown to the user
+- `prompt_required_classes` (jsonb) — frozen verification requirements for this instance
+- `attempt_count` (int) — used for the one-retry rule
+- `last_failure_reason` (text, nullable)
 - `status` (enum: `pending`, `verified`, `missed`)
 - `verified_at` (timestamptz, nullable)
 
@@ -105,10 +108,12 @@ A submitted proof photo. Can be solo or group.
 - `user_id` (uuid, FK → profiles.id) — the submitter / host
 - `circle_id` (uuid, FK → circles.id) — denormalized for feed queries
 - `storage_path` (text) — Supabase Storage object key
+- `prompt_text` (text) — copied onto the post for feed rendering
 - `detected_classes` (jsonb) — YOLO output: `[{class, confidence}]`
 - `verified` (bool)
 - `is_group_post` (bool, default false)
 - `caption` (text, nullable)
+- `streak_after_completion` (int) — host streak snapshot for feed badges and milestone cards
 - `created_at` (timestamptz)
 
 ### `snap_participants`
@@ -116,7 +121,8 @@ For group posts — links additional participants to a snap.
 
 - `snap_id` (uuid, FK → snaps.id)
 - `user_id` (uuid, FK → profiles.id)
-- `streak_at_time` (int) — participant's streak count at the time of the snap
+- `participant_habit_instance_id` (uuid, FK → habit_instances.id, unique)
+- `streak_after_completion` (int) — participant's streak snapshot for group chips
 - PK: (`snap_id`, `user_id`)
 
 ### `likes`
@@ -136,6 +142,12 @@ Likes on snaps.
 - A **habit_instance** has zero or one **snap**
 - A **snap** has one host (`user_id`) and optionally many **snap_participants** (group posts)
 - A **snap** has many **likes**
+
+## Derived queries
+
+- **Monthly leaderboard** is derived from the current calendar month's verified snaps and `snap_participants`; it is not stored separately in V1.
+- **Milestone celebration cards** are derived from `snaps.streak_after_completion` hitting `[7, 14, 30, 50, 100]`.
+- **Missed-habit toasts/cards** come from `habit_instances.status = 'missed'` updates joined back through `habits` and `profiles`.
 
 ## What Lives Where
 
