@@ -1,3 +1,4 @@
+.conductor/
 .context/
 .DS_Store
 *.pyc

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { Host, Picker } from "@expo/ui/swift-ui";
 import {
   BellDotIcon,
   MessageAdd01Icon,
@@ -11,6 +10,7 @@ import {
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
+import { SegmentedPicker } from "@/components/swift-ui-bridges";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 
 const FEED_TABS = ["Friends", "Circles"];
@@ -34,14 +34,7 @@ export default function Home() {
         </Row>
       </Row>
 
-      <Host matchContents>
-        <Picker
-          options={FEED_TABS}
-          selectedIndex={feedIdx}
-          onOptionSelected={(e) => setFeedIdx(e.nativeEvent.index)}
-          variant="segmented"
-        />
-      </Host>
+      <SegmentedPicker options={FEED_TABS} selectedIndex={feedIdx} onChange={setFeedIdx} />
 
       <SoloPost />
       <MilestoneCard />

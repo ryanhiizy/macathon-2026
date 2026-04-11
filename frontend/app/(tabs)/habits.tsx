@@ -1,5 +1,4 @@
 import { Pressable, View } from "react-native";
-import { CircularProgress, Host } from "@expo/ui/swift-ui";
 import {
   PlusSignIcon,
   Camera01Icon,
@@ -14,6 +13,7 @@ import {
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
+import { ProgressRing } from "@/components/swift-ui-bridges";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 
 type Habit = {
@@ -63,9 +63,7 @@ export default function Habits() {
       <Card style={{ backgroundColor: colors.bgRaised, borderColor: colors.primarySoft }}>
         <Row gap={spacing.lg}>
           <View style={{ width: 90, height: 90, alignItems: "center", justifyContent: "center" }}>
-            <Host matchContents>
-              <CircularProgress progress={progress} color={colors.primary} />
-            </Host>
+            <ProgressRing progress={progress} color={colors.primary} />
             <View style={{ position: "absolute", alignItems: "center" }}>
               <Typography style={{ fontFamily: fonts.heading, fontSize: 22, color: colors.fg }}>
                 {completed}/{HABITS.length}
