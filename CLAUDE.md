@@ -67,6 +67,7 @@ See [`docs/Architecture.md`](docs/Architecture.md) for tunnel alternatives (ngro
 - `main` — only branch that matters for the hackathon. Commit small and often.
 - For non-trivial features, branch as `feature/<slug>` and merge when green.
 - Never commit secrets (`.env`, API keys, Supabase service role keys).
+- **Never add `Co-Authored-By` trailers to commit messages.** Commits should show only the human author.
 
 ## Verification
 
