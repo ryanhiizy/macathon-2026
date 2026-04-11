@@ -21,13 +21,13 @@ Use this as the short operational checklist. For the full setup flow, start with
 - [ ] Enable `pg_cron` and add the missed-window reset job
 - [ ] Fill `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `frontend/.env`
 
-## 3. Local AI server
+## 3. Local prompt + verification server
 
-- [ ] Implement `yolo_server.py` using [infrastructure/yolo-server.md](./infrastructure/yolo-server.md)
+- [ ] Implement `prompt_verification_server.py` using [infrastructure/prompt-verification-server.md](./infrastructure/prompt-verification-server.md)
 - [ ] Add one AI provider key locally: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
-- [ ] Start the server with `uvicorn yolo_server:app --host 0.0.0.0 --port 8000`
+- [ ] Start the server with `uvicorn backend.prompt_verification_server:app --host 0.0.0.0 --port 8000`
 - [ ] Verify `curl http://localhost:8000/health` returns `{"ok":true}`
-- [ ] Set `EXPO_PUBLIC_YOLO_API_URL` in `frontend/.env`
+- [ ] Set `EXPO_PUBLIC_PROMPT_API_URL` in `frontend/.env`
 
 ## 4. Expo app
 

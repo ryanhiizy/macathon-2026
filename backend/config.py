@@ -21,7 +21,6 @@ class Settings:
     anthropic_api_key: str | None
     openai_model: str
     anthropic_model: str
-    yolo_model_name: str
 
     @property
     def prompt_provider(self) -> str:
@@ -43,5 +42,4 @@ def get_settings() -> Settings:
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY") or None,
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
         anthropic_model=os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-latest"),
-        yolo_model_name=os.getenv("YOLO_MODEL_NAME", "yolov8n.pt"),
     )

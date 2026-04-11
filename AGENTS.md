@@ -59,7 +59,7 @@ cd frontend && npm install
 npx expo start --lan
 
 source yolo-env/bin/activate
-uvicorn backend.yolo_server:app --host 0.0.0.0 --port 8000
+uvicorn backend.prompt_verification_server:app --host 0.0.0.0 --port 8000
 ```
 
 See [`docs/setup-checklist.md`](docs/setup-checklist.md) for the full setup flow.
