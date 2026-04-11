@@ -52,18 +52,19 @@ function promptForHabit(habit: HabitView): string {
 /**
  * Schedule a demo notification that fires after `delaySec` seconds.
  * If `habit` is provided, uses that habit. Otherwise picks the first
- * un-done habit from the database.
+ * un-done habit from the database (requires `userId`).
  */
 export async function triggerDemoNotification(
   delaySec = 5,
   habit?: HabitView | null,
+  userId?: string,
 ): Promise<string | null> {
   const granted = await requestNotificationPermissions();
   if (!granted) return null;
 
   let target = habit;
-  if (!target) {
-    const habits = await fetchHabits();
+  if (!target && userId) {
+    const habits = await fetchHabits(userId);
     target = habits.find((h) => !h.done) ?? habits[0] ?? null;
   }
 

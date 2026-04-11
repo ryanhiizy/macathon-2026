@@ -22,11 +22,9 @@ import { Screen, Row, Stack } from "@/components/layout";
 import { Segmented } from "@/components/segmented";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
-import {
-  FEED_POSTS,
-  type GroupPost as GroupPostData,
-  type SoloPost as SoloPostData,
-} from "@/lib/mock";
+import { type GroupPost as GroupPostData, type SoloPost as SoloPostData } from "@/lib/mock";
+import { getFeedPosts } from "@/lib/feed";
+import { useAuth } from "@/lib/auth-context";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 
 const PULL_MESSAGES = [
@@ -36,6 +34,7 @@ const PULL_MESSAGES = [
 ];
 
 export default function Home() {
+  const { user } = useAuth();
   const [feedIdx, setFeedIdx] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [pullMessageIdx, setPullMessageIdx] = useState(0);
@@ -125,7 +124,7 @@ export default function Home() {
       }
     >
       <Stack gap={spacing.xxl}>
-        {FEED_POSTS.map((post) => {
+        {getFeedPosts(user?.id).map((post) => {
           if (post.kind === "dispatch") {
             return (
               <BragStat
@@ -165,13 +164,20 @@ function SoloPost({ post }: { post: SoloPostData }) {
         <StreakFlame days={post.streak} />
       </Row>
 
+      {post.promptText ? (
+        <Typography variant="metaItalic" color={colors.fgMuted}>
+          {"\u2728"} {post.promptText}
+        </Typography>
+      ) : null}
+
       <Typography variant="body">{post.caption}</Typography>
 
       <PhotoCarousel
         photoIdxs={post.photoIdxs}
+        photos={post.photos}
         overlay={
           <Row gap={spacing.xl}>
-            <LikeButton initialCount={post.likes} tint={colors.white} />
+            <LikeButton initialCount={post.likes} tint={colors.white} snapId={post.id} />
             <AnimatedPress
               style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
               scale={0.9}
@@ -229,13 +235,20 @@ function GroupPost({ post }: { post: GroupPostData }) {
         </View>
       </Row>
 
+      {post.promptText ? (
+        <Typography variant="metaItalic" color={colors.fgMuted}>
+          {"\u2728"} {post.promptText}
+        </Typography>
+      ) : null}
+
       <Typography variant="body">{post.caption}</Typography>
 
       <PhotoCarousel
         photoIdxs={post.photoIdxs}
+        photos={post.photos}
         overlay={
           <Row gap={spacing.xl}>
-            <LikeButton initialCount={post.likes} tint={colors.white} />
+            <LikeButton initialCount={post.likes} tint={colors.white} snapId={post.id} />
             <AnimatedPress
               style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
               scale={0.9}
