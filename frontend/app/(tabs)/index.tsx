@@ -1,192 +1,303 @@
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, RefreshControl, View } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 import {
   BellDotIcon,
-  MessageAdd01Icon,
-  FavouriteIcon,
   Comment01Icon,
-  Fire03Icon,
+  MessageAdd01Icon,
 } from "@hugeicons/core-free-icons";
-import { Screen, Card, Row, Stack } from "@/components/layout";
-import { Typography, Eyebrow } from "@/components/typography";
+import { Avatar, AvatarStack } from "@/components/avatar";
+import { AnimatedPress } from "@/components/animated-press";
+import { BragStat } from "@/components/brag-stat";
 import { Icon } from "@/components/icon";
-import { SegmentedPicker } from "@/components/ui-controls";
-import { colors, radius, spacing, fonts } from "@/lib/theme";
+import { LikeButton } from "@/components/like-button";
+import { PhotoCarousel } from "@/components/photo-carousel";
+import { Screen, Row, Stack } from "@/components/layout";
+import { Segmented } from "@/components/segmented";
+import { StreakFlame } from "@/components/streak-flame";
+import { Typography } from "@/components/typography";
+import {
+  FEED_POSTS,
+  type GroupPost as GroupPostData,
+  type SoloPost as SoloPostData,
+} from "@/lib/mock";
+import { colors, fonts, radius, spacing } from "@/lib/theme";
 
-const FEED_TABS = ["Friends", "Circles"];
+const PULL_MESSAGES = [
+  "See who showed up today",
+  "Listening for fresh proofs",
+  "A quiet moment before new habits",
+];
 
 export default function Home() {
   const [feedIdx, setFeedIdx] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullMessageIdx, setPullMessageIdx] = useState(0);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  return (
-    <Screen>
+  useEffect(
+    () => () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const onRefresh = () => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+
+    setRefreshing(true);
+    setPullMessageIdx((i) => (i + 1) % PULL_MESSAGES.length);
+    refreshTimeoutRef.current = setTimeout(() => {
+      setRefreshing(false);
+      refreshTimeoutRef.current = null;
+    }, 900);
+  };
+
+  const inkWidth = useSharedValue(0);
+  useEffect(() => {
+    inkWidth.value = withDelay(
+      260,
+      withTiming(116, { duration: 520, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [inkWidth]);
+  const inkStyle = useAnimatedStyle(() => ({ width: inkWidth.value }));
+
+  const header = (
+    <Stack gap={spacing.lg}>
       <Row style={{ justifyContent: "space-between" }}>
-        <Typography style={{ fontFamily: fonts.heading, fontSize: 34, color: colors.fg }}>
-          presence
-        </Typography>
-        <Row gap={spacing.md}>
-          <Pressable>
-            <Icon icon={BellDotIcon} size={26} color={colors.fg} />
+        <View>
+          <Typography
+            style={{
+              fontFamily: fonts.headingItalic,
+              fontSize: 32,
+              lineHeight: 38,
+              color: colors.fg,
+            }}
+          >
+            presence
+          </Typography>
+          <Animated.View
+            style={[
+              {
+                height: 2,
+                backgroundColor: colors.primary,
+                borderRadius: 1,
+                marginTop: -2,
+              },
+              inkStyle,
+            ]}
+          />
+        </View>
+        <Row gap={spacing.lg}>
+          <Pressable hitSlop={10}>
+            <Icon icon={BellDotIcon} size={24} color={colors.fg} />
           </Pressable>
-          <Pressable>
-            <Icon icon={MessageAdd01Icon} size={26} color={colors.fg} />
+          <Pressable hitSlop={10}>
+            <Icon icon={MessageAdd01Icon} size={24} color={colors.fg} />
           </Pressable>
         </Row>
       </Row>
+      <Segmented options={["Friends", "Circles"]} value={feedIdx} onChange={setFeedIdx} />
+    </Stack>
+  );
 
-      <SegmentedPicker options={FEED_TABS} selectedIndex={feedIdx} onChange={setFeedIdx} />
+  return (
+    <Screen
+      stickyHeader={header}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          title={PULL_MESSAGES[pullMessageIdx]}
+          titleColor={colors.fgFaint}
+        />
+      }
+    >
+      <Stack gap={spacing.xxl}>
+        {FEED_POSTS.map((post) => {
+          if (post.kind === "dispatch") {
+            return (
+              <BragStat
+                key={post.id}
+                name={post.name}
+                value={post.value}
+                unit={post.unit}
+                caption={post.caption}
+              />
+            );
+          }
 
-      <SoloPost />
-      <MilestoneCard />
-      <GroupPost />
+          if (post.kind === "group") {
+            return <GroupPost key={post.id} post={post} />;
+          }
+
+          return <SoloPost key={post.id} post={post} />;
+        })}
+      </Stack>
     </Screen>
   );
 }
 
-function SoloPost() {
+function SoloPost({ post }: { post: SoloPostData }) {
   return (
-    <Card>
+    <Stack gap={spacing.md}>
       <Row style={{ justifyContent: "space-between" }}>
-        <Row gap={spacing.sm}>
-          <Avatar color={colors.blue} letter="S" />
+        <Row gap={spacing.md}>
+          <Avatar color={post.color} letter={post.letter} size={40} ring={false} />
           <View>
-            <Typography variant="label">Sarah K.</Typography>
-            <Typography variant="caption">Morning walk · 2h ago</Typography>
+            <Typography variant="label">{post.name}</Typography>
+            <Typography variant="metaItalic">
+              {post.handle} · {post.when}
+            </Typography>
           </View>
         </Row>
-        <StreakPill days={12} />
+        <StreakFlame days={post.streak} />
       </Row>
-      <View
-        style={{
-          aspectRatio: 1,
-          borderRadius: radius.md,
-          backgroundColor: colors.ui,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Typography variant="caption">[photo placeholder]</Typography>
-      </View>
-      <Card style={{ padding: spacing.md, backgroundColor: colors.bgRaised, borderColor: colors.borderStrong }}>
-        <Eyebrow>AI prompt</Eyebrow>
-        <Typography variant="body">Throw a peace sign mid-stride on your morning walk.</Typography>
-      </Card>
-      <Typography variant="bodyMuted">Golden hour hit different today.</Typography>
-      <Row gap={spacing.lg}>
-        <Row gap={spacing.xs}>
-          <Icon icon={FavouriteIcon} size={20} />
-          <Typography variant="caption">24</Typography>
-        </Row>
-        <Row gap={spacing.xs}>
-          <Icon icon={Comment01Icon} size={20} />
-          <Typography variant="caption">3</Typography>
-        </Row>
-      </Row>
-    </Card>
-  );
-}
 
-function GroupPost() {
-  return (
-    <Card>
-      <Row style={{ justifyContent: "space-between" }}>
-        <Row gap={spacing.sm}>
-          <Row gap={-10}>
-            <Avatar color={colors.purple} letter="Y" />
-            <Avatar color={colors.green} letter="M" />
-            <Avatar color={colors.cyan} letter="J" />
+      <Typography variant="body">{post.caption}</Typography>
+
+      <PhotoCarousel
+        photoIdxs={post.photoIdxs}
+        overlay={
+          <Row gap={spacing.xl}>
+            <LikeButton initialCount={post.likes} tint={colors.white} />
+            <AnimatedPress
+              style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+              scale={0.9}
+              haptic={false}
+            >
+              <Icon icon={Comment01Icon} size={18} color={colors.white} strokeWidth={1.7} />
+              <Typography variant="meta" color={colors.white}>
+                {post.comments}
+              </Typography>
+            </AnimatedPress>
           </Row>
-          <View>
-            <Typography variant="label">You, Mia + 1</Typography>
-            <Typography variant="caption">Water check · 5h ago</Typography>
-          </View>
-        </Row>
-        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.uiActive }}>
-          <Typography variant="caption" style={{ fontFamily: fonts.bodySemibold }}>Group</Typography>
-        </View>
-      </Row>
-      <View
-        style={{
-          aspectRatio: 1,
-          borderRadius: radius.md,
-          backgroundColor: colors.ui,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Typography variant="caption">[group photo placeholder]</Typography>
-      </View>
-      <Card style={{ padding: spacing.md, backgroundColor: colors.bgRaised, borderColor: colors.borderStrong }}>
-        <Eyebrow>Group prompt</Eyebrow>
-        <Typography variant="body">Cheers! Clink your water bottles together.</Typography>
-      </Card>
-    </Card>
+        }
+      />
+    </Stack>
   );
 }
 
-function MilestoneCard() {
+function GroupPost({ post }: { post: GroupPostData }) {
+  const avatars = post.participants.map((participant) => ({
+    color: participant.color,
+    letter: participant.letter,
+  }));
+
   return (
-    <Card style={{ backgroundColor: colors.bgRaised, borderColor: colors.primarySoft }}>
-      <Row gap={spacing.md}>
+    <Stack gap={spacing.md}>
+      <Row style={{ justifyContent: "space-between" }}>
+        <Row gap={spacing.md}>
+          <AvatarStack avatars={avatars} size={36} />
+          <View>
+            <Typography variant="label">{post.name}</Typography>
+            <Typography variant="metaItalic">
+              {post.handle} · {post.when}
+            </Typography>
+          </View>
+        </Row>
         <View
           style={{
-            width: 56,
-            height: 56,
+            paddingHorizontal: spacing.md,
+            paddingVertical: 5,
             borderRadius: radius.pill,
-            backgroundColor: colors.primary,
-            alignItems: "center",
-            justifyContent: "center",
+            backgroundColor: colors.fg,
           }}
         >
-          <Icon icon={Fire03Icon} size={30} color={colors.onPrimary} />
+          <Typography
+            color={colors.bg}
+            style={{
+              fontFamily: fonts.bodyBold,
+              fontSize: 11,
+              lineHeight: 14,
+              letterSpacing: 0.2,
+            }}
+          >
+            Group
+          </Typography>
         </View>
-        <Stack gap={spacing.xs} style={{ flex: 1 }}>
-          <Eyebrow>Milestone</Eyebrow>
-          <Typography variant="label">Sarah hit 50 days of running</Typography>
-        </Stack>
       </Row>
-    </Card>
+
+      <Typography variant="body">{post.caption}</Typography>
+
+      <PhotoCarousel
+        photoIdxs={post.photoIdxs}
+        overlay={
+          <Row gap={spacing.xl}>
+            <LikeButton initialCount={post.likes} tint={colors.white} />
+            <AnimatedPress
+              style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+              scale={0.9}
+              haptic={false}
+            >
+              <Icon icon={Comment01Icon} size={18} color={colors.white} strokeWidth={1.7} />
+              <Typography variant="meta" color={colors.white}>
+                {post.comments}
+              </Typography>
+            </AnimatedPress>
+          </Row>
+        }
+      />
+
+      <Row gap={spacing.sm} style={{ flexWrap: "wrap" }}>
+        {post.participants.map((participant) => (
+          <StreakMiniChip
+            key={participant.name}
+            letter={participant.letter}
+            color={participant.color}
+            days={participant.streak}
+            name={participant.name}
+          />
+        ))}
+      </Row>
+    </Stack>
   );
 }
 
-function StreakPill({ days }: { days: number }) {
+function StreakMiniChip({
+  letter,
+  color,
+  days,
+  name,
+}: {
+  letter: string;
+  color: string;
+  days: number;
+  name: string;
+}) {
   return (
     <Row
-      gap={spacing.xs}
+      gap={6}
       style={{
-        paddingHorizontal: 10,
+        paddingRight: spacing.md,
+        paddingLeft: 4,
         paddingVertical: 4,
         borderRadius: radius.pill,
-        backgroundColor: colors.bgRaised,
-        borderWidth: 1,
-        borderColor: colors.primarySoft,
+        backgroundColor: `${color}18`,
       }}
     >
-      <Icon icon={Fire03Icon} size={16} color={colors.primary} />
-      <Typography variant="caption" color={colors.primary} style={{ fontFamily: fonts.bodyBold }}>
-        {days}
+      <Avatar color={color} letter={letter} size={22} ring={false} />
+      <Typography
+        style={{
+          fontFamily: fonts.bodyBold,
+          fontSize: 12,
+          lineHeight: 14,
+          color,
+        }}
+      >
+        {name} · {days}
       </Typography>
     </Row>
-  );
-}
-
-function Avatar({ color, letter }: { color: string; letter: string }) {
-  return (
-    <View
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: radius.pill,
-        backgroundColor: color,
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 2,
-        borderColor: colors.card,
-      }}
-    >
-      <Typography color={colors.onPrimary} style={{ fontFamily: fonts.bodyBold }}>
-        {letter}
-      </Typography>
-    </View>
   );
 }

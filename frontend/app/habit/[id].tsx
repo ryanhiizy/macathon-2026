@@ -12,7 +12,7 @@ import {
   Camera01Icon,
   Edit02Icon,
 } from "@hugeicons/core-free-icons";
-import { Screen, Card, Row, Stack } from "@/components/layout";
+import { Screen, Card, Row } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { CoachInsightCard } from "@/components/CoachInsightCard";

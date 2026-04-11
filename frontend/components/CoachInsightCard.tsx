@@ -170,7 +170,7 @@ export function CoachInsightTeaser({ habitId, habitName, onPress }: CompactProps
     }
     load();
     return () => { cancelled = true; };
-  }, [habitId, habitName]);
+  }, [fadeAnim, habitId, habitName]);
 
   async function dismiss() {
     await AsyncStorage.setItem(getDismissKey("teaser"), "1");
@@ -291,7 +291,7 @@ export function CoachInsightCard({ habitId, habitName, userId, serverUrl }: Deta
 
     load();
     return () => { cancelled = true; };
-  }, [habitId, userId, serverUrl, habitName]);
+  }, [fadeAnim, habitId, userId, serverUrl, habitName]);
 
   async function dismiss() {
     await AsyncStorage.setItem(getDismissKey(habitId), "1");

@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   useFonts,
   Merriweather_400Regular_Italic,
@@ -53,11 +54,46 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
-    <ThemeProvider value={navigationTheme}>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <ThemeProvider value={navigationTheme}>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.bg },
+            animation: "slide_from_right",
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="create-habit"
+            options={{ presentation: "modal", animation: "slide_from_bottom" }}
+          />
+          <Stack.Screen
+            name="create-circle"
+            options={{ presentation: "modal", animation: "slide_from_bottom" }}
+          />
+          <Stack.Screen
+            name="camera/[id]"
+            options={{
+              animation: "slide_from_bottom",
+              animationDuration: 260,
+            }}
+          />
+          <Stack.Screen
+            name="group-camera/[id]"
+            options={{
+              animation: "slide_from_bottom",
+              animationDuration: 260,
+            }}
+          />
+          <Stack.Screen
+            name="invite/[id]"
+            options={{ presentation: "modal", animation: "slide_from_bottom" }}
+          />
+          <Stack.Screen name="circle/[id]" />
+        </Stack>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
