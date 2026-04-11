@@ -46,8 +46,17 @@ def build_prompt_instruction(habit: str, participant_count: int) -> str:
         "Prioritize prompts that are easy to verify from a single image using clear visible cues. "
         "Good cues include obvious hand gestures (peace sign, thumbs up, fist bump), visible objects (water bottle, book, dumbbell, running shoes), or simple pose/action signals (pointing at the habit item, group huddle, synchronized pose). "
         "Avoid hard-to-verify or ambiguous requests such as subtle motion states, implied context, or details that are often out of frame. "
-        "For solo prompts require one obvious cue; for group prompts require a shared cue that multiple people can do together."
+        "For solo prompts require one obvious cue; for group prompts require a shared cue that multiple people can do together. "
+        "Keep it short for mobile UI: 6-10 words, one sentence, no extra clauses."
     )
+
+
+def normalize_prompt_text(prompt_text: str) -> str:
+    compact = " ".join(prompt_text.strip().split())
+    words = compact.split(" ") if compact else []
+    if len(words) > 10:
+        compact = " ".join(words[:10]).rstrip(".,;:!?")
+    return compact
 
 
 def parse_prompt_payload(raw_text: str) -> str:
@@ -55,16 +64,17 @@ def parse_prompt_payload(raw_text: str) -> str:
     prompt_text = data.get("prompt_text")
     if not isinstance(prompt_text, str) or not prompt_text.strip():
         raise PromptProviderError("Prompt provider returned invalid prompt_text")
-    return prompt_text.strip()
+    normalized = normalize_prompt_text(prompt_text)
+    if not normalized:
+        raise PromptProviderError("Prompt provider returned empty prompt_text")
+    return normalized
 
 
 def fallback_prompt(habit: str, participant_count: int) -> str:
     normalized_habit = habit.strip().lower() or "your habit"
     if participant_count > 1:
-        return (
-            f"Take a group photo while doing {normalized_habit}, and have everyone strike a different pose that shows how they tackle it."
-        )
-    return f"Take a photo of yourself doing {normalized_habit} with one playful detail in frame that shows your mood today."
+        return normalize_prompt_text(f"Group pose doing {normalized_habit} with matching thumbs up.")
+    return normalize_prompt_text(f"Show {normalized_habit} with a peace sign and big smile.")
 
 
 def build_verification_instruction(prompt_text: str, participant_count: int) -> str:
