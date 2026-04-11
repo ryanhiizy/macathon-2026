@@ -13,13 +13,15 @@ import MaskedView from "@react-native-masked-view/masked-view";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { Typography } from "@/components/typography";
 import { pickPhoto } from "@/lib/mock";
+import type { ImageSource } from "expo-image";
 
 type Props = {
-  photoIdxs: number[];
+  photoIdxs?: number[];
+  photos?: ImageSource[];
   overlay?: ReactNode;
 };
 
-export function PhotoCarousel({ photoIdxs, overlay }: Props) {
+export function PhotoCarousel({ photoIdxs, photos, overlay }: Props) {
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState(0);
 
@@ -31,11 +33,12 @@ export function PhotoCarousel({ photoIdxs, overlay }: Props) {
     if (i !== active) setActive(i);
   };
 
-  const multi = photoIdxs.length > 1;
+  const sources: ImageSource[] = photos ?? (photoIdxs ?? [0]).map((i) => pickPhoto(i));
+  const multi = sources.length > 1;
 
   const dots = multi ? (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      {photoIdxs.map((_, i) => (
+      {sources.map((_, i) => (
         <View
           key={i}
           style={{
@@ -81,7 +84,7 @@ export function PhotoCarousel({ photoIdxs, overlay }: Props) {
     </View>
   ) : null;
 
-  if (photoIdxs.length === 1) {
+  if (sources.length <= 1) {
     return (
       <View
         style={{
@@ -91,7 +94,7 @@ export function PhotoCarousel({ photoIdxs, overlay }: Props) {
         }}
       >
         <Image
-          source={pickPhoto(photoIdxs[0])}
+          source={sources[0]}
           style={{ width: "100%", aspectRatio: 1 }}
           contentFit="cover"
           transition={240}
@@ -118,10 +121,10 @@ export function PhotoCarousel({ photoIdxs, overlay }: Props) {
           onScroll={onScroll}
           scrollEventThrottle={16}
         >
-          {photoIdxs.map((idx, i) => (
+          {sources.map((src, i) => (
             <Image
               key={i}
-              source={pickPhoto(idx)}
+              source={src}
               style={{ width, aspectRatio: 1 }}
               contentFit="cover"
               transition={240}
@@ -145,7 +148,7 @@ export function PhotoCarousel({ photoIdxs, overlay }: Props) {
           color={colors.bg}
           style={{ fontFamily: fonts.bodyBold, fontSize: 11, lineHeight: 14 }}
         >
-          {active + 1} / {photoIdxs.length}
+          {active + 1} / {sources.length}
         </Typography>
       </View>
     </View>
