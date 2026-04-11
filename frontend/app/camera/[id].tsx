@@ -102,7 +102,16 @@ export default function CameraScreen() {
             >
               <Icon icon={Cancel01Icon} size={20} color={colors.bg} />
             </AnimatedPress>
-            <Stack gap={2} style={{ alignItems: "center" }}>
+            <Stack
+              gap={2}
+              style={{
+                alignItems: "center",
+                backgroundColor: colors.black + "80",
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.xs,
+                borderRadius: radius.pill,
+              }}
+            >
               <Typography
                 color={colors.bg}
                 style={{ fontFamily: fonts.heading, fontSize: 17, lineHeight: 22 }}
@@ -114,7 +123,6 @@ export default function CameraScreen() {
                 <Typography
                   variant="metaItalic"
                   color={colors.bg}
-                  style={{ opacity: 0.85 }}
                 >
                   Ends in 42 min
                 </Typography>

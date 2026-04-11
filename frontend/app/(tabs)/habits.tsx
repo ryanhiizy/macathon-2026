@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Easing, View } from "react-native";
 import { useRouter } from "expo-router";
 import Svg, { Circle } from "react-native-svg";
 import {
   Camera01Icon,
+  Fire02Icon,
   PlusSignIcon,
   Tick02Icon,
   UserAdd01Icon,
@@ -14,7 +15,7 @@ import { Icon } from "@/components/icon";
 import { Divider, Row, Screen, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { WEEK_DAYS } from "@/lib/mock";
-import { fetchHabits, type HabitView } from "@/lib/habits";
+import { fetchHabits, generateMockHabits, type HabitView } from "@/lib/habits";
 import { ensureTestSession } from "@/lib/supabase";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 
@@ -55,6 +56,52 @@ function getTimeOfDay(time: string): TimeOfDay {
   return "evening";
 }
 
+const DUE_SOON_MINUTES = 30;
+
+type Urgency = {
+  dueSoon: boolean;
+  overdue: boolean;
+  label: string | null;
+  color: string | null;
+};
+
+function minutesUntilDue(targetTime: string): number | null {
+  const parts = targetTime.split(":").map(Number);
+  if (parts.length < 2) return null;
+  const [h, m] = parts;
+  const now = new Date();
+  const targetMinutes = h * 60 + m;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return targetMinutes - nowMinutes;
+}
+
+function getUrgency(habit: HabitView): Urgency {
+  if (habit.done) {
+    return { dueSoon: false, overdue: false, label: null, color: null };
+  }
+  const diff = minutesUntilDue(habit.targetTime);
+  if (diff === null) {
+    return { dueSoon: false, overdue: false, label: null, color: null };
+  }
+  if (diff > 0 && diff <= DUE_SOON_MINUTES) {
+    return {
+      dueSoon: true,
+      overdue: false,
+      label: `${diff}m left`,
+      color: colors.warning,
+    };
+  }
+  if (diff < 0 && diff >= -60) {
+    return {
+      dueSoon: false,
+      overdue: true,
+      label: "Overdue",
+      color: colors.danger,
+    };
+  }
+  return { dueSoon: false, overdue: false, label: null, color: null };
+}
+
 export default function Habits() {
   const router = useRouter();
   const [habits, setHabits] = useState<HabitView[]>([]);
@@ -64,7 +111,7 @@ export default function Habits() {
     setLoading(true);
     await ensureTestSession();
     const data = await fetchHabits();
-    setHabits(data);
+    setHabits([...data, ...generateMockHabits()]);
     setLoading(false);
   }, []);
 
@@ -206,7 +253,7 @@ export default function Habits() {
                 style={{
                   width: "100%",
                   aspectRatio: 1,
-                  borderRadius: radius.sm,
+                  borderRadius: radius.pill,
                   backgroundColor: day.done ? colors.primary : colors.bgRaised,
                   alignItems: "center",
                   justifyContent: "center",
@@ -272,17 +319,19 @@ export default function Habits() {
                 </Row>
                 <Divider />
                 <Stack gap={0}>
-                  {items.map((habit, index) => (
-                    <View key={habit.id}>
-                      <HabitRow
-                        habit={habit}
-                        onOpen={() => router.push(`/habit/${habit.id}`)}
-                        onInvite={() => router.push(`/invite/${habit.id}`)}
-                        onProve={() => router.push(`/camera/${habit.id}`)}
-                      />
-                      {index < items.length - 1 && <Divider />}
-                    </View>
-                  ))}
+                  {items.map((habit) => {
+                    const urgency = getUrgency(habit);
+                    return (
+                    <HabitRow
+                      key={habit.id}
+                      habit={habit}
+                      urgency={urgency}
+                      onOpen={() => router.push(`/habit/${habit.id}`)}
+                      onInvite={() => router.push(`/invite/${habit.id}`)}
+                      onProve={() => router.push(`/camera/${habit.id}`)}
+                    />
+                    );
+                  })}
                 </Stack>
               </Stack>
             );
@@ -329,19 +378,56 @@ function ProgressRing({ progress }: { progress: number }) {
   );
 }
 
+function PulsingDot({ color }: { color: string }) {
+  const anim = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0.4, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [anim]);
+
+  return (
+    <Animated.View
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: color,
+        opacity: anim,
+      }}
+    />
+  );
+}
+
 function HabitRow({
   habit,
+  urgency,
   onOpen,
   onInvite,
   onProve,
 }: {
   habit: HabitView;
+  urgency: Urgency;
   onOpen: () => void;
   onInvite: () => void;
   onProve: () => void;
 }) {
+  const urgent = urgency.dueSoon || urgency.overdue;
+  const urgentColor = urgency.color ?? colors.fg;
+
   return (
-    <View style={{ paddingVertical: spacing.md, opacity: habit.done ? 0.62 : 1 }}>
+    <View
+      style={{
+        paddingVertical: spacing.md,
+        opacity: habit.done ? 0.62 : 1,
+      }}
+    >
       <Row gap={spacing.md} style={{ justifyContent: "space-between" }}>
         <AnimatedPress onPress={onOpen} haptic={false} style={{ flex: 1 }}>
           <Row gap={spacing.md} style={{ flex: 1 }}>
@@ -358,26 +444,61 @@ function HabitRow({
               <Icon icon={habit.icon} size={24} color={habit.accent} strokeWidth={1.8} />
             </View>
             <Stack gap={4} style={{ flex: 1 }}>
-              <Typography
-                style={{
-                  fontFamily: fonts.heading,
-                  fontSize: 17,
-                  lineHeight: 22,
-                  color: colors.fg,
-                  textDecorationLine: habit.done ? "line-through" : "none",
-                }}
-              >
-                {habit.name}
-              </Typography>
-              {habit.done ? (
-                <Typography variant="metaItalic" color={colors.success}>
-                  Kept today · streak {habit.streak}
+              <Row gap={spacing.sm} style={{ alignItems: "center" }}>
+                <Typography
+                  style={{
+                    fontFamily: fonts.heading,
+                    fontSize: 17,
+                    lineHeight: 22,
+                    color: colors.fg,
+                    textDecorationLine: habit.done ? "line-through" : "none",
+                  }}
+                >
+                  {habit.name}
                 </Typography>
-              ) : (
-                <Typography variant="metaItalic">
-                  {habit.time} · streak {habit.streak}
+                {urgent && urgency.label && (
+                  <Row
+                    gap={4}
+                    style={{
+                      alignItems: "center",
+                      backgroundColor: urgentColor + "1a",
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: radius.pill,
+                    }}
+                  >
+                    <PulsingDot color={urgentColor} />
+                    <Typography
+                      style={{
+                        fontFamily: fonts.bodySemibold,
+                        fontSize: 11,
+                        lineHeight: 14,
+                        color: urgentColor,
+                      }}
+                    >
+                      {urgency.label}
+                    </Typography>
+                  </Row>
+                )}
+              </Row>
+              <Row gap={spacing.sm} style={{ alignItems: "center" }}>
+                <Typography variant="metaItalic" color={habit.done ? colors.success : undefined}>
+                  {habit.done ? "Kept today" : habit.time}
                 </Typography>
-              )}
+                <Row gap={3} style={{ alignItems: "center" }}>
+                  <Icon icon={Fire02Icon} size={13} color={colors.danger} strokeWidth={1.8} />
+                  <Typography
+                    style={{
+                      fontFamily: fonts.bodySemibold,
+                      fontSize: 12,
+                      lineHeight: 16,
+                      color: colors.danger,
+                    }}
+                  >
+                    {habit.streak}
+                  </Typography>
+                </Row>
+              </Row>
             </Stack>
           </Row>
         </AnimatedPress>
@@ -417,7 +538,7 @@ function HabitRow({
                 paddingHorizontal: spacing.lg,
                 height: 40,
                 borderRadius: radius.pill,
-                backgroundColor: colors.fg,
+                backgroundColor: urgent ? urgentColor : colors.fg,
                 alignItems: "center",
                 justifyContent: "center",
                 flexDirection: "row",
