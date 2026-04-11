@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   useFonts,
   Merriweather_400Regular_Italic,
@@ -19,7 +20,12 @@ import { Text, View } from "react-native";
 import { type Session } from "@supabase/supabase-js";
 import { colors } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
-import { getDemoSession, onDemoAuthStateChange, signOutDemoUser, type DemoSession } from "@/lib/demo-auth";
+import {
+  getDemoSession,
+  onDemoAuthStateChange,
+  signOutDemoUser,
+  type DemoSession,
+} from "@/lib/demo-auth";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -70,7 +76,9 @@ export default function RootLayout() {
       })
       .catch((error: unknown) => {
         if (!isActive) return;
-        setAuthError(error instanceof Error ? error.message : "Failed to read the current auth session.");
+        setAuthError(
+          error instanceof Error ? error.message : "Failed to read the current auth session.",
+        );
         setAuthReady(true);
       });
 
@@ -130,30 +138,66 @@ export default function RootLayout() {
   if (!loaded || !authReady) return null;
 
   return (
-    <ThemeProvider value={navigationTheme}>
-      <StatusBar style="dark" />
-      {authError ? (
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: colors.bg,
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 24,
-          }}
-        >
-          <Text style={{ color: colors.fg, fontSize: 18, textAlign: "center" }}>{authError}</Text>
-        </View>
-      ) : (
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-          <Stack.Screen name="auth/index" />
-          <Stack.Screen name="auth/login" />
-          <Stack.Screen name="auth/signup" />
-          <Stack.Screen name="auth/check-email" />
-          <Stack.Screen name="auth/callback" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-      )}
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <ThemeProvider value={navigationTheme}>
+        <StatusBar style="dark" />
+        {authError ? (
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colors.bg,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 24,
+            }}
+          >
+            <Text style={{ color: colors.fg, fontSize: 18, textAlign: "center" }}>{authError}</Text>
+          </View>
+        ) : (
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.bg },
+              animation: "slide_from_right",
+            }}
+          >
+            <Stack.Screen name="auth/index" />
+            <Stack.Screen name="auth/login" />
+            <Stack.Screen name="auth/signup" />
+            <Stack.Screen name="auth/check-email" />
+            <Stack.Screen name="auth/callback" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="create-habit"
+              options={{ presentation: "modal", animation: "slide_from_bottom" }}
+            />
+            <Stack.Screen
+              name="create-circle"
+              options={{ presentation: "modal", animation: "slide_from_bottom" }}
+            />
+            <Stack.Screen
+              name="camera/[id]"
+              options={{
+                animation: "slide_from_bottom",
+                animationDuration: 260,
+              }}
+            />
+            <Stack.Screen
+              name="group-camera/[id]"
+              options={{
+                animation: "slide_from_bottom",
+                animationDuration: 260,
+              }}
+            />
+            <Stack.Screen
+              name="invite/[id]"
+              options={{ presentation: "modal", animation: "slide_from_bottom" }}
+            />
+            <Stack.Screen name="circle/[id]" />
+            <Stack.Screen name="habit/[id]" />
+          </Stack>
+        )}
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
