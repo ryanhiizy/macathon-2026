@@ -1,132 +1,133 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { router } from "expo-router";
+import { Image } from "expo-image";
 import {
   Search01Icon,
   PlusSignIcon,
-  Fire03Icon,
-  RunningShoesIcon,
-  DropletIcon,
-  Yoga01Icon,
 } from "@hugeicons/core-free-icons";
-import { Screen, Card, Row, Stack } from "@/components/layout";
+import { Screen, Row, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { Icon } from "@/components/icon";
-import { colors, radius, spacing, fonts } from "@/lib/theme";
-
-type Circle = {
-  id: string;
-  name: string;
-  members: number;
-  streak: number;
-  icon: typeof RunningShoesIcon;
-  accent: string;
-};
-
-const CIRCLES: Circle[] = [
-  { id: "1", name: "5K Every Day", members: 142, streak: 12, icon: RunningShoesIcon, accent: colors.orange },
-  { id: "2", name: "Hydration Club", members: 89, streak: 5, icon: DropletIcon, accent: colors.cyan },
-  { id: "3", name: "Morning Flow", members: 47, streak: 23, icon: Yoga01Icon, accent: colors.purple },
-];
+import { AnimatedPress } from "@/components/animated-press";
+import { StreakFlame } from "@/components/streak-flame";
+import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
+import { CIRCLES, pickPhoto, type CircleRow } from "@/lib/mock";
 
 export default function Circles() {
-  return (
-    <Screen>
-      <Row style={{ justifyContent: "space-between" }}>
-        <Pressable
+  const header = (
+    <Row style={{ justifyContent: "space-between" }}>
+      <AnimatedPress
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: radius.pill,
+          backgroundColor: colors.bgRaised,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon icon={Search01Icon} size={20} color={colors.fg} strokeWidth={1.8} />
+      </AnimatedPress>
+      <Stack gap={0} style={{ alignItems: "center" }}>
+        <Typography
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: radius.pill,
-            backgroundColor: colors.card,
-            borderWidth: 1,
-            borderColor: colors.border,
-            alignItems: "center",
-            justifyContent: "center",
+            fontFamily: fonts.heading,
+            fontSize: 28,
+            lineHeight: 32,
+            color: colors.fg,
           }}
         >
-          <Icon icon={Search01Icon} size={22} color={colors.fg} />
-        </Pressable>
-        <Typography style={{ fontFamily: fonts.heading, fontSize: 28, color: colors.fg }}>
           Circles
         </Typography>
-        <Pressable
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: radius.pill,
-            backgroundColor: colors.primary,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon icon={PlusSignIcon} size={22} color={colors.onPrimary} />
-        </Pressable>
-      </Row>
+        <Typography variant="metaItalic">{CIRCLES.length} joined</Typography>
+      </Stack>
+      <AnimatedPress
+        onPress={() => router.push("/create-circle")}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: radius.pill,
+          backgroundColor: colors.fg,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon icon={PlusSignIcon} size={22} color={colors.bg} strokeWidth={2.2} />
+      </AnimatedPress>
+    </Row>
+  );
 
-      <Stack gap={spacing.md}>
-        {CIRCLES.map((circle) => (
-          <CircleCard key={circle.id} circle={circle} />
+  return (
+    <Screen stickyHeader={header}>
+      <Stack gap={spacing.xxl}>
+        {CIRCLES.map((circle, i) => (
+          <CircleRowView key={circle.id} circle={circle} index={i} />
         ))}
       </Stack>
     </Screen>
   );
 }
 
-function CircleCard({ circle }: { circle: Circle }) {
+function CircleRowView({ circle, index }: { circle: CircleRow; index: number }) {
   return (
-    <Card>
-      <Row gap={spacing.md}>
+    <AnimatedPress
+      onPress={() => router.push(`/circle/${circle.id}`)}
+      haptic="light"
+      scale={0.98}
+      style={{ gap: spacing.md }}
+    >
+      <Row gap={spacing.md} style={{ alignItems: "center" }}>
         <View
           style={{
-            width: 56,
-            height: 56,
+            width: 60,
+            height: 60,
             borderRadius: radius.md,
-            backgroundColor: colors.bgRaised,
+            backgroundColor: tintFor(circle.accent),
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon icon={circle.icon} size={30} color={circle.accent} />
+          <Icon icon={circle.icon} size={30} color={circle.accent} strokeWidth={1.8} />
         </View>
-        <Stack gap={spacing.xs} style={{ flex: 1 }}>
-          <Typography variant="label">{circle.name}</Typography>
-          <Row gap={spacing.sm}>
-            <Typography variant="caption">{circle.members} members</Typography>
-            <Typography variant="caption">·</Typography>
-            <Row gap={spacing.xs}>
-              <Icon icon={Fire03Icon} size={14} color={colors.primary} />
-              <Typography variant="caption" color={colors.primary} style={{ fontFamily: fonts.bodyBold }}>
-                {circle.streak}
-              </Typography>
-            </Row>
-          </Row>
+        <Stack gap={4} style={{ flex: 1 }}>
+          <Typography
+            style={{
+              fontFamily: fonts.heading,
+              fontSize: 20,
+              lineHeight: 24,
+              color: colors.fg,
+            }}
+          >
+            {circle.name}
+          </Typography>
+          <Typography variant="metaItalic">
+            {circle.members} members · your streak {circle.streak}
+          </Typography>
         </Stack>
+        <StreakFlame days={circle.streak} />
       </Row>
+
       <Row gap={spacing.sm}>
-        {[colors.orange, colors.green, colors.blue, colors.purple].map((c, i) => (
+        {[0, 1, 2, 3].map((j) => (
           <View
-            key={i}
+            key={j}
             style={{
               flex: 1,
               aspectRatio: 1,
               borderRadius: radius.sm,
-              backgroundColor: colors.ui,
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: colors.border,
+              overflow: "hidden",
+              backgroundColor: colors.bgSunk,
             }}
           >
-            <View
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: radius.pill,
-                backgroundColor: c,
-              }}
+            <Image
+              source={pickPhoto(index * 2 + j)}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+              transition={300}
             />
           </View>
         ))}
       </Row>
-    </Card>
+    </AnimatedPress>
   );
 }

@@ -42,6 +42,7 @@ class PromptVerificationServerTests(unittest.TestCase):
         payload = response.json()
         self.assertIn("prompt_text", payload)
         self.assertIn("id", payload)
+        self.assertEqual(payload["source"], "fallback")
 
     def test_generate_prompt_falls_back_when_provider_errors(self) -> None:
         with patch.dict(
@@ -66,6 +67,7 @@ class PromptVerificationServerTests(unittest.TestCase):
         self.assertIn("prompt_text", payload)
         self.assertTrue(payload["prompt_text"])
         self.assertIn("id", payload)
+        self.assertEqual(payload["source"], "fallback")
 
     def test_verify_photo_rejects_non_image_uploads(self) -> None:
         response = self.client.post(
@@ -97,6 +99,7 @@ class PromptVerificationServerTests(unittest.TestCase):
         self.assertIn("passed", payload)
         self.assertIn("reason", payload)
         self.assertIn("comment", payload)
+        self.assertEqual(payload["source"], "fallback")
 
     def test_verify_photo_falls_back_when_provider_errors(self) -> None:
         with patch.dict(
@@ -119,6 +122,7 @@ class PromptVerificationServerTests(unittest.TestCase):
         self.assertIn("passed", payload)
         self.assertIn("reason", payload)
         self.assertIn("comment", payload)
+        self.assertEqual(payload["source"], "fallback")
 
 
 if __name__ == "__main__":
