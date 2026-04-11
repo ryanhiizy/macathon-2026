@@ -1,4 +1,5 @@
-import { Pressable, View } from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import { Pressable, View, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft01Icon,
@@ -8,12 +9,7 @@ import {
   Cancel01Icon,
   Calendar03Icon,
   Clock01Icon,
-  UserMultiple02Icon,
   Camera01Icon,
-  SunriseIcon,
-  DropletIcon,
-  BookOpen01Icon,
-  Yoga01Icon,
   Edit02Icon,
 } from "@hugeicons/core-free-icons";
 import { Screen, Card, Row, Stack } from "@/components/layout";
@@ -21,126 +17,78 @@ import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { CoachInsightCard } from "@/components/CoachInsightCard";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
-
-// ── mock data (same source as habits tab for now) ──────────────────────
-
-type HabitData = {
-  id: string;
-  name: string;
-  icon: typeof SunriseIcon;
-  accent: string;
-  streak: number;
-  bestStreak: number;
-  time: string;
-  category: string;
-  frequency: string;
-  completionRate: number;
-  totalCompleted: number;
-  totalScheduled: number;
-  history: { day: string; done: boolean }[];
-};
-
-const HABITS_MAP: Record<string, HabitData> = {
-  "1": {
-    id: "1",
-    name: "Morning walk",
-    icon: SunriseIcon,
-    accent: colors.orange,
-    streak: 12,
-    bestStreak: 18,
-    time: "7:00 AM",
-    category: "fitness",
-    frequency: "Daily",
-    completionRate: 0.85,
-    totalCompleted: 24,
-    totalScheduled: 28,
-    history: [
-      { day: "Mon", done: true },
-      { day: "Tue", done: true },
-      { day: "Wed", done: true },
-      { day: "Thu", done: false },
-      { day: "Fri", done: true },
-      { day: "Sat", done: true },
-      { day: "Sun", done: true },
-    ],
-  },
-  "2": {
-    id: "2",
-    name: "Drink water",
-    icon: DropletIcon,
-    accent: colors.cyan,
-    streak: 5,
-    bestStreak: 14,
-    time: "All day",
-    category: "health",
-    frequency: "Daily",
-    completionRate: 0.71,
-    totalCompleted: 20,
-    totalScheduled: 28,
-    history: [
-      { day: "Mon", done: true },
-      { day: "Tue", done: false },
-      { day: "Wed", done: true },
-      { day: "Thu", done: true },
-      { day: "Fri", done: false },
-      { day: "Sat", done: true },
-      { day: "Sun", done: true },
-    ],
-  },
-  "3": {
-    id: "3",
-    name: "Meditate",
-    icon: Yoga01Icon,
-    accent: colors.purple,
-    streak: 23,
-    bestStreak: 23,
-    time: "8:30 AM",
-    category: "mindfulness",
-    frequency: "Daily",
-    completionRate: 0.93,
-    totalCompleted: 26,
-    totalScheduled: 28,
-    history: [
-      { day: "Mon", done: true },
-      { day: "Tue", done: true },
-      { day: "Wed", done: true },
-      { day: "Thu", done: true },
-      { day: "Fri", done: true },
-      { day: "Sat", done: false },
-      { day: "Sun", done: true },
-    ],
-  },
-  "4": {
-    id: "4",
-    name: "Read 10 pages",
-    icon: BookOpen01Icon,
-    accent: colors.green,
-    streak: 3,
-    bestStreak: 9,
-    time: "9:00 PM",
-    category: "learning",
-    frequency: "Daily",
-    completionRate: 0.57,
-    totalCompleted: 16,
-    totalScheduled: 28,
-    history: [
-      { day: "Mon", done: false },
-      { day: "Tue", done: true },
-      { day: "Wed", done: false },
-      { day: "Thu", done: true },
-      { day: "Fri", done: false },
-      { day: "Sat", done: true },
-      { day: "Sun", done: true },
-    ],
-  },
-};
+import { fetchHabitDetail, type HabitDetailView } from "@/lib/habits";
+import { ensureTestSession } from "@/lib/supabase";
 
 export default function HabitDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const habit = HABITS_MAP[id ?? "1"];
+  const [habit, setHabit] = useState<HabitDetailView | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!habit) return null;
+  const load = useCallback(async () => {
+    if (!id) return;
+    await ensureTestSession();
+    const data = await fetchHabitDetail(id);
+    setHabit(data);
+    setLoading(false);
+  }, [id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <Screen>
+        <Row>
+          <Pressable
+            onPress={() => router.back()}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radius.pill,
+              backgroundColor: colors.ui,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon icon={ArrowLeft01Icon} size={20} color={colors.fg} />
+          </Pressable>
+        </Row>
+        <View style={{ alignItems: "center", paddingTop: spacing.xxl }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!habit) {
+    return (
+      <Screen>
+        <Row>
+          <Pressable
+            onPress={() => router.back()}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radius.pill,
+              backgroundColor: colors.ui,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon icon={ArrowLeft01Icon} size={20} color={colors.fg} />
+          </Pressable>
+        </Row>
+        <Card>
+          <Typography variant="caption" style={{ textAlign: "center" }}>
+            Habit not found.
+          </Typography>
+        </Card>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -234,8 +182,8 @@ export default function HabitDetail() {
         <Eyebrow style={{ marginBottom: spacing.md }}>This week</Eyebrow>
         <Card>
           <Row style={{ justifyContent: "space-between" }}>
-            {habit.history.map((day) => (
-              <View key={day.day} style={{ alignItems: "center", gap: spacing.xs }}>
+            {habit.history.map((day, i) => (
+              <View key={i} style={{ alignItems: "center", gap: spacing.xs }}>
                 <Typography variant="caption" style={{ fontFamily: fonts.bodyMedium }}>
                   {day.day}
                 </Typography>

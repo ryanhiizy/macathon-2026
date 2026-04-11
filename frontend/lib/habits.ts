@@ -58,12 +58,12 @@ const CATEGORY_MAP: Record<string, { icon: typeof SunriseIcon; accent: string }>
 
 const DEFAULT_CATEGORY = { icon: SunriseIcon, accent: colors.primary };
 
-function categoryMeta(category: string) {
+export function categoryMeta(category: string) {
   return CATEGORY_MAP[category] ?? DEFAULT_CATEGORY;
 }
 
 /** Format a DB time string (HH:MM:SS) into "7:00 AM". */
-function formatTime(dbTime: string): string {
+export function formatTime(dbTime: string): string {
   const [h, m] = dbTime.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour12 = h % 12 || 12;
@@ -134,6 +134,109 @@ export async function fetchHabits(userId: string = getTestUserId()): Promise<Hab
       circleId: h.circle_id,
     };
   });
+}
+
+/** Extended view for the habit detail page. */
+export type HabitDetailView = HabitView & {
+  bestStreak: number;
+  frequency: string;
+  completionRate: number;
+  totalCompleted: number;
+  totalScheduled: number;
+  history: { day: string; done: boolean }[];
+};
+
+/**
+ * Fetch a single habit by ID with detail stats for the detail page.
+ */
+export async function fetchHabitDetail(
+  habitId: string,
+  userId: string = getTestUserId()
+): Promise<HabitDetailView | null> {
+  const { data: habit, error } = await supabase
+    .from("habits")
+    .select("*")
+    .eq("id", habitId)
+    .single();
+
+  if (error || !habit) {
+    console.warn("[habits] detail fetch error:", error?.message);
+    return null;
+  }
+
+  const h = habit as DbHabit;
+  const meta = categoryMeta(h.category);
+
+  // Streak
+  const { data: member } = await supabase
+    .from("circle_members")
+    .select("current_streak, best_streak")
+    .eq("circle_id", h.circle_id)
+    .eq("user_id", userId)
+    .single();
+
+  const currentStreak = member?.current_streak ?? 0;
+  const bestStreak = member?.best_streak ?? 0;
+
+  // Today's status
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: todayInstance } = await supabase
+    .from("habit_instances")
+    .select("status")
+    .eq("habit_id", habitId)
+    .gte("scheduled_for", `${today}T00:00:00`)
+    .lt("scheduled_for", `${today}T23:59:59`)
+    .limit(1)
+    .single();
+
+  // Last 30 days instances for stats
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const { data: instances } = await supabase
+    .from("habit_instances")
+    .select("status, scheduled_for")
+    .eq("habit_id", habitId)
+    .gte("scheduled_for", cutoff.toISOString())
+    .order("scheduled_for", { ascending: true });
+
+  const allInstances = instances ?? [];
+  const totalScheduled = allInstances.length;
+  const totalCompleted = allInstances.filter((i) => i.status === "verified").length;
+  const completionRate = totalScheduled > 0 ? totalCompleted / totalScheduled : 0;
+
+  // This week history (last 7 days)
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const history: { day: string; done: boolean }[] = [];
+  for (let d = 6; d >= 0; d--) {
+    const date = new Date();
+    date.setDate(date.getDate() - d);
+    const dateStr = date.toISOString().slice(0, 10);
+    const instance = allInstances.find((i) =>
+      i.scheduled_for.startsWith(dateStr)
+    );
+    history.push({
+      day: dayNames[date.getDay()],
+      done: instance?.status === "verified",
+    });
+  }
+
+  return {
+    id: h.id,
+    name: h.name,
+    icon: meta.icon,
+    accent: meta.accent,
+    streak: currentStreak,
+    bestStreak,
+    time: formatTime(h.target_time),
+    done: todayInstance?.status === "verified",
+    category: h.category,
+    circleId: h.circle_id,
+    frequency: h.frequency === "daily" ? "Daily" : h.frequency,
+    completionRate,
+    totalCompleted,
+    totalScheduled,
+    history,
+  };
 }
 
 /**
