@@ -145,7 +145,10 @@ function AuthGate({ fontsLoaded }: { fontsLoaded: boolean }) {
               name="invite/[id]"
               options={{ presentation: "modal", animation: "slide_from_bottom" }}
             />
-            <Stack.Screen name="circle/[id]" />
+            <Stack.Screen
+              name="circle/[id]"
+              options={{ gestureEnabled: true, gestureDirection: "horizontal" }}
+            />
             <Stack.Screen name="habit/[id]" />
           </Stack>
         )}

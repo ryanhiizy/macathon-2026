@@ -2,6 +2,14 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+
+function goBack() {
+  if (router.canGoBack()) {
+    router.back();
+  } else {
+    router.replace("/(tabs)/circles");
+  }
+}
 import {
   ArrowLeft02Icon,
   Share01Icon,
@@ -67,7 +75,7 @@ export default function CircleDetail() {
       <Screen>
         <Row style={{ justifyContent: "space-between" }}>
           <AnimatedPress
-            onPress={() => router.back()}
+            onPress={goBack}
             style={{
               width: 44,
               height: 44,
@@ -92,7 +100,7 @@ export default function CircleDetail() {
     <Screen>
       <Row style={{ justifyContent: "space-between" }}>
         <AnimatedPress
-          onPress={() => router.back()}
+          onPress={goBack}
           style={{
             width: 44,
             height: 44,
