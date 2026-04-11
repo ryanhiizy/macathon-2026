@@ -36,6 +36,7 @@ export type HabitView = {
   accent: string;
   streak: number;
   time: string; // formatted, e.g. "7:00 AM"
+  targetTime: string; // raw HH:MM:SS from DB
   done: boolean;
   category: string;
   circleId: string;
@@ -57,6 +58,55 @@ const CATEGORY_MAP: Record<string, { icon: typeof SunriseIcon; accent: string }>
 };
 
 const DEFAULT_CATEGORY = { icon: SunriseIcon, accent: colors.primary };
+
+// ---------------------------------------------------------------------------
+// Mock habits — times are relative to "now" so every state is always visible
+// ---------------------------------------------------------------------------
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function offsetTime(minutesFromNow: number): string {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() + minutesFromNow);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+}
+
+function mockHabit(
+  id: string,
+  name: string,
+  icon: typeof SunriseIcon,
+  accent: string,
+  streak: number,
+  minutesFromNow: number,
+  done: boolean,
+  category: string,
+  circleId: string,
+): HabitView {
+  const targetTime = offsetTime(minutesFromNow);
+  return {
+    id,
+    name,
+    icon,
+    accent,
+    streak,
+    time: formatTime(targetTime),
+    targetTime,
+    done,
+    category,
+    circleId,
+  };
+}
+
+export function generateMockHabits(): HabitView[] {
+  return [
+    mockHabit("mock-done", "Morning walk", SunriseIcon, colors.orange, 12, -120, true, "morning", "mock-circle-1"),
+    mockHabit("mock-due-soon", "Meditate", Yoga01Icon, colors.purple, 23, 15, false, "meditation", "mock-circle-3"),
+    mockHabit("mock-overdue", "Drink water", DropletIcon, colors.cyan, 5, -20, false, "water", "mock-circle-4"),
+    mockHabit("mock-normal", "Read 10 pages", BookOpen01Icon, colors.blue, 3, 180, false, "reading", "mock-circle-2"),
+  ];
+}
 
 export function categoryMeta(category: string) {
   return CATEGORY_MAP[category] ?? DEFAULT_CATEGORY;
@@ -129,6 +179,7 @@ export async function fetchHabits(userId: string = getTestUserId()): Promise<Hab
       accent: meta.accent,
       streak: streakMap.get(h.circle_id) ?? 0,
       time: formatTime(h.target_time),
+      targetTime: h.target_time,
       done: statusMap.get(h.id) === "verified",
       category: h.category,
       circleId: h.circle_id,
@@ -228,6 +279,7 @@ export async function fetchHabitDetail(
     streak: currentStreak,
     bestStreak,
     time: formatTime(h.target_time),
+    targetTime: h.target_time,
     done: todayInstance?.status === "verified",
     category: h.category,
     circleId: h.circle_id,
