@@ -112,17 +112,7 @@ export default function Habits() {
             color: colors.fg,
           }}
         >
-          {greeting.label},{" "}
-          <Typography
-            style={{
-              fontFamily: fonts.heading,
-              fontSize: 32,
-              lineHeight: 38,
-              color: colors.primary,
-            }}
-          >
-            Budi
-          </Typography>
+          {greeting.label} check-in
         </Typography>
       </Stack>
       <AnimatedPress
@@ -177,13 +167,13 @@ export default function Habits() {
         </Stack>
       </Row>
 
-      {coachHabit && (
+      {coachHabit ? (
         <CoachInsightTeaser
           habitId={coachHabit.id}
           habitName={coachHabit.name}
           onPress={() => router.push(`/habit/${coachHabit.id}`)}
         />
-      )}
+      ) : null}
 
       <Stack gap={spacing.md}>
         <Row gap={spacing.sm} style={{ alignItems: "baseline", justifyContent: "space-between" }}>
@@ -212,9 +202,9 @@ export default function Habits() {
                   justifyContent: "center",
                 }}
               >
-                {day.done && (
+                {day.done ? (
                   <Icon icon={Tick02Icon} size={16} color={colors.onPrimary} strokeWidth={2.8} />
-                )}
+                ) : null}
               </View>
               <Typography variant="tiny" color={day.done ? colors.fg : colors.fgDim}>
                 {day.label}
@@ -280,7 +270,7 @@ export default function Habits() {
                         onInvite={() => router.push(`/invite/${habit.id}`)}
                         onProve={() => router.push(`/camera/${habit.id}`)}
                       />
-                      {index < items.length - 1 && <Divider />}
+                      {index < items.length - 1 ? <Divider /> : null}
                     </View>
                   ))}
                 </Stack>
@@ -321,9 +311,7 @@ function ProgressRing({ progress }: { progress: number }) {
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
-        originX={size / 2}
-        originY={size / 2}
-        rotation={-90}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
     </Svg>
   );
