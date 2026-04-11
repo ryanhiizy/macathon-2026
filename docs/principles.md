@@ -22,11 +22,14 @@ Demo loop first: notification fires → camera opens with prompt → photo taken
 - Strict RLS policies — permissive policies are fine for a 3-person demo
 - Error handling edge cases — surface errors as a toast and move on
 - Code organisation — messy code that runs beats clean code that doesn't
-- Test coverage — there are no tests, and that's fine
+- Broad test coverage — don't chase it during the hackathon
 - Plans workflow — write a plan if a feature is genuinely complex, skip it otherwise
 
 ## What still matters
 
 - `npx tsc --noEmit` should pass before you say a feature is done
 - The feature should actually run on the phone, not just compile
+- Use minimal TDD only when it buys real confidence
+- Critical paths, risky integrations, or contract-heavy behavior can justify a small smoke test or contract test
+- Do not default to broad test suites for every feature
 - `CLAUDE.md` and `AGENTS.md` mirror each other — update both when you change one
