@@ -32,38 +32,6 @@ export type PendingSignupDraft = {
 
 const PENDING_SIGNUP_KEY = "presence.pending-signup";
 
-// Dev-only: hardcoded test user. Main branch habit screens still depend on this.
-export const TEST_USER_EMAIL = "jacknguyen9605@gmail.com";
-export const TEST_USER_PASSWORD = "!Macathon2026";
-let testUserId = "bf770168-42eb-4b91-b141-81ecec8385ea";
-
-export function getTestUserId() {
-  return testUserId;
-}
-
-export async function ensureTestSession() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (session) {
-    testUserId = session.user.id;
-    return;
-  }
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: TEST_USER_EMAIL,
-    password: TEST_USER_PASSWORD,
-  });
-
-  if (error || !data.user) {
-    console.warn("[supabase] auth failed:", error?.message);
-    return;
-  }
-
-  testUserId = data.user.id;
-}
-
 export async function createSessionFromUrl(url: string): Promise<Session | null> {
   const params = extractParamsFromUrl(url);
   const authError = params.get("error_description") ?? params.get("error_code");

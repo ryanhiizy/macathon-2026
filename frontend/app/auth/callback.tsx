@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { Card, Screen, Stack } from "@/components/layout";
 import { Eyebrow, Typography } from "@/components/typography";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
-import { clearPendingSignupDraft, createSessionFromUrl, ensureProfile, loadPendingSignupDraft } from "@/lib/supabase";
+import { clearPendingSignupDraft, createSessionFromUrl, ensureProfile, loadPendingSignupDraft, supabase } from "@/lib/supabase";
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
@@ -24,10 +24,20 @@ export default function AuthCallbackScreen() {
           throw new Error("Missing auth callback URL. Re-open the magic link from your inbox.");
         }
 
-        const session = await createSessionFromUrl(incomingUrl);
+        // Try session from URL tokens first
+        let session = await createSessionFromUrl(incomingUrl);
+
+        // If no tokens in the URL, check if Supabase already picked up the session
+        // (e.g. via onAuthStateChange from the hash fragment)
+        if (!session) {
+          const { data } = await supabase.auth.getSession();
+          session = data.session;
+        }
 
         if (!session?.user) {
-          throw new Error("Magic link did not return a valid session.");
+          throw new Error(
+            "No valid session from the magic link. The link may have expired — request a new one.",
+          );
         }
 
         const pendingSignupDraft = await loadPendingSignupDraft();
@@ -49,7 +59,14 @@ export default function AuthCallbackScreen() {
       } catch (callbackError) {
         if (!isActive) return;
 
-        setError(callbackError instanceof Error ? callbackError.message : "Failed to finish sign-in.");
+        const message =
+          callbackError instanceof Error
+            ? callbackError.message
+            : typeof callbackError === "string"
+              ? callbackError
+              : "Failed to finish sign-in.";
+        console.warn("[auth/callback] error:", callbackError);
+        setError(message);
       }
     };
 
