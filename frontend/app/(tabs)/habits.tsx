@@ -1,4 +1,5 @@
-import { Pressable, View } from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import { Pressable, View, ActivityIndicator } from "react-native";
 import {
   PlusSignIcon,
   Camera01Icon,
@@ -6,9 +7,6 @@ import {
   Tick02Icon,
   Fire03Icon,
   SunriseIcon,
-  DropletIcon,
-  BookOpen01Icon,
-  Yoga01Icon,
 } from "@hugeicons/core-free-icons";
 import { useRouter } from "expo-router";
 import { Screen, Card, Row, Stack } from "@/components/layout";
@@ -16,37 +14,43 @@ import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { CoachInsightTeaser } from "@/components/CoachInsightCard";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
+import { fetchHabits, type HabitView } from "@/lib/habits";
+import { ensureTestSession } from "@/lib/supabase";
 import Svg, { Circle } from "react-native-svg";
-
-type Habit = {
-  id: string;
-  name: string;
-  icon: typeof SunriseIcon;
-  accent: string;
-  streak: number;
-  time: string;
-  done: boolean;
-};
-
-const HABITS: Habit[] = [
-  { id: "1", name: "Morning walk", icon: SunriseIcon, accent: colors.orange, streak: 12, time: "7:00 AM", done: true },
-  { id: "2", name: "Drink water", icon: DropletIcon, accent: colors.cyan, streak: 5, time: "All day", done: false },
-  { id: "3", name: "Meditate", icon: Yoga01Icon, accent: colors.purple, streak: 23, time: "8:30 AM", done: false },
-  { id: "4", name: "Read 10 pages", icon: BookOpen01Icon, accent: colors.green, streak: 3, time: "9:00 PM", done: false },
-];
 
 export default function Habits() {
   const router = useRouter();
-  const completed = HABITS.filter((h) => h.done).length;
-  const progress = completed / HABITS.length;
+  const [habits, setHabits] = useState<HabitView[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    await ensureTestSession();
+    const data = await fetchHabits();
+    setHabits(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const completed = habits.filter((h) => h.done).length;
+  const progress = habits.length > 0 ? completed / habits.length : 0;
+
+  const today = new Date();
+  const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+  const monthDay = today.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  // Pick the first habit with a streak for the coach teaser
+  const coachHabit = habits.find((h) => h.streak > 0) ?? habits[0];
 
   return (
     <Screen>
       <Row style={{ justifyContent: "space-between" }}>
         <View>
-          <Eyebrow>Thursday · Apr 11</Eyebrow>
+          <Eyebrow>{dayName} · {monthDay}</Eyebrow>
           <Typography style={{ fontFamily: fonts.heading, fontSize: 32, color: colors.fg, marginTop: 4 }}>
-            Morning, Budi
+            Your habits
           </Typography>
         </View>
         <Pressable
@@ -69,31 +73,45 @@ export default function Habits() {
             <ProgressRing progress={progress} />
             <View style={{ position: "absolute", alignItems: "center" }}>
               <Typography style={{ fontFamily: fonts.heading, fontSize: 22, color: colors.fg }}>
-                {completed}/{HABITS.length}
+                {completed}/{habits.length}
               </Typography>
             </View>
           </View>
           <Stack gap={spacing.xs} style={{ flex: 1 }}>
             <Eyebrow>Today&apos;s ring</Eyebrow>
             <Typography variant="label">
-              {HABITS.length - completed} habits left
+              {habits.length - completed} habits left
             </Typography>
             <Typography variant="caption">Keep going — you&apos;re on a roll.</Typography>
           </Stack>
         </Row>
       </Card>
 
-      <CoachInsightTeaser
-        habitId="3"
-        habitName="Meditate"
-        onPress={() => router.push("/habit/3")}
-      />
+      {coachHabit && (
+        <CoachInsightTeaser
+          habitId={coachHabit.id}
+          habitName={coachHabit.name}
+          onPress={() => router.push(`/habit/${coachHabit.id}`)}
+        />
+      )}
 
-      <Stack gap={spacing.md}>
-        {HABITS.map((habit) => (
-          <HabitCard key={habit.id} habit={habit} onPress={() => router.push(`/habit/${habit.id}`)} />
-        ))}
-      </Stack>
+      {loading ? (
+        <View style={{ alignItems: "center", paddingTop: spacing.xxl }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : habits.length === 0 ? (
+        <Card>
+          <Typography variant="caption" style={{ textAlign: "center" }}>
+            No habits yet. Tap + to create one.
+          </Typography>
+        </Card>
+      ) : (
+        <Stack gap={spacing.md}>
+          {habits.map((habit) => (
+            <HabitCard key={habit.id} habit={habit} onPress={() => router.push(`/habit/${habit.id}`)} />
+          ))}
+        </Stack>
+      )}
     </Screen>
   );
 }
@@ -134,10 +152,10 @@ function ProgressRing({ progress }: { progress: number }) {
   );
 }
 
-function HabitCard({ habit, onPress }: { habit: Habit; onPress?: () => void }) {
+function HabitCard({ habit, onPress }: { habit: HabitView; onPress?: () => void }) {
   return (
     <Pressable onPress={onPress}>
-    <Card style={habit.done && { backgroundColor: colors.ui, borderColor: colors.borderStrong }}>
+    <Card style={habit.done ? { backgroundColor: colors.ui, borderColor: colors.borderStrong } : undefined}>
       <Row style={{ justifyContent: "space-between" }}>
         <Row gap={spacing.md}>
           <View
@@ -153,7 +171,7 @@ function HabitCard({ habit, onPress }: { habit: Habit; onPress?: () => void }) {
             <Icon icon={habit.icon} size={26} color={habit.accent} />
           </View>
           <View>
-            <Typography variant="label" style={habit.done && { color: colors.fgMuted }}>
+            <Typography variant="label" style={habit.done ? { color: colors.fgMuted } : undefined}>
               {habit.name}
             </Typography>
             <Row gap={spacing.sm}>
