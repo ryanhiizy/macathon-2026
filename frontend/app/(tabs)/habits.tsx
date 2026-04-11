@@ -1,12 +1,13 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Pressable, View, ActivityIndicator } from "react-native";
+import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   PlusSignIcon,
   Camera01Icon,
   UserMultiple02Icon,
   Tick02Icon,
   Fire03Icon,
-  SunriseIcon,
 } from "@hugeicons/core-free-icons";
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
@@ -17,6 +18,7 @@ import { ensureTestSession } from "@/lib/supabase";
 import Svg, { Circle } from "react-native-svg";
 
 export default function Habits() {
+  const router = useRouter();
   const [habits, setHabits] = useState<HabitView[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,9 +29,12 @@ export default function Habits() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Fetch on mount + re-fetch when returning from the creation modal
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const completed = habits.filter((h) => h.done).length;
   const progress = habits.length > 0 ? completed / habits.length : 0;
@@ -48,6 +53,7 @@ export default function Habits() {
           </Typography>
         </View>
         <Pressable
+          onPress={() => router.push("/habits/new")}
           style={{
             width: 44,
             height: 44,
