@@ -4,11 +4,24 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field, field_validator
 
 from backend.config import get_settings
+from backend.services.coach import compute_habit_stats, generate_insight
 from backend.services.prompts import (
     PromptProviderError,
     generate_prompt,
     verify_photo,
 )
+
+
+class CoachInsightRequest(BaseModel):
+    user_id: str = Field(min_length=1)
+    habit_id: str = Field(min_length=1)
+
+
+class CoachInsightResponse(BaseModel):
+    headline: str
+    detail: str
+    habit_name: str
+    insight_type: str
 
 
 class GeneratePromptRequest(BaseModel):
@@ -102,4 +115,26 @@ def create_prompt(request: GeneratePromptRequest) -> GeneratePromptResponse:
     return GeneratePromptResponse(
         prompt_text=result.prompt_text,
         id=result.prompt_id,
+    )
+
+
+@app.post("/coach-insight", response_model=CoachInsightResponse)
+def get_coach_insight(request: CoachInsightRequest) -> CoachInsightResponse:
+    current_settings = get_settings()
+    if not current_settings.supabase_url or not current_settings.supabase_service_key:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+
+    try:
+        stats = compute_habit_stats(current_settings, request.user_id, request.habit_id)
+        insight = generate_insight(current_settings, stats)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"coach insight failed: {exc}") from exc
+
+    return CoachInsightResponse(
+        headline=insight.headline,
+        detail=insight.detail,
+        habit_name=insight.habit_name,
+        insight_type=insight.insight_type,
     )

@@ -10,9 +10,11 @@ import {
   BookOpen01Icon,
   Yoga01Icon,
 } from "@hugeicons/core-free-icons";
+import { useRouter } from "expo-router";
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
+import { CoachInsightTeaser } from "@/components/CoachInsightCard";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 import Svg, { Circle } from "react-native-svg";
 
@@ -34,6 +36,7 @@ const HABITS: Habit[] = [
 ];
 
 export default function Habits() {
+  const router = useRouter();
   const completed = HABITS.filter((h) => h.done).length;
   const progress = completed / HABITS.length;
 
@@ -80,9 +83,15 @@ export default function Habits() {
         </Row>
       </Card>
 
+      <CoachInsightTeaser
+        habitId="3"
+        habitName="Meditate"
+        onPress={() => router.push("/habit/3")}
+      />
+
       <Stack gap={spacing.md}>
         {HABITS.map((habit) => (
-          <HabitCard key={habit.id} habit={habit} />
+          <HabitCard key={habit.id} habit={habit} onPress={() => router.push(`/habit/${habit.id}`)} />
         ))}
       </Stack>
     </Screen>
@@ -125,8 +134,9 @@ function ProgressRing({ progress }: { progress: number }) {
   );
 }
 
-function HabitCard({ habit }: { habit: Habit }) {
+function HabitCard({ habit, onPress }: { habit: Habit; onPress?: () => void }) {
   return (
+    <Pressable onPress={onPress}>
     <Card style={habit.done && { backgroundColor: colors.ui, borderColor: colors.borderStrong }}>
       <Row style={{ justifyContent: "space-between" }}>
         <Row gap={spacing.md}>
@@ -207,5 +217,6 @@ function HabitCard({ habit }: { habit: Habit }) {
         )}
       </Row>
     </Card>
+    </Pressable>
   );
 }
