@@ -1,5 +1,4 @@
 import { Pressable, View } from "react-native";
-import { CircularProgress, Host } from "@expo/ui/swift-ui";
 import {
   PlusSignIcon,
   Camera01Icon,
@@ -15,6 +14,7 @@ import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
+import Svg, { Circle } from "react-native-svg";
 
 type Habit = {
   id: string;
@@ -63,9 +63,7 @@ export default function Habits() {
       <Card style={{ backgroundColor: colors.bgRaised, borderColor: colors.primarySoft }}>
         <Row gap={spacing.lg}>
           <View style={{ width: 90, height: 90, alignItems: "center", justifyContent: "center" }}>
-            <Host matchContents>
-              <CircularProgress progress={progress} color={colors.primary} />
-            </Host>
+            <ProgressRing progress={progress} />
             <View style={{ position: "absolute", alignItems: "center" }}>
               <Typography style={{ fontFamily: fonts.heading, fontSize: 22, color: colors.fg }}>
                 {completed}/{HABITS.length}
@@ -88,6 +86,42 @@ export default function Habits() {
         ))}
       </Stack>
     </Screen>
+  );
+}
+
+function ProgressRing({ progress }: { progress: number }) {
+  const size = 90;
+  const strokeWidth = 10;
+  const radiusValue = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radiusValue;
+  const safeProgress = Math.max(0, Math.min(progress, 1));
+  const strokeDashoffset = circumference * (1 - safeProgress);
+
+  return (
+    <Svg width={size} height={size}>
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radiusValue}
+        stroke={colors.border}
+        strokeWidth={strokeWidth}
+        fill="none"
+      />
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radiusValue}
+        stroke={colors.primary}
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={strokeDashoffset}
+        originX={size / 2}
+        originY={size / 2}
+        rotation={-90}
+      />
+    </Svg>
   );
 }
 

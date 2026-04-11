@@ -1,5 +1,4 @@
 import { Pressable, View } from "react-native";
-import { Host, LinearProgress } from "@expo/ui/swift-ui";
 import { Settings02Icon, Fire03Icon } from "@hugeicons/core-free-icons";
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
@@ -100,9 +99,23 @@ export default function Profile() {
             </Typography>
           </Row>
         </Row>
-        <Host matchContents>
-          <LinearProgress color={colors.primary} progress={0.72} />
-        </Host>
+        <View
+          style={{
+            height: 10,
+            borderRadius: radius.pill,
+            backgroundColor: colors.ui,
+            overflow: "hidden",
+          }}
+        >
+          <View
+            style={{
+              width: "72%",
+              height: "100%",
+              borderRadius: radius.pill,
+              backgroundColor: colors.primary,
+            }}
+          />
+        </View>
       </Card>
 
       <Stack gap={spacing.sm}>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { Host, Picker } from "@expo/ui/swift-ui";
 import {
   BellDotIcon,
   MessageAdd01Icon,
@@ -34,14 +33,45 @@ export default function Home() {
         </Row>
       </Row>
 
-      <Host matchContents>
-        <Picker
-          options={FEED_TABS}
-          selectedIndex={feedIdx}
-          onOptionSelected={(e) => setFeedIdx(e.nativeEvent.index)}
-          variant="segmented"
-        />
-      </Host>
+      <Row
+        gap={spacing.xs}
+        style={{
+          padding: 4,
+          borderRadius: radius.pill,
+          backgroundColor: colors.bgRaised,
+          borderWidth: 1,
+          borderColor: colors.border,
+        }}
+      >
+        {FEED_TABS.map((tab, idx) => {
+          const selected = idx === feedIdx;
+
+          return (
+            <Pressable
+              key={tab}
+              onPress={() => setFeedIdx(idx)}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: radius.pill,
+                backgroundColor: selected ? colors.card : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Typography
+                variant="caption"
+                style={{
+                  fontFamily: selected ? fonts.bodyBold : fonts.bodySemibold,
+                  color: selected ? colors.fg : colors.fgMuted,
+                }}
+              >
+                {tab}
+              </Typography>
+            </Pressable>
+          );
+        })}
+      </Row>
 
       <SoloPost />
       <MilestoneCard />
