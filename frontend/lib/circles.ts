@@ -83,84 +83,85 @@ function circleConfig(id: string) {
 const img = (id: string) =>
   `https://images.unsplash.com/${id}?w=400&h=400&fit=crop&q=80`;
 
+// IMPORTANT: Only use Unsplash photo IDs already proven to load in feed.ts.
 const CIRCLE_PHOTOS: Record<string, string[]> = {
   "c0000000-0000-0000-0000-000000000001": [ // 5K Every Day
-    img("photo-1461896836934-bd45ba688b20"),
     img("photo-1552674605-db6ffd4facb5"),
+    img("photo-1461896836934-bd45ba688b20"),
     img("photo-1542291026-7eec264c27ff"),
-    img("photo-1476480862126-209bfaa8edc8"),
+    img("photo-1460353581641-37baddab0fa2"),
   ],
   "c0000000-0000-0000-0000-000000000002": [ // Morning Flow
     img("photo-1544367567-0f2fcb009e0b"),
     img("photo-1599901860904-17e6ed7083a0"),
     img("photo-1575052814086-f385e2e2ad33"),
-    img("photo-1506126613408-eca07ce68773"),
+    img("photo-1518611012118-696072aa579a"),
   ],
   "c0000000-0000-0000-0000-000000000003": [ // Cold Plunge Club
     img("photo-1504309092620-4d0ec726efa4"),
-    img("photo-1414609245224-afa02bfb3fda"),
-    img("photo-1531299204812-e6d44d9b185c"),
     img("photo-1507003211169-0a1dd7228f2d"),
+    img("photo-1499209974431-9dddcece7f88"),
+    img("photo-1551632811-561732d1e306"),
   ],
   "c0000000-0000-0000-0000-000000000004": [ // Page Turners
     img("photo-1544947950-fa07a98d237f"),
     img("photo-1512820790803-83ca734da794"),
     img("photo-1517842645767-c639042777db"),
-    img("photo-1476275466078-4007374efbbe"),
+    img("photo-1507842217343-583bb7270b66"),
   ],
   "c0000000-0000-0000-0000-000000000005": [ // Digital Sunset
     img("photo-1507842217343-583bb7270b66"),
     img("photo-1499209974431-9dddcece7f88"),
-    img("photo-1519389950473-47ba0277781c"),
-    img("photo-1483058712412-4245e9b90334"),
+    img("photo-1512820790803-83ca734da794"),
+    img("photo-1517842645767-c639042777db"),
   ],
   "c0000000-0000-0000-0000-000000000006": [ // Sketch & Create
     img("photo-1513364776144-60967b0f800f"),
-    img("photo-1460661419201-fd4cecdf8a8b"),
-    img("photo-1513364776144-60967b0f800f"),
-    img("photo-1513475382585-d06e58bcb0e0"),
+    img("photo-1544947950-fa07a98d237f"),
+    img("photo-1507003211169-0a1dd7228f2d"),
+    img("photo-1512820790803-83ca734da794"),
   ],
   "c0000000-0000-0000-0000-000000000007": [ // Kitchen Collective
     img("photo-1556910103-1c02745aae4d"),
     img("photo-1547592180-85f173990554"),
-    img("photo-1466637574441-749b8f19452f"),
-    img("photo-1504674900247-0877df9cc836"),
+    img("photo-1504384308090-c894fdcc538d"),
+    img("photo-1500382017468-9049fed747ef"),
   ],
   "c0000000-0000-0000-0000-000000000008": [ // Morning Pages
     img("photo-1517842645767-c639042777db"),
-    img("photo-1455390582262-044cdead277a"),
     img("photo-1512820790803-83ca734da794"),
-    img("photo-1476275466078-4007374efbbe"),
+    img("photo-1544947950-fa07a98d237f"),
+    img("photo-1507842217343-583bb7270b66"),
   ],
   "c0000000-0000-0000-0000-000000000009": [ // Study Squad
-    img("photo-1456513080510-7bf3a84b82f8"),
-    img("photo-1481627834876-b7833e8f5570"),
-    img("photo-1519389950473-47ba0277781c"),
+    img("photo-1512820790803-83ca734da794"),
+    img("photo-1544947950-fa07a98d237f"),
+    img("photo-1517842645767-c639042777db"),
     img("photo-1507003211169-0a1dd7228f2d"),
   ],
   "c0000000-0000-0000-0000-000000000010": [ // Guitar Daily
     img("photo-1510915361894-db8b60106cb1"),
     img("photo-1511671782779-c97d3d27a1d4"),
-    img("photo-1493225457124-a3eb161ffa5f"),
-    img("photo-1516924962500-2b4b3b99ea02"),
+    img("photo-1507003211169-0a1dd7228f2d"),
+    img("photo-1499209974431-9dddcece7f88"),
   ],
   "c0000000-0000-0000-0000-000000000011": [ // Gym Rats
-    img("photo-1534438327276-14e5300c3a48"),
-    img("photo-1571019613454-1cb2f99b2d8b"),
-    img("photo-1517963879433-6ad2b056d712"),
-    img("photo-1581009146145-b5ef050c2e1e"),
+    img("photo-1571008887538-b36bb32f4571"),
+    img("photo-1552674605-db6ffd4facb5"),
+    img("photo-1476480862126-209bfaa8edc8"),
+    img("photo-1460353581641-37baddab0fa2"),
   ],
   "c0000000-0000-0000-0000-000000000012": [ // Hydration Club
     img("photo-1553531384-cc64ac80f931"),
     img("photo-1559839914-17aae19cec71"),
     img("photo-1548839140-29a749e1cf4d"),
-    img("photo-1523362628745-0c100150b504"),
+    img("photo-1506748686214-e9df14d4d9d0"),
   ],
   "c0000000-0000-0000-0000-000000000013": [ // Meditation Circle
     img("photo-1506126613408-eca07ce68773"),
     img("photo-1593811167562-9cef47bfc4d7"),
     img("photo-1499209974431-9dddcece7f88"),
-    img("photo-1507003211169-0a1dd7228f2d"),
+    img("photo-1544367567-0f2fcb009e0b"),
   ],
   "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee": [ // Morning Crew
     img("photo-1551632811-561732d1e306"),
@@ -207,8 +208,8 @@ function storageToPhoto(path: string): { uri: string } {
   if (unsplashId) {
     return { uri: `https://images.unsplash.com/${unsplashId}?w=800&h=800&fit=crop&q=80` };
   }
-  // Fallback: use a generic placeholder
-  return { uri: `https://images.unsplash.com/photo-1551632811-561732d1e306?w=800&h=800&fit=crop&q=80` };
+  // Fallback: use a proven working photo
+  return { uri: `https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&h=800&fit=crop&q=80` };
 }
 
 // ---------------------------------------------------------------------------
