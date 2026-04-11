@@ -7,8 +7,8 @@ Use this as the short operational checklist. For the full setup flow, start with
 - [ ] Run `npm install` in `frontend/`
 - [ ] Create a Python virtualenv at the repo root: `python3 -m venv yolo-env`
 - [ ] Activate it and run `pip install -r backend/requirements.txt`
-- [ ] Create `frontend/.env`
-- [ ] Create `backend/.env`
+- [ ] Copy `frontend/.env.example` to `frontend/.env`
+- [ ] Copy `backend/.env.example` to `backend/.env`
 
 ## 2. Supabase
 
@@ -19,7 +19,7 @@ Use this as the short operational checklist. For the full setup flow, start with
 - [ ] Apply the storage policies from [infrastructure/supabase.md](./infrastructure/supabase.md)
 - [ ] Enable Realtime for `snaps`, `habit_instances`, `circle_members`, and `likes`
 - [ ] Enable `pg_cron` and add the missed-window reset job
-- [ ] Fill `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `frontend/.env`
+- [ ] Fill `EXPO_PUBLIC_SUPABASE_URL` and either `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `frontend/.env`
 
 ## 3. Local prompt + verification server
 

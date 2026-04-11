@@ -11,9 +11,10 @@ Hackathon MVP for a social habit-tracking app with live photo proof, Circle acco
 ## Start here
 
 1. Read [frontend/README.md](frontend/README.md)
-2. Copy [.env.example](.env.example) into the local env files you need
-3. Follow [docs/infrastructure/supabase.md](docs/infrastructure/supabase.md) to create the Supabase project
-4. Use [docs/hackathon-mvp-task-board.md](docs/hackathon-mvp-task-board.md) to pick work in dependency order
+2. Copy [frontend/.env.example](frontend/.env.example) to `frontend/.env`
+3. Copy [backend/.env.example](backend/.env.example) to `backend/.env`
+4. Follow [docs/infrastructure/supabase.md](docs/infrastructure/supabase.md) to create the Supabase project
+5. Use [docs/hackathon-mvp-task-board.md](docs/hackathon-mvp-task-board.md) to pick work in dependency order
 
 ## Fastest onboarding path
 

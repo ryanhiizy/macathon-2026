@@ -1,14 +1,16 @@
-import { View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { Fire03Icon, Settings02Icon } from "@hugeicons/core-free-icons";
 import { Avatar } from "@/components/avatar";
-import { AnimatedPress } from "@/components/animated-press";
 import { Icon } from "@/components/icon";
-import { Screen, Divider, Row, Stack } from "@/components/layout";
+import { Card, Divider, Row, Screen, Stack } from "@/components/layout";
 import { ProgressBar } from "@/components/ui-controls";
 import { Typography } from "@/components/typography";
 import { pickPhoto } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
+import { type AppProfile, ensureProfile, supabase } from "@/lib/supabase";
+import { getDemoSession, signOutDemoUser, type DemoSession } from "@/lib/demo-auth";
 
 const STATS = [
   { label: "Habits", value: "8" },
@@ -23,9 +25,110 @@ const POSTS = Array.from({ length: 9 }).map((_, i) => ({
 }));
 
 export default function Profile() {
+  const [profile, setProfile] = useState<AppProfile | null>(null);
+  const [demoSession, setDemoSession] = useState<DemoSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadProfile = async () => {
+      setLoading(true);
+      setError(null);
+
+      const storedDemoSession = await getDemoSession();
+
+      if (storedDemoSession) {
+        if (isActive) {
+          setDemoSession(storedDemoSession);
+          setProfile(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        if (isActive) {
+          setError(userError.message);
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (!user) {
+        if (isActive) {
+          setError("No signed-in user found.");
+          setLoading(false);
+        }
+        return;
+      }
+
+      await ensureProfile(user);
+
+      const { data, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, display_name, handle, avatar_url, bio, created_at")
+        .eq("id", user.id)
+        .single();
+
+      if (!isActive) return;
+
+      if (profileError) {
+        setError(profileError.message);
+      } else {
+        setProfile(data);
+      }
+
+      setLoading(false);
+    };
+
+    loadProfile().catch((loadError: unknown) => {
+      if (!isActive) return;
+      setError(loadError instanceof Error ? loadError.message : "Failed to load profile.");
+      setLoading(false);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const displayName = demoSession?.displayName ?? profile?.display_name ?? "Presence User";
+  const handle = demoSession?.handle ?? profile?.handle ?? "presence";
+  const bio =
+    demoSession?.bio ?? profile?.bio ?? "Your bio will show up here once profile editing lands.";
+  const joinedLabel = formatJoinDate(demoSession?.createdAt ?? profile?.created_at);
+  const avatarLetter = displayName.slice(0, 1).toUpperCase() || "P";
+
+  const signOut = async () => {
+    setSigningOut(true);
+
+    if (demoSession) {
+      await signOutDemoUser();
+      setSigningOut(false);
+      return;
+    }
+
+    const { error: signOutError } = await supabase.auth.signOut();
+    setSigningOut(false);
+
+    if (signOutError) {
+      setError(signOutError.message);
+    }
+  };
+
   const header = (
     <Row style={{ justifyContent: "flex-end" }}>
-      <AnimatedPress
+      <Pressable
+        disabled={signingOut}
+        onPress={signOut}
         style={{
           width: 44,
           height: 44,
@@ -36,14 +139,14 @@ export default function Profile() {
         }}
       >
         <Icon icon={Settings02Icon} size={20} color={colors.fg} strokeWidth={1.8} />
-      </AnimatedPress>
+      </Pressable>
     </Row>
   );
 
   return (
     <Screen stickyHeader={header}>
       <Stack gap={spacing.lg} style={{ alignItems: "center", paddingTop: spacing.sm }}>
-        <Avatar color={colors.primary} letter="B" size={104} ring={false} />
+        <Avatar color={colors.primary} letter={avatarLetter} size={104} ring={false} />
         <Stack gap={spacing.xs} style={{ alignItems: "center" }}>
           <Typography
             style={{
@@ -53,15 +156,22 @@ export default function Profile() {
               color: colors.fg,
             }}
           >
-            Budi Hartono
+            {displayName}
           </Typography>
-          <Typography variant="metaItalic">@budi — joined April 2026</Typography>
+          <Typography variant="metaItalic">@{handle} · joined {joinedLabel}</Typography>
+          <Typography variant="metaItalic">
+            {loading
+              ? "Loading your account..."
+              : demoSession
+                ? "Demo mode is on. This bypasses Supabase email auth."
+                : "Signed in and ready for the rest of the app."}
+          </Typography>
         </Stack>
         <Typography
           variant="lede"
           style={{ textAlign: "center", paddingHorizontal: spacing.lg }}
         >
-          Stacking small habits into something bigger. Currently chasing 100 days of morning walks.
+          {bio}
         </Typography>
       </Stack>
 
@@ -167,6 +277,29 @@ export default function Profile() {
           ))}
         </View>
       </Stack>
+
+      {error ? (
+        <Card style={{ borderColor: colors.danger }}>
+          <Typography variant="bodyMuted" color={colors.danger}>
+            {error}
+          </Typography>
+        </Card>
+      ) : null}
     </Screen>
   );
+}
+
+function formatJoinDate(createdAt?: string | null) {
+  if (!createdAt) return "now";
+
+  const date = new Date(createdAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return "now";
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    year: "numeric",
+  });
 }
