@@ -104,14 +104,31 @@ const PARTICIPANTS = [
 
 export default function GroupCameraScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const habit = HABITS.find((h) => h.id === id) ?? HABITS[0];
-  const prompt = GROUP_PROMPTS[habit.id] ?? "Get together — make the photo count.";
+  const habit = HABITS.find((h) => h.id === id);
+  const prompt = habit ? (GROUP_PROMPTS[habit.id] ?? "Get together — make the photo count.") : null;
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
   const { trigger: triggerFlash, Flash } = useShutterFlash();
 
   const allReady = PARTICIPANTS.every((p) => p.ready);
+
+  if (!habit) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.black }} edges={["top", "bottom"]}>
+        <Stack gap={spacing.xl} style={{ flex: 1, padding: spacing.xl, justifyContent: "center", alignItems: "center" }}>
+          <Typography serif color={colors.bg} style={{ fontSize: 22, textAlign: "center" }}>
+            Habit not found
+          </Typography>
+          <AnimatedPress onPress={() => router.back()} haptic={false}>
+            <Typography color={colors.bg} variant="metaItalic">
+              Back
+            </Typography>
+          </AnimatedPress>
+        </Stack>
+      </SafeAreaView>
+    );
+  }
 
   if (!permission) return <View style={{ flex: 1, backgroundColor: colors.black }} />;
   if (!permission.granted) {

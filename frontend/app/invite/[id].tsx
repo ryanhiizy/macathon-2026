@@ -17,7 +17,7 @@ import { FRIENDS, HABITS } from "@/lib/mock";
 
 export default function InviteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const habit = HABITS.find((h) => h.id === id) ?? HABITS[0];
+  const habit = HABITS.find((h) => h.id === id);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
 
@@ -39,6 +39,29 @@ export default function InviteScreen() {
   };
 
   const selectedFriends = FRIENDS.filter((f) => selected.has(f.id));
+
+  if (!habit) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top", "bottom"]}>
+        <Stack gap={spacing.lg} style={{ flex: 1, padding: spacing.lg, justifyContent: "center", alignItems: "center" }}>
+          <Typography
+            style={{
+              fontFamily: fonts.heading,
+              fontSize: 24,
+              lineHeight: 30,
+              color: colors.fg,
+              textAlign: "center",
+            }}
+          >
+            Habit not found
+          </Typography>
+          <AnimatedPress onPress={() => router.back()} haptic={false}>
+            <Typography variant="metaItalic">Back</Typography>
+          </AnimatedPress>
+        </Stack>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top", "bottom"]}>
