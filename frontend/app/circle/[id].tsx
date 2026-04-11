@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { View } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   ArrowLeft02Icon,
   Share01Icon,
@@ -19,15 +20,73 @@ import { AnimatedPress } from "@/components/animated-press";
 import { LikeButton } from "@/components/like-button";
 import { PhotoCarousel } from "@/components/photo-carousel";
 import { colors, fonts, palette, radius, spacing, tintFor } from "@/lib/theme";
-import { CIRCLES, CIRCLE_MEMBERS } from "@/lib/mock";
+import {
+  fetchCircle,
+  fetchCircleMembers,
+  fetchCircleSnaps,
+  type CircleView,
+  type CircleMemberView,
+  type CircleSnapView,
+} from "@/lib/circles";
+import { useAuth } from "@/lib/auth-context";
 import type { HugeiconsProps } from "@hugeicons/react-native";
 
 const TABS = ["Feed", "Leaderboard", "About"];
 
 export default function CircleDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const circle = CIRCLES.find((c) => c.id === id) ?? CIRCLES[0];
+  const { user } = useAuth();
+  const [circle, setCircle] = useState<CircleView | null>(null);
+  const [members, setMembers] = useState<CircleMemberView[]>([]);
+  const [snaps, setSnaps] = useState<CircleSnapView[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(0);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    const [c, m, s] = await Promise.all([
+      fetchCircle(id),
+      fetchCircleMembers(id),
+      fetchCircleSnaps(id),
+    ]);
+    setCircle(c);
+    setMembers(m);
+    setSnaps(s);
+    setLoading(false);
+  }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  if (loading || !circle) {
+    return (
+      <Screen>
+        <Row style={{ justifyContent: "space-between" }}>
+          <AnimatedPress
+            onPress={() => router.back()}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: radius.pill,
+              backgroundColor: colors.bgRaised,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon icon={ArrowLeft02Icon} size={22} color={colors.fg} strokeWidth={1.8} />
+          </AnimatedPress>
+          <View style={{ width: 44 }} />
+        </Row>
+        <View style={{ paddingTop: spacing.xxl, alignItems: "center" }}>
+          <ActivityIndicator color={colors.fgFaint} />
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -85,63 +144,62 @@ export default function CircleDetail() {
             {circle.name}
           </Typography>
           <Typography variant="metaItalic">
-            {circle.members} members · {circle.habit.toLowerCase()}
+            {circle.memberCount} members
           </Typography>
         </View>
       </Stack>
 
       <Segmented options={TABS} value={tab} onChange={setTab} />
 
-      {tab === 0 && <FeedTab />}
-      {tab === 1 && <LeaderboardTab accent={circle.accent} />}
-      {tab === 2 && <AboutTab description={circle.description} />}
+      {tab === 0 && <FeedTab snaps={snaps} />}
+      {tab === 1 && <LeaderboardTab accent={circle.accent} members={members} userId={user?.id} />}
+      {tab === 2 && <AboutTab description={circle.description ?? ""} members={members} userId={user?.id} />}
     </Screen>
   );
 }
 
-function FeedTab() {
-  const items = [
-    {
-      name: "Sarah K.",
-      letter: "S",
-      color: colors.blue,
-      when: "1h",
-      streak: 47,
-      photos: [0],
-      caption: "Sun still low. The kind of morning that feels like a secret.",
-    },
-    {
-      name: "Theo Vinci",
-      letter: "T",
-      color: colors.orange,
-      when: "3h",
-      streak: 11,
-      photos: [3, 2],
-      caption: "Brutal today. Legs felt like wet noodles but showed up anyway.",
-    },
-  ];
+function FeedTab({ snaps }: { snaps: CircleSnapView[] }) {
+  if (snaps.length === 0) {
+    return (
+      <View style={{ paddingTop: spacing.xxl, alignItems: "center" }}>
+        <Typography variant="metaItalic" color={colors.fgFaint}>
+          No posts yet — be the first to share.
+        </Typography>
+      </View>
+    );
+  }
+
   return (
     <Stack gap={spacing.xxl}>
-      {items.map((post, i) => (
-        <Stack key={i} gap={spacing.md}>
+      {snaps.map((snap) => (
+        <Stack key={snap.id} gap={spacing.md}>
           <Row style={{ justifyContent: "space-between" }}>
             <Row gap={spacing.md}>
-              <Avatar color={post.color} letter={post.letter} size={40} ring={false} />
+              <Avatar color={snap.color} letter={snap.letter} size={40} ring={false} />
               <Stack gap={2}>
-                <Typography variant="label">{post.name}</Typography>
-                <Typography variant="metaItalic">{post.when} ago</Typography>
+                <Typography variant="label">{snap.name}</Typography>
+                <Typography variant="metaItalic">{snap.when}</Typography>
               </Stack>
             </Row>
-            <StreakFlame days={post.streak} />
+            <StreakFlame days={snap.streak} />
           </Row>
-          <Typography variant="body">{post.caption}</Typography>
-          <PhotoCarousel photoIdxs={post.photos} />
+          <Typography
+            variant="metaItalic"
+            color={colors.fgFaint}
+            style={{ marginTop: -spacing.xs }}
+          >
+            {snap.promptText}
+          </Typography>
+          {snap.caption ? (
+            <Typography variant="body">{snap.caption}</Typography>
+          ) : null}
+          <PhotoCarousel photos={snap.photos} />
           <Row gap={spacing.xl}>
-            <LikeButton initialCount={12 + i * 4} />
+            <LikeButton snapId={snap.id} initialCount={0} />
             <Row gap={spacing.xs}>
               <Icon icon={Comment01Icon} size={18} color={colors.fg} strokeWidth={1.7} />
               <Typography variant="meta" color={colors.fg}>
-                {2 + i}
+                0
               </Typography>
             </Row>
           </Row>
@@ -151,7 +209,7 @@ function FeedTab() {
   );
 }
 
-function LeaderboardTab({ accent }: { accent: string }) {
+function LeaderboardTab({ accent, members, userId }: { accent: string; members: CircleMemberView[]; userId?: string }) {
   const [scope, setScope] = useState(0);
   const ranks: HugeiconsProps["icon"][] = [Crown02Icon, Medal01Icon, Award01Icon];
   const rankColors = [colors.yellow, palette.base500, colors.orange] as string[];
@@ -164,9 +222,9 @@ function LeaderboardTab({ accent }: { accent: string }) {
         align="compact"
       />
       <Stack gap={0}>
-        {CIRCLE_MEMBERS.map((m, i) => {
+        {members.map((m, i) => {
           const rank = i + 1;
-          const isYou = m.name === "You";
+          const isYou = m.id === userId;
           return (
             <View key={m.id}>
               <View
@@ -208,7 +266,7 @@ function LeaderboardTab({ accent }: { accent: string }) {
                         color: colors.fg,
                       }}
                     >
-                      {m.name}
+                      {isYou ? "You" : m.name}
                     </Typography>
                     <Typography variant="metaItalic">
                       {m.streak} day streak
@@ -217,7 +275,7 @@ function LeaderboardTab({ accent }: { accent: string }) {
                   <StreakFlame days={m.streak} />
                 </Row>
               </View>
-              {i < CIRCLE_MEMBERS.length - 1 && <Divider />}
+              {i < members.length - 1 && <Divider />}
             </View>
           );
         })}
@@ -226,7 +284,9 @@ function LeaderboardTab({ accent }: { accent: string }) {
   );
 }
 
-function AboutTab({ description }: { description: string }) {
+function AboutTab({ description, members, userId }: { description: string; members: CircleMemberView[]; userId?: string }) {
+  const preview = members.slice(0, 5);
+  const remaining = members.length - preview.length;
   return (
     <Stack gap={spacing.xl}>
       <Stack gap={spacing.sm}>
@@ -243,7 +303,7 @@ function AboutTab({ description }: { description: string }) {
           Members
         </Typography>
         <Stack gap={0}>
-          {CIRCLE_MEMBERS.slice(0, 5).map((m, i) => (
+          {preview.map((m, i) => (
             <View key={m.id}>
               <Row
                 gap={spacing.md}
@@ -254,20 +314,22 @@ function AboutTab({ description }: { description: string }) {
               >
                 <Row gap={spacing.md}>
                   <Avatar color={m.color} letter={m.letter} size={40} ring={false} />
-                  <Typography variant="label">{m.name}</Typography>
+                  <Typography variant="label">{m.id === userId ? "You" : m.name}</Typography>
                 </Row>
                 <StreakFlame days={m.streak} />
               </Row>
-              {i < 4 && <Divider />}
+              {i < preview.length - 1 && <Divider />}
             </View>
           ))}
         </Stack>
-        <Typography
-          variant="metaItalic"
-          style={{ textAlign: "center", paddingTop: spacing.sm }}
-        >
-          + {CIRCLE_MEMBERS.length - 5} more
-        </Typography>
+        {remaining > 0 && (
+          <Typography
+            variant="metaItalic"
+            style={{ textAlign: "center", paddingTop: spacing.sm }}
+          >
+            + {remaining} more
+          </Typography>
+        )}
       </Stack>
     </Stack>
   );

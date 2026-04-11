@@ -1,5 +1,7 @@
-import { View } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Image } from "expo-image";
 import {
   Search01Icon,
@@ -11,9 +13,29 @@ import { Icon } from "@/components/icon";
 import { AnimatedPress } from "@/components/animated-press";
 import { StreakFlame } from "@/components/streak-flame";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
-import { CIRCLES, pickPhoto, type CircleRow } from "@/lib/mock";
+import { fetchMyCircles, type CircleView } from "@/lib/circles";
+import { useAuth } from "@/lib/auth-context";
+import { pickPhoto } from "@/lib/mock";
 
 export default function Circles() {
+  const { user } = useAuth();
+  const [circles, setCircles] = useState<CircleView[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    const data = await fetchMyCircles(user.id);
+    setCircles(data);
+    setLoading(false);
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
   const header = (
     <Row style={{ justifyContent: "space-between" }}>
       <AnimatedPress
@@ -39,7 +61,7 @@ export default function Circles() {
         >
           Circles
         </Typography>
-        <Typography variant="metaItalic">{CIRCLES.length} joined</Typography>
+        <Typography variant="metaItalic">{circles.length} joined</Typography>
       </Stack>
       <AnimatedPress
         onPress={() => router.push("/create-circle")}
@@ -57,10 +79,20 @@ export default function Circles() {
     </Row>
   );
 
+  if (loading) {
+    return (
+      <Screen stickyHeader={header}>
+        <View style={{ paddingTop: spacing.xxl, alignItems: "center" }}>
+          <ActivityIndicator color={colors.fgFaint} />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen stickyHeader={header}>
       <Stack gap={spacing.xxl}>
-        {CIRCLES.map((circle, i) => (
+        {circles.map((circle, i) => (
           <CircleRowView key={circle.id} circle={circle} index={i} />
         ))}
       </Stack>
@@ -68,7 +100,7 @@ export default function Circles() {
   );
 }
 
-function CircleRowView({ circle, index }: { circle: CircleRow; index: number }) {
+function CircleRowView({ circle, index }: { circle: CircleView; index: number }) {
   return (
     <AnimatedPress
       onPress={() => router.push(`/circle/${circle.id}`)}
@@ -101,10 +133,10 @@ function CircleRowView({ circle, index }: { circle: CircleRow; index: number }) 
             {circle.name}
           </Typography>
           <Typography variant="metaItalic">
-            {circle.members} members · your streak {circle.streak}
+            {circle.memberCount} members · your streak {circle.myStreak}
           </Typography>
         </Stack>
-        <StreakFlame days={circle.streak} />
+        <StreakFlame days={circle.myStreak} />
       </Row>
 
       <Row gap={spacing.sm}>
