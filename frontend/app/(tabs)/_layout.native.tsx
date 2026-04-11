@@ -5,7 +5,7 @@ export default function TabsLayout() {
   return (
     <NativeTabs
       tintColor={colors.primary}
-      minimizeBehavior="onScrollDown"
+      minimizeBehavior="never"
       labelStyle={{ fontFamily: fonts.bodySemibold, fontSize: 11 }}
     >
       <NativeTabs.Trigger name="index">
