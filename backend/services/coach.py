@@ -235,8 +235,7 @@ def generate_insight(settings: Settings, stats: HabitStats) -> CoachInsight:
             insight_type=fallback.insight_type,
         )
 
-    provider = settings.prompt_provider
-    if provider == "none":
+    if not settings.openai_api_key:
         fallback = random.choice(FALLBACK_INSIGHTS)
         return CoachInsight(
             headline=fallback.headline,
@@ -248,30 +247,16 @@ def generate_insight(settings: Settings, stats: HabitStats) -> CoachInsight:
     stats_message = _build_stats_message(stats)
 
     try:
-        if provider == "openai":
-            client = OpenAI(api_key=settings.openai_api_key)
-            response = client.chat.completions.create(
-                model=settings.openai_model,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": COACH_SYSTEM_PROMPT},
-                    {"role": "user", "content": stats_message},
-                ],
-            )
-            content = response.choices[0].message.content or "{}"
-        else:
-            from anthropic import Anthropic
-
-            client = Anthropic(api_key=settings.anthropic_api_key)
-            response = client.messages.create(
-                model=settings.anthropic_model,
-                max_tokens=400,
-                system=COACH_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": stats_message}],
-            )
-            text_blocks = [block.text for block in response.content if getattr(block, "type", "") == "text"]
-            content = "\n".join(text_blocks)
-
+        client = OpenAI(api_key=settings.openai_api_key)
+        response = client.chat.completions.create(
+            model=settings.openai_model,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": COACH_SYSTEM_PROMPT},
+                {"role": "user", "content": stats_message},
+            ],
+        )
+        content = response.choices[0].message.content or "{}"
         data = json.loads(content)
         return CoachInsight(
             headline=data.get("headline", "Keep going!"),
