@@ -1,8 +1,14 @@
-import { supabase, getTestUserId } from "./supabase";
+import { supabase } from "./supabase";
+
+async function getCurrentUserId() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in");
+  return user.id;
+}
 
 /** Check if the current user has liked a snap, and get total count. */
 export async function fetchLikeState(snapId: string) {
-  const userId = getTestUserId();
+  const userId = await getCurrentUserId();
 
   const [{ count }, { data: myLike }] = await Promise.all([
     supabase
@@ -22,7 +28,7 @@ export async function fetchLikeState(snapId: string) {
 
 /** Toggle like. Returns the new liked state. */
 export async function toggleLike(snapId: string): Promise<boolean> {
-  const userId = getTestUserId();
+  const userId = await getCurrentUserId();
 
   // Check current state
   const { data: existing } = await supabase
