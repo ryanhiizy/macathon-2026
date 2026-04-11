@@ -135,10 +135,12 @@ const styles = StyleSheet.create({
   },
   stickyHeaderElevated: {
     shadowColor: colors.black,
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: `${colors.black}14`,
   },
   scroll: {
     paddingHorizontal: spacing.lg,
