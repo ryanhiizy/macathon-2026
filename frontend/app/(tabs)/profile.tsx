@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
-import { Fire03Icon, Settings02Icon } from "@hugeicons/core-free-icons";
+import { Fire03Icon, Notification03Icon, Settings02Icon } from "@hugeicons/core-free-icons";
 import { Avatar } from "@/components/avatar";
+import { AnimatedPress } from "@/components/animated-press";
 import { Icon } from "@/components/icon";
 import { Card, Divider, Row, Screen, Stack } from "@/components/layout";
 import { ProgressBar } from "@/components/ui-controls";
 import { Typography } from "@/components/typography";
 import { pickPhoto } from "@/lib/mock";
+import { triggerDemoNotification } from "@/lib/notifications";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { type AppProfile, ensureProfile, supabase } from "@/lib/supabase";
 import { getDemoSession, signOutDemoUser, type DemoSession } from "@/lib/demo-auth";
@@ -223,6 +225,10 @@ export default function Profile() {
 
       <Divider />
 
+      <DemoNotificationButton />
+
+      <Divider />
+
       <Stack gap={spacing.md}>
         <Typography
           style={{
@@ -286,6 +292,56 @@ export default function Profile() {
         </Card>
       ) : null}
     </Screen>
+  );
+}
+
+function DemoNotificationButton() {
+  const [sent, setSent] = useState(false);
+
+  const handlePress = async () => {
+    setSent(true);
+    await triggerDemoNotification(5);
+    setTimeout(() => setSent(false), 3000);
+  };
+
+  return (
+    <AnimatedPress onPress={handlePress} haptic="medium">
+      <Row
+        gap={spacing.md}
+        style={{
+          paddingVertical: spacing.md,
+          alignItems: "center",
+        }}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: radius.md,
+            backgroundColor: colors.primarySoft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon icon={Notification03Icon} size={20} color={colors.primary} strokeWidth={1.8} />
+        </View>
+        <Stack gap={2} style={{ flex: 1 }}>
+          <Typography
+            style={{
+              fontFamily: fonts.bodyBold,
+              fontSize: 15,
+              lineHeight: 20,
+              color: colors.fg,
+            }}
+          >
+            Send test notification
+          </Typography>
+          <Typography variant="metaItalic">
+            {sent ? "Arriving in 5 seconds..." : "Fires a prove-it notification for your next habit"}
+          </Typography>
+        </Stack>
+      </Row>
+    </AnimatedPress>
   );
 }
 

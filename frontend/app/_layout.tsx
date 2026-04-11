@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
+import * as Notifications from "expo-notifications";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   useFonts,
@@ -21,11 +22,18 @@ import { type Session } from "@supabase/supabase-js";
 import { colors } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 import {
+  configureNotificationHandler,
+  requestNotificationPermissions,
+} from "@/lib/notifications";
+import {
   getDemoSession,
   onDemoAuthStateChange,
   signOutDemoUser,
   type DemoSession,
 } from "@/lib/demo-auth";
+
+// Show notification banners even when the app is in the foreground
+configureNotificationHandler();
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -113,6 +121,24 @@ export default function RootLayout() {
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
   }, []);
+
+  // Request notification permissions on launch
+  useEffect(() => {
+    requestNotificationPermissions().catch(() => {});
+  }, []);
+
+  // Navigate to camera when user taps a notification
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as
+        | { habitId?: string; screen?: string }
+        | undefined;
+      if (data?.screen === "camera" && data.habitId) {
+        router.push(`/camera/${data.habitId}`);
+      }
+    });
+    return () => sub.remove();
+  }, [router]);
 
   useEffect(() => {
     if (!loaded || !authReady) return;
