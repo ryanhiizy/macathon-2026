@@ -14,18 +14,31 @@ import { Icon } from "@/components/icon";
 import { Typography } from "@/components/typography";
 import { AnimatedPress } from "@/components/animated-press";
 import { colors, spacing } from "@/lib/theme";
+import { fetchLikeState, toggleLike } from "@/lib/likes";
 
 type FloatingHeart = { id: number; dx: number };
 
 type Props = {
   initialCount: number;
   tint?: string;
+  /** When provided, likes are persisted to Supabase. Without it, likes are local-only. */
+  snapId?: string;
 };
 
-export function LikeButton({ initialCount, tint }: Props) {
+export function LikeButton({ initialCount, tint, snapId }: Props) {
   const [liked, setLiked] = useState(false);
+  const [backendCount, setBackendCount] = useState<number | null>(null);
   const [floaters, setFloaters] = useState<FloatingHeart[]>([]);
   const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Fetch initial like state from backend
+  useEffect(() => {
+    if (!snapId) return;
+    fetchLikeState(snapId).then(({ count, liked: isLiked }) => {
+      setBackendCount(count);
+      setLiked(isLiked);
+    });
+  }, [snapId]);
 
   useEffect(
     () => () => {
@@ -37,9 +50,26 @@ export function LikeButton({ initialCount, tint }: Props) {
   const onPress = () => {
     const next = !liked;
     setLiked(next);
+
+    // Optimistic count update
+    if (backendCount !== null) {
+      setBackendCount((c) => (c ?? 0) + (next ? 1 : -1));
+    }
+
     Haptics.impactAsync(
       next ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
     ).catch(() => {});
+
+    // Persist to backend
+    if (snapId) {
+      toggleLike(snapId).catch(() => {
+        // Revert on failure
+        setLiked(!next);
+        if (backendCount !== null) {
+          setBackendCount((c) => (c ?? 0) + (next ? -1 : 1));
+        }
+      });
+    }
 
     if (next) {
       const now = Date.now();
@@ -57,7 +87,8 @@ export function LikeButton({ initialCount, tint }: Props) {
     }
   };
 
-  const count = initialCount + (liked ? 1 : 0);
+  // Use backend count when available, otherwise fall back to local mock count
+  const count = backendCount !== null ? backendCount : initialCount + (liked ? 1 : 0);
 
   return (
     <AnimatedPress onPress={onPress} haptic={false} scale={0.95} style={{ position: "relative" }}>
