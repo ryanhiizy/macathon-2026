@@ -1,9 +1,9 @@
 import { Pressable, View } from "react-native";
-import { Host, LinearProgress } from "@expo/ui/swift-ui";
 import { Settings02Icon, Fire03Icon } from "@hugeicons/core-free-icons";
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
+import { ProgressBar } from "@/components/swift-ui-bridges";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 
 const STATS = [
@@ -100,9 +100,7 @@ export default function Profile() {
             </Typography>
           </Row>
         </Row>
-        <Host matchContents>
-          <LinearProgress color={colors.primary} progress={0.72} />
-        </Host>
+        <ProgressBar color={colors.primary} progress={0.72} />
       </Card>
 
       <Stack gap={spacing.sm}>
