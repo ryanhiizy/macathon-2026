@@ -8,15 +8,18 @@ import {
   Fire03Icon,
   SunriseIcon,
 } from "@hugeicons/core-free-icons";
+import { useRouter } from "expo-router";
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
+import { CoachInsightTeaser } from "@/components/CoachInsightCard";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 import { fetchHabits, type HabitView } from "@/lib/habits";
 import { ensureTestSession } from "@/lib/supabase";
 import Svg, { Circle } from "react-native-svg";
 
 export default function Habits() {
+  const router = useRouter();
   const [habits, setHabits] = useState<HabitView[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +40,9 @@ export default function Habits() {
   const today = new Date();
   const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
   const monthDay = today.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  // Pick the first habit with a streak for the coach teaser
+  const coachHabit = habits.find((h) => h.streak > 0) ?? habits[0];
 
   return (
     <Screen>
@@ -81,6 +87,14 @@ export default function Habits() {
         </Row>
       </Card>
 
+      {coachHabit && (
+        <CoachInsightTeaser
+          habitId={coachHabit.id}
+          habitName={coachHabit.name}
+          onPress={() => router.push(`/habit/${coachHabit.id}`)}
+        />
+      )}
+
       {loading ? (
         <View style={{ alignItems: "center", paddingTop: spacing.xxl }}>
           <ActivityIndicator color={colors.primary} />
@@ -94,7 +108,7 @@ export default function Habits() {
       ) : (
         <Stack gap={spacing.md}>
           {habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} />
+            <HabitCard key={habit.id} habit={habit} onPress={() => router.push(`/habit/${habit.id}`)} />
           ))}
         </Stack>
       )}
@@ -138,8 +152,9 @@ function ProgressRing({ progress }: { progress: number }) {
   );
 }
 
-function HabitCard({ habit }: { habit: HabitView }) {
+function HabitCard({ habit, onPress }: { habit: HabitView; onPress?: () => void }) {
   return (
+    <Pressable onPress={onPress}>
     <Card style={habit.done ? { backgroundColor: colors.ui, borderColor: colors.borderStrong } : undefined}>
       <Row style={{ justifyContent: "space-between" }}>
         <Row gap={spacing.md}>
@@ -220,5 +235,6 @@ function HabitCard({ habit }: { habit: HabitView }) {
         )}
       </Row>
     </Card>
+    </Pressable>
   );
 }
