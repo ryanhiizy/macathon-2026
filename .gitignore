@@ -1,0 +1,17 @@
+.context/
+.DS_Store
+*.pyc
+__pycache__/
+.pytest_cache/
+.venv/
+yolo-env/
+backend/.venv/
+backend/__pycache__/
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/node_modules/
+setup-local.log

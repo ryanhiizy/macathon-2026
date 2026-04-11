@@ -1,50 +1,111 @@
-# Welcome to your Expo app 👋
+# presence frontend setup
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This app runs from the `frontend/` directory. The backend is a separate local FastAPI server that runs on the demo laptop.
 
-## Get started
+## Prerequisites
 
-1. Install dependencies
+- Node.js 20+ and npm
+- Python 3.10+
+- Expo Go on a physical iPhone
+- A Supabase project
+- Phone and laptop on the same Wi-Fi for demo day, or tunnel access for remote development
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Install the frontend
 
 ```bash
-npm run reset-project
+cd frontend
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The MVP-critical Expo and Supabase packages are already declared in `package.json`.
 
-## Learn more
+## Install the local AI server dependencies
 
-To learn more about developing your project with Expo, look at the following resources:
+From the repository root:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+python3 -m venv yolo-env
+source yolo-env/bin/activate
+pip install -r backend/requirements.txt
+```
 
-## Join the community
+Windows:
 
-Join our community of developers creating universal apps.
+```bash
+python -m venv yolo-env
+yolo-env\Scripts\activate
+pip install -r backend/requirements.txt
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Environment setup
+
+From the repository root, create the local env files you need:
+
+```bash
+cp .env.example frontend/.env
+cp .env.example backend/.env
+```
+
+Fill in at least:
+
+- `EXPO_PUBLIC_SUPABASE_URL` — required
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — required
+- `EXPO_PUBLIC_YOLO_API_URL` — required once the app calls the local AI server
+- `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` — required once prompt generation is wired
+
+## Supabase one-time setup
+
+Follow [docs/infrastructure/supabase.md](../docs/infrastructure/supabase.md) and complete:
+
+1. Create the project
+2. Run the schema
+3. Create the `snaps` storage bucket
+4. Enable Realtime on `snaps` and `habit_instances`
+5. Enable `pg_cron` and add the missed-window reset job
+
+## Local AI server
+
+The backend manifest is ready, but the actual `yolo_server.py` implementation is still a task on the MVP board.
+
+When that file exists, the expected command will be:
+
+```bash
+source yolo-env/bin/activate
+uvicorn yolo_server:app --host 0.0.0.0 --port 8000
+```
+
+The server contract and sample implementation live in [docs/infrastructure/yolo-server.md](../docs/infrastructure/yolo-server.md).
+
+## Running the app
+
+Demo day, same Wi-Fi:
+
+```bash
+cd frontend
+npx expo start --lan
+```
+
+Remote development:
+
+```bash
+cd frontend
+npx expo start --tunnel
+```
+
+If you are using a tunnel for the AI server, set `EXPO_PUBLIC_YOLO_API_URL` to the HTTPS tunnel URL.
+
+## Ready-to-build checklist
+
+- `frontend/node_modules` exists after `npm install`
+- `backend/requirements.txt` installed into `yolo-env`
+- `frontend/.env` exists and contains Supabase values
+- `backend/.env` exists for local AI server secrets
+- Supabase schema, storage, Realtime, and cron are configured
+- You can run `npx expo start --lan` from `frontend/`
+- The AI server file is implemented or assigned from the task board
+
+## Source of truth
+
+- Product scope: [docs/project_overview.md](../docs/project_overview.md)
+- Setup: [docs/setup-checklist.md](../docs/setup-checklist.md)
+- Task board: [docs/hackathon-mvp-task-board.md](../docs/hackathon-mvp-task-board.md)
