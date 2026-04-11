@@ -10,7 +10,8 @@ import { Typography } from "@/components/typography";
 import { pickPhoto } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { type AppProfile, ensureProfile, supabase } from "@/lib/supabase";
-import { getDemoSession, signOutDemoUser, type DemoSession } from "@/lib/demo-auth";
+import { useAuth } from "@/lib/auth-context";
+import { getDemoUserById } from "@/lib/demo-users";
 
 const STATS = [
   { label: "Habits", value: "8" },
@@ -25,8 +26,8 @@ const POSTS = Array.from({ length: 9 }).map((_, i) => ({
 }));
 
 export default function Profile() {
+  const { user, demoSession, signOut } = useAuth();
   const [profile, setProfile] = useState<AppProfile | null>(null);
-  const [demoSession, setDemoSession] = useState<DemoSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
@@ -38,25 +39,9 @@ export default function Profile() {
       setLoading(true);
       setError(null);
 
-      const storedDemoSession = await getDemoSession();
-
-      if (storedDemoSession) {
+      if (demoSession) {
         if (isActive) {
-          setDemoSession(storedDemoSession);
           setProfile(null);
-          setLoading(false);
-        }
-        return;
-      }
-
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) {
-        if (isActive) {
-          setError(userError.message);
           setLoading(false);
         }
         return;
@@ -98,7 +83,7 @@ export default function Profile() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [user, demoSession]);
 
   const displayName = demoSession?.displayName ?? profile?.display_name ?? "Presence User";
   const handle = demoSession?.handle ?? profile?.handle ?? "presence";
@@ -107,28 +92,17 @@ export default function Profile() {
   const joinedLabel = formatJoinDate(demoSession?.createdAt ?? profile?.created_at);
   const avatarLetter = displayName.slice(0, 1).toUpperCase() || "P";
 
-  const signOut = async () => {
+  const handleSignOut = async () => {
     setSigningOut(true);
-
-    if (demoSession) {
-      await signOutDemoUser();
-      setSigningOut(false);
-      return;
-    }
-
-    const { error: signOutError } = await supabase.auth.signOut();
+    await signOut();
     setSigningOut(false);
-
-    if (signOutError) {
-      setError(signOutError.message);
-    }
   };
 
   const header = (
     <Row style={{ justifyContent: "flex-end" }}>
       <Pressable
         disabled={signingOut}
-        onPress={signOut}
+        onPress={handleSignOut}
         style={{
           width: 44,
           height: 44,
@@ -146,7 +120,19 @@ export default function Profile() {
   return (
     <Screen stickyHeader={header}>
       <Stack gap={spacing.lg} style={{ alignItems: "center", paddingTop: spacing.sm }}>
-        <Avatar color={colors.primary} letter={avatarLetter} size={104} ring={false} />
+        {(() => {
+          const demoUser = user ? getDemoUserById(user.id) : undefined;
+          if (demoUser?.avatar) {
+            return (
+              <Image
+                source={demoUser.avatar}
+                style={{ width: 104, height: 104, borderRadius: radius.pill }}
+                contentFit="cover"
+              />
+            );
+          }
+          return <Avatar color={colors.primary} letter={avatarLetter} size={104} ring={false} />;
+        })()}
         <Stack gap={spacing.xs} style={{ alignItems: "center" }}>
           <Typography
             style={{
