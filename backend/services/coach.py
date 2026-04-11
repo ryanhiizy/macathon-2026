@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 import httpx
-from openai import OpenAI
+from google import genai
 
 from backend.config import Settings
 
@@ -225,7 +225,7 @@ def _build_stats_message(stats: HabitStats) -> str:
 
 
 def generate_insight(settings: Settings, stats: HabitStats) -> CoachInsight:
-    """Generate a coaching insight using GPT, with fallback."""
+    """Generate a coaching insight using Gemini, with fallback."""
     if not stats.has_enough_data:
         fallback = random.choice(FALLBACK_INSIGHTS)
         return CoachInsight(
@@ -235,7 +235,7 @@ def generate_insight(settings: Settings, stats: HabitStats) -> CoachInsight:
             insight_type=fallback.insight_type,
         )
 
-    if not settings.openai_api_key:
+    if not settings.gemini_api_key:
         fallback = random.choice(FALLBACK_INSIGHTS)
         return CoachInsight(
             headline=fallback.headline,
@@ -247,16 +247,15 @@ def generate_insight(settings: Settings, stats: HabitStats) -> CoachInsight:
     stats_message = _build_stats_message(stats)
 
     try:
-        client = OpenAI(api_key=settings.openai_api_key)
-        response = client.chat.completions.create(
-            model=settings.openai_model,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": COACH_SYSTEM_PROMPT},
-                {"role": "user", "content": stats_message},
-            ],
+        client = genai.Client(api_key=settings.gemini_api_key)
+        response = client.models.generate_content(
+            model=settings.gemini_model,
+            contents=f"{COACH_SYSTEM_PROMPT}\n\n{stats_message}\n\nRespond with JSON only.",
+            config=genai.types.GenerateContentConfig(
+                response_mime_type="application/json",
+            ),
         )
-        content = response.choices[0].message.content or "{}"
+        content = response.text or "{}"
         data = json.loads(content)
         return CoachInsight(
             headline=data.get("headline", "Keep going!"),

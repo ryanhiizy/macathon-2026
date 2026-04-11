@@ -3,5 +3,6 @@ uvicorn[standard]
 python-multipart
 anthropic
 openai
+google-genai
 python-dotenv
 httpx
