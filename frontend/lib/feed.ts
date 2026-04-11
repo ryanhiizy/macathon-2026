@@ -216,7 +216,7 @@ const TAGGED_FEED: TaggedPost[] = [
       color: MOCK_USERS[9].color,
       letter: MOCK_USERS[9].letter,
       promptText: "Snap a selfie at the halfway mark — show us that runner's glow.",
-      photos: [img("photo-1461896836934-bd45ba688b20"), img("photo-1483721310020-03333e577078")],
+      photos: [img("photo-1483721310020-03333e577078"), img("photo-1483721310020-03333e577078")],
       caption:
         "28 days straight. My shoes are begging for mercy but my legs finally stopped complaining.",
       likes: 71,

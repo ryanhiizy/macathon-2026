@@ -87,7 +87,7 @@ const img = (id: string) =>
 const CIRCLE_PHOTOS: Record<string, string[]> = {
   "c0000000-0000-0000-0000-000000000001": [ // 5K Every Day
     img("photo-1552674605-db6ffd4facb5"),
-    img("photo-1461896836934-bd45ba688b20"),
+    img("photo-1483721310020-03333e577078"),
     img("photo-1542291026-7eec264c27ff"),
     img("photo-1460353581641-37baddab0fa2"),
   ],
@@ -194,7 +194,7 @@ const PHOTO_MAP: Record<string, string> = {
   "mock/theo-plunge.jpg":   "photo-1504309092620-4d0ec726efa4",
   "mock/ava-sketch.jpg":    "photo-1513364776144-60967b0f800f",
   "mock/leo-run.jpg":       "photo-1542291026-7eec264c27ff",
-  "mock/zoe-run.jpg":       "photo-1461896836934-bd45ba688b20",
+  "mock/zoe-run.jpg":       "photo-1483721310020-03333e577078",
   "mock/omar-nophone.jpg":  "photo-1507842217343-583bb7270b66",
   "mock/kai-guitar.jpg":    "photo-1510915361894-db8b60106cb1",
   "mock/ravi-cook.jpg":     "photo-1556910103-1c02745aae4d",

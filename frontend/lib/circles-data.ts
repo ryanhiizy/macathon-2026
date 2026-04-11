@@ -269,7 +269,7 @@ const CIRCLE_FEED: Record<string, CircleFeedPost[]> = {
       ...memberSnap(mock(9, 28)),
       when: "1h ago",
       promptText: "Snap a selfie at the halfway mark — show us that runner's glow.",
-      photos: [img("photo-1461896836934-bd45ba688b20")],
+      photos: [img("photo-1483721310020-03333e577078")],
       caption: "28 days straight. My shoes are begging for mercy but my legs finally stopped complaining.",
       likes: 71, comments: 9,
     },
