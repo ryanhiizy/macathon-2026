@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Settings02Icon, Fire03Icon } from "@hugeicons/core-free-icons";
 import { Screen, Card, Row, Stack } from "@/components/layout";
@@ -5,6 +6,8 @@ import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { ProgressBar } from "@/components/ui-controls";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
+import { type AppProfile, ensureProfile, supabase } from "@/lib/supabase";
+import { getDemoSession, signOutDemoUser, type DemoSession } from "@/lib/demo-auth";
 
 const STATS = [
   { label: "Habits", value: "8" },
@@ -26,22 +29,138 @@ const GRID_ACCENTS = [
 ];
 
 export default function Profile() {
+  const [profile, setProfile] = useState<AppProfile | null>(null);
+  const [demoSession, setDemoSession] = useState<DemoSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadProfile = async () => {
+      setLoading(true);
+      setError(null);
+
+      const storedDemoSession = await getDemoSession();
+
+      if (storedDemoSession) {
+        if (isActive) {
+          setDemoSession(storedDemoSession);
+          setProfile(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        if (isActive) {
+          setError(userError.message);
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (!user) {
+        if (isActive) {
+          setError("No signed-in user found.");
+          setLoading(false);
+        }
+        return;
+      }
+
+      await ensureProfile(user);
+
+      const { data, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, display_name, handle, avatar_url, bio, created_at")
+        .eq("id", user.id)
+        .single();
+
+      if (!isActive) return;
+
+      if (profileError) {
+        setError(profileError.message);
+      } else {
+        setProfile(data);
+      }
+
+      setLoading(false);
+    };
+
+    loadProfile().catch((loadError: unknown) => {
+      if (!isActive) return;
+      setError(loadError instanceof Error ? loadError.message : "Failed to load profile.");
+      setLoading(false);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const displayName = demoSession?.displayName ?? profile?.display_name ?? "Presence User";
+  const handle = demoSession?.handle ?? profile?.handle ?? "presence";
+  const bio =
+    demoSession?.bio ?? profile?.bio ?? "Your bio will show up here once profile editing lands.";
+  const joinedLabel = formatJoinDate(demoSession?.createdAt ?? profile?.created_at);
+  const avatarLetter = displayName.slice(0, 1).toUpperCase() || "P";
+
+  const signOut = async () => {
+    setSigningOut(true);
+
+    if (demoSession) {
+      await signOutDemoUser();
+      setSigningOut(false);
+      return;
+    }
+
+    const { error: signOutError } = await supabase.auth.signOut();
+    setSigningOut(false);
+
+    if (signOutError) {
+      setError(signOutError.message);
+    }
+  };
+
   return (
     <Screen>
-      <Row style={{ justifyContent: "flex-end" }}>
+      <Row style={{ justifyContent: "space-between" }}>
+        <View>
+          <Eyebrow>Profile</Eyebrow>
+          <Typography variant="caption">
+            {loading
+              ? "Loading your account..."
+              : demoSession
+                ? "Demo mode is on. This bypasses Supabase email auth."
+                : "Signed in and ready for the rest of the app."}
+          </Typography>
+        </View>
         <Pressable
+          disabled={signingOut}
+          onPress={signOut}
           style={{
-            width: 44,
-            height: 44,
+            minHeight: 44,
             borderRadius: radius.pill,
             backgroundColor: colors.card,
             borderWidth: 1,
             borderColor: colors.border,
             alignItems: "center",
             justifyContent: "center",
+            paddingHorizontal: spacing.md,
+            flexDirection: "row",
+            gap: spacing.xs,
           }}
         >
           <Icon icon={Settings02Icon} size={22} color={colors.fg} />
+          <Typography variant="caption" style={{ fontFamily: fonts.bodySemibold, color: colors.fg }}>
+            {signingOut ? "Signing out..." : "Sign out"}
+          </Typography>
         </Pressable>
       </Row>
 
@@ -59,14 +178,14 @@ export default function Profile() {
           }}
         >
           <Typography style={{ fontFamily: fonts.heading, fontSize: 40, color: colors.onPrimary }}>
-            B
+            {avatarLetter}
           </Typography>
         </View>
         <View style={{ alignItems: "center" }}>
           <Typography style={{ fontFamily: fonts.heading, fontSize: 26, color: colors.fg }}>
-            Budi Hartono
+            {displayName}
           </Typography>
-          <Typography variant="caption">@budi · joined Apr 2026</Typography>
+          <Typography variant="caption">@{handle} · joined {joinedLabel}</Typography>
         </View>
       </Stack>
 
@@ -85,9 +204,7 @@ export default function Profile() {
 
       <Card>
         <Eyebrow>Bio</Eyebrow>
-        <Typography variant="bodyMuted">
-          Building small habits into rituals. Currently chasing 100 days of morning walks.
-        </Typography>
+        <Typography variant="bodyMuted">{bio}</Typography>
       </Card>
 
       <Card>
@@ -132,6 +249,29 @@ export default function Profile() {
           ))}
         </View>
       </Stack>
+
+      {error ? (
+        <Card style={{ borderColor: colors.danger }}>
+          <Typography variant="bodyMuted" color={colors.danger}>
+            {error}
+          </Typography>
+        </Card>
+      ) : null}
     </Screen>
   );
+}
+
+function formatJoinDate(createdAt?: string | null) {
+  if (!createdAt) return "now";
+
+  const date = new Date(createdAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return "now";
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    year: "numeric",
+  });
 }

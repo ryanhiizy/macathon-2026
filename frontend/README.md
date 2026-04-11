@@ -42,14 +42,15 @@ pip install -r backend/requirements.txt
 From the repository root, create the local env files you need:
 
 ```bash
-cp .env.example frontend/.env
-cp .env.example backend/.env
+cp frontend/.env.example frontend/.env
+cp backend/.env.example backend/.env
 ```
 
 Fill in at least:
 
 - `EXPO_PUBLIC_SUPABASE_URL` — required
-- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — required
+- `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — preferred for new setups
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` — legacy fallback if you are still using the anon key format
 - `EXPO_PUBLIC_PROMPT_API_URL` — required once the app calls the local AI server
 - `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` — required once prompt generation is wired
 

@@ -13,7 +13,6 @@ File-based routing under `app/`. Add screens by adding files.
 ```
 app/
 ├── _layout.tsx                  # root layout — auth gate + providers
-├── index.tsx                    # sign-in / landing
 ├── (tabs)/
 │   ├── _layout.tsx              # bottom tab bar (Home, Habits, Circles, Profile)
 │   ├── index.tsx                # Home feed — Friends tab + Circles tab
@@ -29,8 +28,14 @@ app/
 │   ├── new.tsx                  # Create Circle form
 │   └── join.tsx                 # Invite link landing page
 └── auth/
+    ├── index.tsx                # auth landing
+    ├── login.tsx                # returning-user magic link login
+    ├── signup.tsx               # lightweight signup before magic link
+    ├── check-email.tsx          # post-submit confirmation / resend
     └── callback.tsx             # Supabase magic link callback
 ```
+
+For the hackathon demo, `/auth` also exposes a local `Continue as demo user` path. That bypasses email entirely, stores a lightweight local session on-device, and satisfies the root auth gate without touching Supabase.
 
 ## Build Order
 
