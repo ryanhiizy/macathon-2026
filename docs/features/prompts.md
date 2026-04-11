@@ -1,62 +1,77 @@
-# Feature: Random Funny Prompts
+# Feature: AI Prompts
 
-Each habit instance gets a randomly assigned silly prompt that tells the user exactly what to photograph. Prompts are the core differentiator of this app — they make cheating with a pre-taken photo much harder and make the feed fun to scroll.
+Each habit instance gets an AI-generated prompt that tells the user what to photograph. Prompts are the core differentiator — they make the verification photo fun, unpredictable, and feed-worthy.
 
-## What it does
+## Two Prompt Types
 
-When a habit instance is created (at fire time, or lazily on first open), the app picks a random prompt from the bank for that habit's category. The prompt is stored on the `habit_instance` row and remains fixed for that instance's lifetime.
+### Solo Prompts
+Generated for a single user proving a habit alone. Tailored to the specific habit and designed for one person.
 
-## Prompt shape
+Examples:
+- Running: *"Throw a peace sign mid-stride!"*
+- Gym: *"Flex with a dumbbell and point at the camera"*
+- Water: *"Show your water bottle — how full is it?"*
+
+### Group Prompts
+Generated when a Group Prove session starts. Contextually adapted for multiple people — meaningfully different from the solo prompt for the same habit.
+
+Examples (same habits, group version):
+- Running: *"Everyone jump in the air at the same time!"*
+- Gym: *"All flex your biceps together!"*
+- Water: *"Cheers! Clink your water bottles together!"*
+
+## Where Prompts Live
+
+### Primary: AI Generation (FastAPI server)
+The demo laptop's FastAPI server exposes a `/generate-prompt` endpoint that calls the Claude/OpenAI API.
+
+```
+POST /generate-prompt
+{
+  "category": "running",
+  "mode": "solo" | "group",
+  "participant_count": 1 | N
+}
+
+→ {
+  "prompt_text": "Throw a peace sign mid-stride!",
+  "required_classes": ["person"],
+  "id": "generated_<uuid>"
+}
+```
+
+The app calls this when the habit instance is created (at notification fire time, or lazily on first open of the camera screen).
+
+### Fallback: Static JSON Bank
+`app/constants/prompts.json` — used if the AI server is unreachable or slow. Same shape as the generated prompt.
 
 ```ts
 type Prompt = {
-  id: string;            // stable id, e.g. "running_banana_phone"
-  category: Category;    // which habits can draw this prompt
-  text: string;          // user-facing instruction
-  requiredClasses: {     // YOLO classes that must be detected
-    class: string;
-    minConfidence: number;
-  }[];
-  optionalClasses?: {    // bonus detections, earn a badge
+  id: string;
+  category: Category;
+  mode: 'solo' | 'group';
+  text: string;
+  requiredClasses: {
     class: string;
     minConfidence: number;
   }[];
 };
 ```
 
-## Storage
-
-**Static JSON** at `app/constants/prompts.json` in V1. No database table, no LLM. This is intentional — keeps verification deterministic and the bank reviewable in PRs.
-
-Example:
-
-```json
-[
-  {
-    "id": "running_banana_phone",
-    "category": "running",
-    "text": "Take a selfie holding a banana like it's a phone",
-    "requiredClasses": [
-      { "class": "person", "minConfidence": 0.6 },
-      { "class": "banana", "minConfidence": 0.5 }
-    ]
-  },
-  {
-    "id": "gym_dumbbell_flex",
-    "category": "gym",
-    "text": "Flex with a dumbbell and point at the camera",
-    "requiredClasses": [
-      { "class": "person", "minConfidence": 0.6 }
-    ]
-  }
-]
-```
-
-## Selection logic
-
 ```ts
-function pickPrompt(category: Category): Prompt {
-  const pool = prompts.filter(p => p.category === category);
+function pickFallbackPrompt(category: Category, mode: 'solo' | 'group'): Prompt {
+  const pool = prompts.filter(p => p.category === category && p.mode === mode);
   return pool[Math.floor(Math.random() * pool.length)];
 }
 ```
+
+## Display
+
+- Shown prominently on the camera screen above the viewfinder before the photo is taken
+- The exact prompt text is stored on the `habit_instance` row and on the `snap` row
+- The prompt appears on the feed post card so viewers have context for the photo
+- Prompts should vary daily — AI generation handles this naturally; the static bank should have enough variety per category
+
+## Storage
+
+`habit_instance.prompt_text` — the actual text shown to the user. Fixed for that instance's lifetime once assigned.

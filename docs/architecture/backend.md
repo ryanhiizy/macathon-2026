@@ -5,61 +5,81 @@ See [`../Architecture.md`](../Architecture.md) for the high-level stack. This do
 The backend is two pieces:
 
 1. **Supabase** — managed BaaS (auth, Postgres, Storage, Realtime, pg_cron)
-2. **Local YOLO server** — Python FastAPI process running on the demo laptop
+2. **Local AI/YOLO server** — Python FastAPI process running on the demo laptop (handles both YOLO inference and AI prompt generation)
 
 ## Supabase
 
 One Supabase project, free tier. All traffic from the app goes through `@supabase/supabase-js`.
 
-### Services used
+### Services Used
 
 | Service | Purpose |
 |---|---|
 | Auth | Magic link / OTP sign-in |
-| Postgres | Users, habits, circles, snaps, streaks |
-| Storage | Habit snap photos (private bucket) |
-| Realtime | Live circle feed updates, streak break notifications |
-| pg_cron | Scheduled job that expires habit windows and resets streaks |
-| Edge Functions | Not used in V1 (YOLO is called directly from the client) |
+| Postgres | Profiles, habits, circles, snaps, streaks, likes, follows |
+| Storage | Habit snap photos (`snaps` bucket) |
+| Realtime | Live circle feed, home feed, streak broadcasts |
+| pg_cron | Scheduled job every minute: expires habit windows + resets streaks |
+| Edge Functions | Not used in V1 |
 
-See [`../infrastructure/`](../infrastructure/) for schemas, RLS policies, storage bucket setup, and the pg_cron job definition.
+See [`../infrastructure/supabase.md`](../infrastructure/supabase.md) for schemas, RLS policies, storage bucket setup, and the pg_cron job.
 
-## YOLO Server
+## FastAPI Server (Demo Laptop)
 
-A standalone Python process running on the demo laptop. See [`../devops/yolo-server.md`](../devops/yolo-server.md) for setup and [`../features/verification/`](../features/verification/) for the contract.
+A single Python FastAPI process on the demo laptop, exposed to the phone via LAN (same Wi-Fi) or a tunnel.
+
+### Endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | Health check |
+| `POST /detect` | YOLO inference — accepts image, returns detected classes + confidences |
+| `POST /generate-prompt` | AI prompt generation — accepts category + mode, returns prompt text |
+
+### `/detect` Contract
+
+```
+POST /detect
+multipart/form-data: file (JPEG)
+
+→ { "classes": [...], "confidences": [...], "latency_ms": N }
+```
+
+### `/generate-prompt` Contract
+
+```
+POST /generate-prompt
+{ "category": "running", "mode": "solo" | "group", "participant_count": N }
+
+→ { "prompt_text": "...", "required_classes": [...], "id": "..." }
+```
 
 ### Responsibilities
 
-- Accept an image upload
-- Run YOLOv8n inference
-- Return detected classes with confidences
-- That's it — no business logic, no database access, no auth
+- YOLO: accept image, run YOLOv8n inference, return classes + confidences
+- Prompts: call Claude/OpenAI API, return contextual prompt text for the habit + mode
+- No business logic, no database access, no auth
 
-### What it intentionally does NOT do
+### What It Intentionally Does NOT Do
 
-- Does not write to Supabase (the client does that after getting the response)
-- Does not know about habits, prompts, or users
-- Does not do prompt-to-class matching (that's client-side logic)
+- Does not write to Supabase (the client handles that)
+- Does not know about users or streaks
+- Does not do prompt-to-class matching (client-side logic)
 
-This separation keeps the Python server dumb and replaceable.
+This keeps the server dumb and replaceable.
 
-## Tunneling
+## Networking
 
-The YOLO server binds to `localhost:8000` on the laptop. The phone reaches it through a tunnel:
+**Demo day (preferred):** Phone and laptop on the same Wi-Fi → use LAN mode. No tunnel needed.
+- Expo: `npx expo start --lan`
+- App uses: `http://<laptop-ip>:8000`
 
-- **Cloudflare Tunnel** (preferred) — `cloudflared tunnel --url http://localhost:8000`
-- **ngrok** — fallback
-- **localtunnel** — quick and dirty
-- **LAN mode** — if the hackathon Wi-Fi allows peer connections
+**Remote dev:** Use a tunnel for the FastAPI server.
+- ngrok: `ngrok http 8000` → HTTPS URL
+- Cloudflare: `cloudflared tunnel --url http://localhost:8000` → HTTPS URL
 
-The resulting HTTPS URL is pasted into a constant in the app (e.g. `src/config/yolo.ts`) for the session.
+The URL is pasted into `src/config/yolo.ts` (`YOLO_API_URL`) for the session.
 
 ## Why No Edge Function Proxy
 
-The original plan had a Supabase Edge Function proxying client → YOLO. We dropped it because:
-
-1. The YOLO endpoint is local and temporary — nothing worth hiding
-2. Adds a hop and a Deno runtime to debug
-3. Hackathon demo, not a production deploy
-
-If we ever productionize, the Edge Function proxy goes back in.
+The YOLO/AI server is local and temporary — nothing worth hiding behind a proxy. Adding a Deno runtime hop just adds latency and a new failure point for a hackathon demo.

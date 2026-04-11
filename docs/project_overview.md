@@ -1,90 +1,132 @@
-# Product Requirements Document
+# Product Requirements Document — presence
 
-> **Hackathon MVP** — This is being built for a hackathon. The goal is a working preview that demonstrates the core loop, not a production-ready product. Scope is intentionally cut to what can be shown. See [Architecture.md](./Architecture.md) for the tech stack.
+> **Hackathon MVP** — A working preview that demonstrates the core loop. Scope is cut to what can be demoable. See [Architecture.md](./Architecture.md) for the tech stack.
 
 ## 1. Overview
 
-An iOS app that sends you a photo prompt when it's time to do your habit, and you have a short window to prove you did it with your camera. When the window fires, the app hands you a **randomly generated, often absurd prompt** — e.g. *"Going for a run? Take a picture holding a banana like it's a phone"* — and a YOLO object-detection model checks that the expected objects (running shoes, banana, etc.) actually show up in the photo. Verified snaps land in a habit-specific circle of friends who can all see your streak in real time. The social consequence of missing is the product — your circle gets notified, your streak resets to zero, and everyone knows.
+**presence** is a social habit-tracking app combining the accountability of BeReal's photo verification with the community-driven motivation of Strava. Users build daily habits, prove completion by taking photos prompted by AI-generated challenges, and share progress through a social feed.
+
+Core differentiators:
+- **Photo proof** — no checkbox taps; every habit requires a photo
+- **AI prompts** — fun, contextual challenges make each verification unique (solo and group)
+- **Circles** — habit-specific groups where every member commits to the same habit
+- **Group Prove** — complete and verify a habit together in a shared camera session
+- **Social consequence** — miss your window and your Circle gets notified; streak resets to zero
 
 ## 2. Problem
 
-Existing habit trackers fail for one of two reasons. Either they are entirely self-reported (a tap to "mark complete" is meaningless friction) or they are gamified in isolation (losing a Duolingo streak only matters to you). There is no mainstream product that combines credible photo-based proof of completion with a social accountability layer where your community actually notices when you slip.
+Existing habit trackers fail for one of two reasons: self-reported (a tap is meaningless) or gamified in isolation (no one else notices). presence combines credible photo-based proof with a social accountability layer where your community actually notices when you slip.
 
 ## 3. Target User
 
-The primary user is someone aged 18–30 who has tried and abandoned habit apps before, understands why accountability works, and already has a social group they'd credibly compete with or support. Think gym-going students and young professionals who would respond to the phrase "my circle will see if I miss."
+Ages 18–30, has tried and abandoned habit apps before, already has a social group they'd credibly compete with or support. Responds to "my Circle will see if I miss."
 
-## 4. Product Requirements
+## 4. Core Concepts
 
-> Sections 4.1–4.4 cover core functionality. Sections 4.5–4.6 cover the social layer and streak mechanics.
+### 4.1 Habits
 
-### 4.1 Habit Creation
+A recurring daily activity. Each habit has a name, time window, category, and a streak counter. Completion requires a photo — not a tap.
 
-A user creates a habit by specifying its name, a target time, a frequency (daily, weekdays, custom days), and a category. The category determines the verification mode.
+**Verifiable categories** (photo + AI prompt, YOLO-checked): gym, running, cooking, meal prep — activities where a recognisable object can appear in a photo.
 
-**Verifiable categories** include gym and fitness, cooking and meals, running and outdoor exercise, and other activities where a recognisable physical object or environment can be detected in a photo. When a user selects a verifiable category, they optionally add a keyword descriptor (e.g. "dumbbell", "meal prep") that seeds the AI verification model.
+**Trust-based categories** (photo check-in, no object detection): reading, meditation, journalling, water — internally-directed habits. Shown at creation with: *"We trust you on this one — your photo is just a ritual check-in."*
 
-**Trust-based categories** include reading, meditation, journalling, drinking water, and other internally-directed habits where no visual proof is realistic. The app flags these clearly at creation time with copy such as: *"We trust you on this one — your photo is just a ritual check-in."*
+### 4.2 Photo Verification
 
-A user can belong to an existing circle for a habit or create a new one and invite others via a shareable link.
+Every habit completion requires a proof photo. The app generates a fun AI prompt tailored to the habit (e.g. *"Throw a peace sign mid-stride on your run!"* for running). The photo and prompt are posted to the social feed. The deadline for submitting aligns with the habit's end time.
 
-### 4.2 Notification, Prompt Generation, and Capture Window
+### 4.3 Circles
 
-At a randomly selected time within ±15 minutes of the habit's target time, the app fires a local scheduled notification. At fire time, the app **generates a random prompt** for the habit (see 4.3) and includes a teaser in the notification (e.g. *"Your gym check-in — today's pose is spicy 👀"*). The user has **30 minutes** from notification delivery to submit their snap. After 30 minutes, the habit instance is marked as missed.
+Community groups built around a single habit. All members have committed to the same daily habit. Circles have a shared feed, a leaderboard, and an About section. Members see each other's proof photos, compete on streaks, and motivate each other.
 
-The notification opens the in-app camera directly, and the full prompt text is displayed above the camera view. The photo is timestamped at capture and **cannot** be replaced with a photo from the camera roll. This is a hard technical constraint enforced at the capture layer (we mount `expo-camera` directly and never expose the image picker).
+### 4.4 Group Prove
 
-### 4.3 Random Funny Prompts
+Invite friends to complete a habit together for one session (not permanently). The user picks an incomplete habit, selects friends, and enters a shared camera experience. The AI prompt is adapted for the group context (e.g. *"Everyone jump in the air at the same time!"* instead of a solo prompt). The result is a group post on the feed attributed to all participants — streaks increment for each.
 
-Each habit instance gets its own randomly generated prompt drawn from a category-specific prompt bank. Prompts are intentionally silly so that the feed is entertaining and so that the required objects are unpredictable (which makes cheating with a single pre-taken photo much harder).
+### 4.5 Streaks
 
-Each prompt specifies:
-- **Prompt text** — the instruction the user sees (e.g. *"Take a selfie mid-squat holding a water bottle above your head"*)
-- **Required objects** — the list of YOLO classes that must be detected for the snap to verify (e.g. `["person", "bottle"]`)
-- **Optional objects** — bonus classes that, if detected, earn a badge or reaction on the feed
+Count of consecutive days a user has verified a habit. Displayed on habit cards, feed posts, and Circle leaderboards. Milestone streaks (50 days, 100 days) trigger celebration cards on the feed. No grace period, no streak freeze in V1.
 
-Examples by category:
+## 5. Pages & Features
 
-| Category | Prompt | Required YOLO classes |
-|---|---|---|
-| Running | *"Photo with your running shoes on and a banana like it's a phone"* | `person, banana` |
-| Gym | *"Flex with a dumbbell in one hand and point at the camera with the other"* | `person, dumbbell` |
-| Cooking | *"Show us your plate with a fork standing straight up in it"* | `bowl, fork` OR `plate, fork` |
-| Meal prep | *"Hold up your meal prep container next to your face"* | `person, bowl` |
+### 5.1 Home Page (Feed)
 
-Prompts are generated client-side from a static JSON bank in V1 (no LLM call needed), with room to swap in an LLM-generated prompt later.
+First screen after opening. Two tabs via segmented control:
 
-### 4.4 AI Photo Verification (YOLO)
+- **Friends** (default) — posts from people the user follows, reverse-chronological. Includes solo posts, group posts, and milestone celebration cards.
+- **Circles** — latest posts from all Circles the user belongs to, shown as Circle cards with thumbnail rows.
 
-Verifiable habits run the submitted snap through a **YOLO object-detection model** hosted server-side. The backend checks the detected object classes against the prompt's `required_objects` list.
+**Solo post card:** avatar, name, habit name, time ago, streak badge, proof photo, AI prompt, caption, like/reply actions.
 
-- **All required classes detected above their confidence thresholds:** automatically verified
-- **One or more required classes missing:** flagged — user sees *"Hmm, we couldn't spot the [missing object]. Try again."* and gets one retry within the remaining capture window
-- **Retry also fails:** habit is marked as missed and is visible to the circle
+**Group post card:** stacked avatar row, "Group" badge, all participant names, participant count overlay on photo, group AI prompt, individual streak chips per participant, like/comment actions.
 
-Trust-based habit snaps bypass YOLO entirely and are marked complete immediately on submission.
+**Milestone celebration card:** displayed when a user hits 50 or 100 days. Shows name, habit, streak count, "Celebrate" action.
 
-The app should surface the verification result within **~3 seconds** of submission. If inference exceeds this latency, the app optimistically marks the habit as pending and updates when the result returns.
+### 5.2 Habits Page
 
-> **Hard requirement:** YOLO verification must ship for verifiable habits at launch. Removing it collapses the integrity of the proof mechanic.
+Personal dashboard for managing daily habits. Top-right: create new habit button.
 
-### 4.5 Social Layer and Circles
+**Daily progress summary:** circular progress ring showing habits completed/total. Text label (e.g. *"3 habits left · Keep going!"*).
 
-A **circle** is a group of users sharing one habit. Each circle has:
-- A name (set by the creator)
-- A shared feed of snaps
-- A leaderboard showing all member streaks
+**Habit cards:** icon, name, streak count, scheduled time. Completed habits show a check mark and are muted. Incomplete habits show two buttons: invite (👥) for Group Prove, and "Prove" for solo camera.
 
-When a user submits a verified snap, it appears in the circle feed with a timestamp, the user's display name, and a verification badge (for verifiable habits). Circle members can react to snaps with a small set of preset emoji reactions.
+**Solo camera view:** habit name in header, AI-generated solo prompt card above the viewfinder, deadline, camera controls (flip, shutter, flash).
 
-When a user misses a habit instance, all circle members receive a push notification: *"[Name] missed their [habit name] streak at [day count]."* The missed instance also appears in the feed as an empty card with a streak-broken indicator. The user's streak counter resets to zero.
+**Group Prove flow:**
+1. Tap invite → bottom sheet with friend search + scrollable list
+2. Select friends → avatar stack preview (e.g. "You + 2 friends")
+3. Tap "Start Group Prove · N people" → Group Camera View
+4. Group camera: "Group" badge, avatar stack, group-tailored AI prompt, ready-status panel (host auto-ready), participant count overlay, same camera controls
+5. Submit → group post on feed, streaks increment for all participants
 
-A user can be in multiple circles (no limit enforced at launch, though rate-limiting will likely be needed at scale). Circles can be **public** (discoverable via category browse) or **private** (invite-only via link). Private circles are the default at launch.
+### 5.3 Circles Page
 
-### 4.6 Streak Mechanics
+Lists all Circles the user is in. Header: search (top-left) to discover/join new Circles, create (top-right) to start a new one.
 
-A streak increments by one for each consecutive day a user submits a verified snap before the capture window closes. Streaks are displayed as a count on each user's profile within a circle and on the circle leaderboard.
+**Circle list card:** icon, name, member count, user's current streak, thumbnail row of recent proof photos.
 
-When a streak breaks, it resets to zero with **no grace period** in V1. The miss is announced to the circle immediately.
+**Circle detail (3 tabs):**
+- **Feed** — chronological proof posts from members (solo + group), filtered to this Circle's habit. Realtime updates.
+- **Leaderboard** — ranked by streak. Sub-filters: "All Time" and "Monthly". Shows rank, avatar, name, streak. User's own entry highlighted.
+- **About** — Circle description, rules, members list with avatars and streaks. "+ N more" for large Circles.
 
-> There is deliberately no "streak freeze" mechanic at launch, as this would undermine the accountability model. This can be revisited in V2 based on retention data.
+### 5.4 Profile Page
+
+Instagram-style layout. Header: settings icon.
+- User avatar, display name, handle, join date
+- Stats bar: total habits, best streak, friends count, Circles count
+- Bio (short text, user-set)
+- Posts grid: 3-column grid of all proof photos, habit name overlaid. Tap to expand.
+
+## 6. Navigation
+
+Persistent bottom tab bar with 4 tabs: **Home**, **Habits**, **Circles**, **Profile**. Hidden in full-screen camera views (replaced by camera controls + back button).
+
+## 7. AI Prompt System
+
+Key differentiator. Transforms photo verification from a chore into a creative challenge.
+
+- **Solo prompts** — tailored to the specific habit, designed for one person
+- **Group prompts** — contextually adapted for multiple people (different from the solo prompt for the same habit)
+- Prompts display prominently on the camera screen before the user takes the photo
+- The prompt used appears on the feed post for context
+- Prompts vary to keep experience fresh
+
+**V1 implementation:** prompts generated by calling Claude/LLM API from the FastAPI server (`/generate-prompt` endpoint). Static JSON bank (`app/constants/prompts.json`) used as fallback if the API is slow or unreachable.
+
+## 8. Notification Window
+
+At ±15 minutes of the habit's target time, a local notification fires with a prompt teaser. User has **30 minutes** to submit their snap. After 30 minutes: habit instance marked missed, circle notified, streak resets to zero.
+
+## 9. Verification
+
+- **Verifiable habits:** submitted snap goes through YOLO object detection on the demo laptop. All required classes detected above confidence threshold = verified. Failure = one retry within the remaining window. Second failure = missed.
+- **Trust-based habits:** marked verified immediately on photo submission.
+- Verification result within ~3 seconds. If slower, optimistically show "pending".
+
+## 10. Streak Mechanics
+
+- +1 per verified snap before window closes
+- Reset to 0 on any missed instance (no grace period in V1)
+- Server-side pg_cron runs every minute to expire windows and reset streaks — client timers are never trusted
+- Miss announced to Circle immediately via Realtime

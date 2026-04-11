@@ -108,25 +108,31 @@ The public URL from whichever tunnel we use gets pasted into a single constant i
 In scope for the hackathon preview:
 
 - [ ] Habit creation (name, time, category, verifiable vs. trust-based)
-- [ ] Random prompt bank per category (static JSON)
-- [ ] In-app camera capture (camera roll structurally blocked)
+- [ ] AI-generated prompts via FastAPI server (`/generate-prompt`) with static JSON fallback
+- [ ] Solo camera capture (camera roll structurally blocked)
 - [ ] Prompt text displayed above the camera view
 - [ ] Photo upload to Supabase Storage
-- [ ] YOLO object detection via Python inference server (proxied through Edge Function)
-- [ ] Required-object matching against the prompt's class list
+- [ ] YOLO object detection via Python inference server (`/detect`)
+- [ ] Required-object matching against the prompt's class list (client-side)
+- [ ] Group Prove — invite friends, group camera, group AI prompt, group post
 - [ ] Circle creation + invite link (`Linking.createURL`)
 - [ ] Join circle from invite link
-- [ ] Circle feed with snaps (Realtime updates)
+- [ ] Home feed — Friends tab + Circles tab
+- [ ] Solo post cards and group post cards
+- [ ] Milestone celebration cards (7, 14, 30, 50, 100 day streaks)
+- [ ] Circle detail — Feed / Leaderboard (All Time + Monthly) / About tabs
+- [ ] Profile page — stats bar, bio, posts grid
 - [ ] Streak counter per user per circle
 - [ ] Local scheduled notifications for the daily prompt (±15 min jitter)
 - [ ] Server-side streak reset on missed window (pg_cron)
 - [ ] In-app notification when a circle member misses (Realtime)
+- [ ] Like on snaps
 
 Explicitly out of scope for MVP:
 
-- Real remote push notifications (Expo Go limitation — we use local scheduled notifications instead)
-- Public circle discovery / category browse
-- Emoji reactions on snaps
+- Real remote push notifications (Expo Go limitation — use local scheduled notifications)
+- Comments on snaps
 - Streak freeze / grace period
 - Rate limiting
 - Custom notification categories / interactive notifications
+- Public circle discovery beyond search by name

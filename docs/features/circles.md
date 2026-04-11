@@ -1,51 +1,94 @@
 # Feature: Circles
 
-A circle is a group of users sharing one habit. It's the social layer — the whole point of the product.
+A Circle is a community group built around a single habit. It's the social layer — the whole point of the product.
 
-## What it does
+## What It Does
 
-- A user creates a circle with a name, becomes the first member
-- The circle gets a unique `invite_code` and a shareable link
-- Other users open the link → land on `app/circles/join.tsx` → join the circle
-- All members of a circle have their own habit (e.g. everyone's "morning gym") and see each other's snaps in one feed
+- User creates a Circle with a name and description, becomes the first member
+- Circle gets a unique `invite_code` and a shareable invite link
+- Other users open the link → land on `app/circles/join.tsx` → join the Circle
+- All members have committed to the same daily habit and see each other's proof photos in one feed
+- Members compete on a leaderboard ranked by streak
 
-## Screens
+## Circles Page
 
-- `app/(tabs)/index.tsx` — today's snap feed (all circles the user is in)
-- `app/circles/index.tsx` — list of user's circles
-- `app/circles/[circleId].tsx` — single circle feed + leaderboard
-- `app/circles/new.tsx` — create circle form
-- `app/circles/join.tsx` — landing page from an invite link
+Lists all Circles the user is in. Header:
+- **Search** (top-left) — discover and join new Circles by name/category
+- **Create** (top-right) — start a new Circle
 
-## Invite links
+### Circle List Card
 
-Use `Linking.createURL('/circles/join?code=<invite_code>')` from `expo-linking`. In Expo Go dev this resolves to `exp://<host>/--/circles/join?code=...`, in a real build it'd be your custom scheme. Never hardcode the scheme.
+Each Circle shown as a tappable card:
+- Circle icon and name
+- Member count + user's current streak in this Circle
+- Thumbnail row of recent proof photos from members
+
+## Circle Detail View
+
+Three tabs accessed via a segmented control:
+
+### Feed Tab
+Chronological feed of proof posts from all Circle members. Includes solo posts and group posts. Functions identically to the main Home feed but filtered to this Circle's habit. Uses Supabase Realtime for live updates — new snaps appear without a pull-to-refresh.
+
+Each feed item:
+- User avatar + display name
+- Habit name + time ago
+- Streak badge (solo) or "Group" badge + participant chips (group)
+- Proof photo + AI prompt text
+- Like action
+
+Missed instances appear as empty cards with a streak-broken indicator.
+
+### Leaderboard Tab
+Ranked list of Circle members by streak length. Two sub-filters:
+- **All Time** — total consecutive streak
+- **Monthly** — streak within the current calendar month
+
+Each entry: rank, avatar, name, streak count. The user's own entry is highlighted.
+
+### About Tab
+- Circle description (rules, commitment details)
+- Full members list: avatar, name, streak per member
+- "+ N more" indicator for large Circles
+
+## Invite Links
+
+```ts
+Linking.createURL('/circles/join?code=<invite_code>')
+// In Expo Go dev: exp://<host>/--/circles/join?code=...
+// Never hardcode the scheme
+```
 
 Parsing in `app/circles/join.tsx`:
-
 ```ts
 const { code } = useLocalSearchParams<{ code: string }>();
 ```
 
-## Feed
+## Realtime
 
-The circle feed is a list of `snaps` ordered by `created_at desc`, scoped by `circle_id`. Uses a Supabase Realtime subscription to push new snaps in as they're submitted.
+Supabase Realtime subscription on the `snaps` table scoped by `circle_id`. New snaps push into the feed live. Missed habit instances broadcast via the `habit_instances` table update.
 
-Each feed item shows:
-- User avatar + display name
-- The prompt text for that snap
-- The photo
-- Verification badge (for verifiable habits)
-- Detected classes as small chips (for transparency / amusement)
-- Timestamp
-- Streak count at time of submission
-
-Missed instances appear as empty cards with a streak-broken indicator.
+```ts
+supabase
+  .channel(`circle:${circleId}`)
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'snaps',
+      filter: `circle_id=eq.${circleId}` }, handleNewSnap)
+  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_instances' },
+      handleMissedHabit)
+  .subscribe();
+```
 
 ## Privacy
 
-Circles are **private by default**. Public discovery is out of scope for MVP. The only way to join is via invite link.
+Circles are **private by default**. Public discovery is in scope for MVP via the search button (search by name). The only way to join is via invite link or search.
 
-## RLS
+## Screens
 
-Permissive for demo — authenticated users can read/write. See [`../infrastructure/supabase.md`](../infrastructure/supabase.md).
+- `app/(tabs)/circles.tsx` — circles list
+- `app/circles/[circleId].tsx` — circle detail (Feed / Leaderboard / About)
+- `app/circles/new.tsx` — create Circle form
+- `app/circles/join.tsx` — invite link landing page
+
+## Data
+
+Reads/writes `circles`, `circle_members`, `snaps`, `snap_participants`. See [`../architecture/data-model.md`](../architecture/data-model.md).

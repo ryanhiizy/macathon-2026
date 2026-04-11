@@ -2,17 +2,31 @@
 
 ## Product Context
 
-Habit-tracking iOS app for a hackathon MVP. Users create habits, get a local notification at a randomized time in their window, open the in-app camera, and get handed a **randomly generated funny prompt** (e.g. *"Take a selfie holding a banana like it's a phone"*). A **YOLO object-detection model** running on the demo laptop verifies the required objects are present. Verified snaps land in a shared "circle" feed with friends who see each other's streaks in real time. Miss the window and your circle gets notified — the social consequence is the product.
+**presence** — a social habit-tracking iOS app (Habit Tracker × BeReal × Strava) built for a hackathon MVP.
+
+Users create daily habits, get a local notification within ±15 min of their target time, open the in-app camera, and receive an **AI-generated prompt** (e.g. *"Throw a peace sign mid-stride on your run!"*). They take a live photo following the prompt, which is verified by a YOLO model on the demo laptop. Verified snaps post to a social feed in **Circles** — habit-specific groups where friends see each other's streaks in real time. **Group Prove** lets friends complete a habit together in a shared camera session with a group-tailored AI prompt. Miss the window and your streak resets and your Circle gets notified — the social consequence is the product.
+
+See [`docs/overview.md`](docs/overview.md) for the full product description and [`docs/project_overview.md`](docs/project_overview.md) for the PRD.
+
+## Hackathon Mindset
+
+**This is a hackathon, not a production app.** Optimise for demoability, not correctness.
+
+- If something can be faked convincingly for the demo, fake it.
+- Hardcode things that would be configurable in production. Clean it up later.
+- Don't add error handling, retries, or validation beyond what the demo needs.
+- Don't add tests. Don't refactor. Don't abstract. Build the feature, ship it, move on.
+- Three similar lines of code is better than a premature abstraction.
+- Every decision should be evaluated by: *"does this help us demo in time?"*
 
 ## Engineering Philosophy
 
-We follow the [harness engineering](https://openai.com/index/harness-engineering/) approach: humans steer, agents execute. Key principles for this hackathon:
+Humans steer, agents execute. Key rules:
 
-- **This file is a map, not a manual.** Keep `CLAUDE.md` / `AGENTS.md` as a concise index (~100 lines) pointing to deeper docs. Do not bloat it with inline instructions.
-- **Repository knowledge is the system of record.** Context agents need must live in versioned, in-repo artifacts (code, markdown, plans) — not in chat threads or people's heads.
-- **Scope ruthlessly.** This is a hackathon MVP. Every feature must be demoable. If something can be faked convincingly for the demo, fake it.
-- **No premature abstraction, no speculative features.** Three similar lines is better than a wrong abstraction. Build the feature that's on the PRD, nothing else.
+- **This file is a map, not a manual.** ~100 lines max. Drill into linked docs for detail.
+- **Repository knowledge is the system of record.** Everything an agent needs must live in versioned in-repo artifacts — not in chat threads.
 - **Plans are first-class artifacts.** Non-trivial features get a plan in `docs/plans/` before implementation.
+- **No speculative features.** Build what's on the PRD, nothing else.
 
 ## Repository Layout
 
@@ -23,24 +37,24 @@ We follow the [harness engineering](https://openai.com/index/harness-engineering
 
 ## Documentation Map
 
-This file is an index, not an encyclopedia. Drill into the linked docs for detail.
-
-- [`docs/project_overview.md`](docs/project_overview.md) — product requirements, user flows, feature specs, prompt mechanics
-- [`docs/Architecture.md`](docs/Architecture.md) — tech stack, runtime decisions (Expo Go + tunnel), YOLO setup, data flow, MVP scope
-- [`docs/principles.md`](docs/principles.md) — engineering principles and golden rules
-- [`docs/architecture/`](docs/architecture/) — deeper architecture docs ([`frontend.md`](docs/architecture/frontend.md), [`backend.md`](docs/architecture/backend.md), [`data-model.md`](docs/architecture/data-model.md))
-- [`docs/features/`](docs/features/) — per-feature docs (habits, camera-capture, prompts, verification, circles, streaks, notifications)
-- [`docs/infrastructure/`](docs/infrastructure/) — Supabase schema + RLS + cron ([`supabase.md`](docs/infrastructure/supabase.md)), YOLO server setup ([`yolo-server.md`](docs/infrastructure/yolo-server.md))
-- [`docs/designs/`](docs/designs/) — [`frontend-rules.md`](docs/designs/frontend-rules.md) and [`design-system.md`](docs/designs/design-system.md)
-- [`docs/plans/`](docs/plans/) — execution plans ([`in-progress/`](docs/plans/in-progress/) and [`completed/`](docs/plans/completed/))
+- [`docs/overview.md`](docs/overview.md) — full product description (start here)
+- [`docs/project_overview.md`](docs/project_overview.md) — PRD: features, flows, verification, streak mechanics
+- [`docs/Architecture.md`](docs/Architecture.md) — tech stack, MVP scope checklist
+- [`docs/setup-checklist.md`](docs/setup-checklist.md) — what to set up before building (Supabase, AI server, Expo)
+- [`docs/architecture/`](docs/architecture/) — [`frontend.md`](docs/architecture/frontend.md), [`backend.md`](docs/architecture/backend.md), [`data-model.md`](docs/architecture/data-model.md)
+- [`docs/features/`](docs/features/) — habits, camera-capture, group-prove, prompts, verification, circles, streaks, notifications
+- [`docs/infrastructure/`](docs/infrastructure/) — [`supabase.md`](docs/infrastructure/supabase.md), [`yolo-server.md`](docs/infrastructure/yolo-server.md)
+- [`docs/designs/`](docs/designs/) — [`frontend-rules.md`](docs/designs/frontend-rules.md), [`design-system.md`](docs/designs/design-system.md)
+- [`docs/plans/`](docs/plans/) — [`in-progress/`](docs/plans/in-progress/), [`completed/`](docs/plans/completed/)
 
 ## Environment
 
-- Team is on **Windows** — no Xcode, no native iOS builds, no EAS.
-- **Expo Go** on a physical iPhone is the only runtime for preview.
-- `expo start --tunnel` is the dev mode (phone may not share a LAN with the laptop).
-- Python 3.10+ required on the demo laptop for the YOLO server.
+- **Expo Go** on a physical iPhone is the primary runtime. No EAS, no custom dev build.
+- **Demo day:** phone and laptop on the same Wi-Fi → use LAN mode (no tunnel needed).
+- **Remote dev:** use `expo start --tunnel` for Expo + `ngrok http 8000` for the AI server.
+- Python 3.10+ on the demo laptop for the YOLO + AI prompt server.
 - Node.js + npm for the Expo app.
+- Some team members on Mac (can use iOS Simulator as a fallback).
 
 ## Running Locally
 
@@ -48,74 +62,60 @@ This file is an index, not an encyclopedia. Drill into the linked docs for detai
 # Install app dependencies
 npm install
 
-# Start Expo in tunnel mode — scan the QR with Expo Go on iPhone
+# Demo day (same Wi-Fi) — simplest, most reliable
+npx expo start --lan
+# → scan QR with Expo Go; set YOLO_API_URL to http://<laptop-ip>:8000
+
+# Remote dev (different networks)
 npx expo start --tunnel
+# + ngrok http 8000  →  copy HTTPS URL into YOLO_API_URL
 
-# YOLO inference server (separate terminal, Python venv)
-pip install ultralytics fastapi "uvicorn[standard]" python-multipart
+# AI + YOLO server (separate terminal)
+source yolo-env/bin/activate  # or yolo-env\Scripts\activate on Windows
 uvicorn yolo_server:app --host 0.0.0.0 --port 8000
-
-# Expose the YOLO server to the phone (separate terminal)
-cloudflared tunnel --url http://localhost:8000
-# → copy the generated HTTPS URL into the YOLO_API_URL constant in the app
 ```
 
-See [`docs/Architecture.md`](docs/Architecture.md) for tunnel alternatives (ngrok, localtunnel, LAN mode).
+See [`docs/setup-checklist.md`](docs/setup-checklist.md) for full setup steps.
 
 ## Git Workflow
 
 - `main` — only branch that matters for the hackathon. Commit small and often.
 - For non-trivial features, branch as `feature/<slug>` and merge when green.
 - Never commit secrets (`.env`, API keys, Supabase service role keys).
-- **Never add `Co-Authored-By` trailers to commit messages.** Commits should show only the human author.
+- **Never add `Co-Authored-By` trailers to commit messages.**
 
 ## Verification
 
 ```bash
-# Type-check + lint
-npx expo lint
-npx tsc --noEmit
+npx tsc --noEmit   # must pass
+npx expo lint      # must pass
 ```
 
-**Before declaring a feature done:**
-1. `npx tsc --noEmit` must pass (TypeScript strict is on — see `tsconfig.json`).
-2. `npx expo lint` must pass.
-3. **Run the feature end-to-end on the physical iPhone via Expo Go.** Type-checking is not testing. If you can't test the UI because you don't have a phone handy, say so explicitly — do not claim success.
+**Before declaring a feature done:** TypeScript + lint must pass AND the feature must work end-to-end in Expo Go. If you can't test on a phone, say so — do not claim success.
 
 ## Architectural Boundaries
 
-- **All data access goes through the Supabase JS client.** No raw SQL, no custom REST layer. RLS policies enforce workspace scope.
-- **YOLO verification goes through the tunneled local Python server.** No direct Vision API calls, no on-device inference, no Supabase Edge Function proxy in V1.
-- **Notifications are local scheduled only** (`expo-notifications` via `scheduleNotificationAsync`). Remote push is unreliable in Expo Go and explicitly out of scope.
-- **Streak reset runs server-side** (Supabase pg_cron or Edge Function on a cron). Client timers are not trusted for streak integrity.
-- **Camera capture is live-only.** Mount `<CameraView>` from `expo-camera` directly — never use `expo-image-picker`. Camera-roll access must be structurally impossible.
-- **Prompt bank is a static JSON file in the repo** for V1. No LLM calls for prompt generation.
-- See [`docs/Architecture.md`](docs/Architecture.md) for full constraints and reasoning.
-
-## Plans Workflow
-
-Plans are first-class, versioned artifacts. All planning goes through `docs/plans/`.
-
-- **When to plan**: Any task spanning multiple files, a new feature, or a change to architecture needs a plan first. One-line bug fixes and tiny edits do not.
-- **New plans** go in `docs/plans/in-progress/`. Name format: `YYYY-MM-DD-<slug>.md`.
-- **Completed plans** move to `docs/plans/completed/` when the implementation is merged.
-- **After completing a plan**, update the relevant doc in `docs/` to reflect what was built. The plan records what was decided; the docs record current state.
-
-## Keeping Docs In Sync
-
-- **`CLAUDE.md` and `AGENTS.md` mirror each other.** Any change to one must be applied to the other. They are the same file for different agent runtimes.
-- **Update docs when changing features.** Code and documentation move together.
-  - Changed a feature or flow? → Update [`docs/project_overview.md`](docs/project_overview.md).
-  - Changed stack, runtime, tunnel strategy, or YOLO setup? → Update [`docs/Architecture.md`](docs/Architecture.md).
-  - Changed the MVP scope checklist? → Update [`docs/Architecture.md`](docs/Architecture.md).
+- **All data access goes through the Supabase JS client.** No raw SQL, no custom REST layer.
+- **YOLO + AI prompt generation go through the local FastAPI server** (`/detect` and `/generate-prompt`). No on-device inference, no Edge Function proxy.
+- **Prompts are AI-generated** by the FastAPI server calling Claude/OpenAI. Static JSON (`app/constants/prompts.json`) is the fallback if the server is unreachable.
+- **Notifications are local scheduled only** (`expo-notifications`). Remote push is out of scope.
+- **Streak reset runs server-side** (Supabase pg_cron). Client timers are never trusted.
+- **Camera capture is live-only.** Use `<CameraView>` from `expo-camera` directly — never `expo-image-picker`.
+- **`YOLO_API_URL` lives in one constant** (`src/config/yolo.ts`). Updated per session. Never hardcoded in feature code.
 
 ## Common Pitfalls
 
-- **Do not add packages without `npx expo install`.** It pins to SDK-54-compatible versions. `npm install <pkg>` will grab the latest and break Expo Go.
-- **Do not add custom native modules.** They will not run in Expo Go. If a library says "requires a dev build" in its README, do not use it.
-- **Do not use `expo-image-picker`.** Camera-roll access is explicitly forbidden — it breaks the proof mechanic.
-- **Do not rely on remote push notifications.** Expo Go doesn't support them reliably. Use local scheduled notifications instead.
-- **Do not hardcode the YOLO tunnel URL in committed code.** Keep it in a single constant (e.g. `src/config/yolo.ts`) and update it per session.
-- **Do not commit `.env`, API keys, Supabase service role keys, or `cloudflared` tokens.**
-- **Do not edit `app-example/`.** It's the original starter code kept for reference.
-- **Do not add features, abstractions, or refactors beyond what was requested.**
+- **Use `npx expo install <pkg>`, not `npm install <pkg>`.** Pins to SDK-54-compatible versions.
+- **No custom native modules.** They won't run in Expo Go.
+- **No `expo-image-picker`.** Camera-roll access breaks the proof mechanic.
+- **No remote push notifications.** Expo Go doesn't support them reliably.
+- **No `.env`, API keys, or service role keys in commits.**
+- **No editing `app-example/`.** Reference only.
+- **No features, abstractions, or refactors beyond what was asked.**
+
+## Keeping Docs In Sync
+
+- **`CLAUDE.md` and `AGENTS.md` are identical.** Any change to one must be applied to the other.
+- Changed a feature? → Update the relevant file in [`docs/features/`](docs/features/).
+- Changed the stack or scope? → Update [`docs/Architecture.md`](docs/Architecture.md).
+- Changed setup steps? → Update [`docs/setup-checklist.md`](docs/setup-checklist.md).
