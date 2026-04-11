@@ -79,7 +79,7 @@ Document the variables required by the frontend app and local AI server:
 ```dotenv
 EXPO_PUBLIC_SUPABASE_URL=
 EXPO_PUBLIC_SUPABASE_ANON_KEY=
-EXPO_PUBLIC_YOLO_API_URL=
+EXPO_PUBLIC_PROMPT_API_URL=
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 ```

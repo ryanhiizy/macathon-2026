@@ -1,19 +1,24 @@
-import { useMemo } from "react";
-import { View } from "react-native";
-import { router } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { useRouter } from "expo-router";
 import Svg, { Circle } from "react-native-svg";
 import {
-  PlusSignIcon,
   Camera01Icon,
-  UserAdd01Icon,
+  PlusSignIcon,
   Tick02Icon,
+  UserAdd01Icon,
 } from "@hugeicons/core-free-icons";
-import { Screen, Row, Stack, Divider } from "@/components/layout";
-import { Typography } from "@/components/typography";
-import { Icon } from "@/components/icon";
+import { CoachInsightTeaser } from "@/components/CoachInsightCard";
 import { AnimatedPress } from "@/components/animated-press";
+import { Icon } from "@/components/icon";
+import { Divider, Row, Screen, Stack } from "@/components/layout";
+import { Typography } from "@/components/typography";
+import { WEEK_DAYS } from "@/lib/mock";
+import { fetchHabits, type HabitView } from "@/lib/habits";
+import { ensureTestSession } from "@/lib/supabase";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
-import { HABITS, WEEK_DAYS, type Habit, type TimeOfDay } from "@/lib/mock";
+
+type TimeOfDay = "morning" | "afternoon" | "evening";
 
 const greetingFor = (hour: number) => {
   if (hour < 5) return { label: "Night owl", sub: "The world's still dreaming." };
@@ -24,8 +29,8 @@ const greetingFor = (hour: number) => {
   return { label: "Good night", sub: "A gentle close to the day." };
 };
 
-const formatDate = (d: Date) =>
-  d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+const formatDate = (date: Date) =>
+  date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
 const TIME_ORDER: TimeOfDay[] = ["morning", "afternoon", "evening"];
 const TIME_LABEL: Record<TimeOfDay, string> = {
@@ -34,9 +39,43 @@ const TIME_LABEL: Record<TimeOfDay, string> = {
   evening: "Evening",
 };
 
+function getTimeOfDay(time: string): TimeOfDay {
+  if (time === "All day") return "afternoon";
+
+  const match = time.match(/^(\d+):(\d+)\s(AM|PM)$/);
+  if (!match) return "morning";
+
+  let hours = Number(match[1]) % 12;
+  if (match[3] === "PM") {
+    hours += 12;
+  }
+
+  if (hours < 12) return "morning";
+  if (hours < 17) return "afternoon";
+  return "evening";
+}
+
 export default function Habits() {
-  const completed = HABITS.filter((h) => h.done).length;
-  const progress = completed / HABITS.length;
+  const router = useRouter();
+  const [habits, setHabits] = useState<HabitView[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    await ensureTestSession();
+    const data = await fetchHabits();
+    setHabits(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const completed = habits.filter((habit) => habit.done).length;
+  const progress = habits.length > 0 ? completed / habits.length : 0;
+  const weekDone = WEEK_DAYS.filter((day) => day.done).length;
+
   const { greeting, dateLabel } = useMemo(() => {
     const now = new Date();
     return {
@@ -45,17 +84,21 @@ export default function Habits() {
     };
   }, []);
 
-  const weekDone = WEEK_DAYS.filter((d) => d.done).length;
-
   const grouped = useMemo(() => {
-    const map: Record<TimeOfDay, Habit[]> = {
+    const groups: Record<TimeOfDay, HabitView[]> = {
       morning: [],
       afternoon: [],
       evening: [],
     };
-    for (const h of HABITS) map[h.timeOfDay].push(h);
-    return map;
-  }, []);
+
+    for (const habit of habits) {
+      groups[getTimeOfDay(habit.time)].push(habit);
+    }
+
+    return groups;
+  }, [habits]);
+
+  const coachHabit = habits.find((habit) => habit.streak > 0) ?? habits[0];
 
   const header = (
     <Row style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -115,7 +158,7 @@ export default function Habits() {
               {completed}
             </Typography>
             <Typography variant="metaItalic" style={{ marginTop: 2 }}>
-              of {HABITS.length}
+              of {habits.length || 0}
             </Typography>
           </View>
         </View>
@@ -128,11 +171,19 @@ export default function Habits() {
               color: colors.fg,
             }}
           >
-            {HABITS.length - completed} habits left
+            {Math.max(habits.length - completed, 0)} habits left
           </Typography>
           <Typography variant="bodyMuted">{greeting.sub}</Typography>
         </Stack>
       </Row>
+
+      {coachHabit && (
+        <CoachInsightTeaser
+          habitId={coachHabit.id}
+          habitName={coachHabit.name}
+          onPress={() => router.push(`/habit/${coachHabit.id}`)}
+        />
+      )}
 
       <Stack gap={spacing.md}>
         <Row gap={spacing.sm} style={{ alignItems: "baseline", justifyContent: "space-between" }}>
@@ -149,68 +200,95 @@ export default function Habits() {
           <Typography variant="metaItalic">{weekDone} of 7 days</Typography>
         </Row>
         <Row gap={6}>
-          {WEEK_DAYS.map((d, i) => (
-            <Stack key={i} gap={spacing.xs} style={{ flex: 1, alignItems: "center" }}>
+          {WEEK_DAYS.map((day) => (
+            <Stack key={day.label} gap={spacing.xs} style={{ flex: 1, alignItems: "center" }}>
               <View
                 style={{
                   width: "100%",
                   aspectRatio: 1,
                   borderRadius: radius.sm,
-                  backgroundColor: d.done ? colors.primary : colors.bgRaised,
+                  backgroundColor: day.done ? colors.primary : colors.bgRaised,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                {d.done && (
+                {day.done && (
                   <Icon icon={Tick02Icon} size={16} color={colors.onPrimary} strokeWidth={2.8} />
                 )}
               </View>
-              <Typography variant="tiny" color={d.done ? colors.fg : colors.fgDim}>
-                {d.label}
+              <Typography variant="tiny" color={day.done ? colors.fg : colors.fgDim}>
+                {day.label}
               </Typography>
             </Stack>
           ))}
         </Row>
       </Stack>
 
-      <Stack gap={spacing.xl}>
-        {TIME_ORDER.map((t) => {
-          const items = grouped[t];
-          if (items.length === 0) return null;
-          const doneInGroup = items.filter((h) => h.done).length;
-          return (
-            <Stack key={t} gap={spacing.sm}>
-              <Row
-                gap={spacing.sm}
-                style={{ alignItems: "baseline", justifyContent: "space-between" }}
-              >
-                <Typography
-                  style={{
-                    fontFamily: fonts.heading,
-                    fontSize: 18,
-                    lineHeight: 22,
-                    color: colors.fg,
-                  }}
+      {loading ? (
+        <View style={{ alignItems: "center", paddingTop: spacing.xl }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : habits.length === 0 ? (
+        <Stack gap={spacing.sm} style={{ paddingVertical: spacing.xl, alignItems: "center" }}>
+          <Typography
+            style={{
+              fontFamily: fonts.heading,
+              fontSize: 20,
+              lineHeight: 26,
+              color: colors.fgMuted,
+            }}
+          >
+            No habits yet
+          </Typography>
+          <Typography variant="metaItalic">Tap + to create your first ritual.</Typography>
+        </Stack>
+      ) : (
+        <Stack gap={spacing.xl}>
+          {TIME_ORDER.map((timeOfDay) => {
+            const items = grouped[timeOfDay];
+            if (items.length === 0) return null;
+
+            const doneInGroup = items.filter((habit) => habit.done).length;
+
+            return (
+              <Stack key={timeOfDay} gap={spacing.sm}>
+                <Row
+                  gap={spacing.sm}
+                  style={{ alignItems: "baseline", justifyContent: "space-between" }}
                 >
-                  {TIME_LABEL[t]}
-                </Typography>
-                <Typography variant="metaItalic">
-                  {doneInGroup} of {items.length}
-                </Typography>
-              </Row>
-              <Divider />
-              <Stack gap={0}>
-                {items.map((habit, i) => (
-                  <View key={habit.id}>
-                    <HabitRow habit={habit} />
-                    {i < items.length - 1 && <Divider />}
-                  </View>
-                ))}
+                  <Typography
+                    style={{
+                      fontFamily: fonts.heading,
+                      fontSize: 18,
+                      lineHeight: 22,
+                      color: colors.fg,
+                    }}
+                  >
+                    {TIME_LABEL[timeOfDay]}
+                  </Typography>
+                  <Typography variant="metaItalic">
+                    {doneInGroup} of {items.length}
+                  </Typography>
+                </Row>
+                <Divider />
+                <Stack gap={0}>
+                  {items.map((habit, index) => (
+                    <View key={habit.id}>
+                      <HabitRow
+                        habit={habit}
+                        onOpen={() => router.push(`/habit/${habit.id}`)}
+                        onInvite={() => router.push(`/invite/${habit.id}`)}
+                        onProve={() => router.push(`/camera/${habit.id}`)}
+                      />
+                      {index < items.length - 1 && <Divider />}
+                    </View>
+                  ))}
+                </Stack>
               </Stack>
-            </Stack>
-          );
-        })}
-      </Stack>
+            );
+          })}
+        </Stack>
+      )}
     </Screen>
   );
 }
@@ -222,6 +300,7 @@ function ProgressRing({ progress }: { progress: number }) {
   const circumference = 2 * Math.PI * radiusValue;
   const safe = Math.max(0, Math.min(progress, 1));
   const offset = circumference * (1 - safe);
+
   return (
     <Svg width={size} height={size}>
       <Circle
@@ -250,73 +329,66 @@ function ProgressRing({ progress }: { progress: number }) {
   );
 }
 
-function HistoryStrip({ history, accent }: { history: boolean[]; accent: string }) {
-  return (
-    <Row gap={6}>
-      {history.map((done, i) => (
-        <View
-          key={i}
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: done ? accent : "transparent",
-            borderWidth: done ? 0 : 1.5,
-            borderColor: colors.borderStrong,
-          }}
-        />
-      ))}
-    </Row>
-  );
-}
-
-function HabitRow({ habit }: { habit: Habit }) {
+function HabitRow({
+  habit,
+  onOpen,
+  onInvite,
+  onProve,
+}: {
+  habit: HabitView;
+  onOpen: () => void;
+  onInvite: () => void;
+  onProve: () => void;
+}) {
   return (
     <View style={{ paddingVertical: spacing.md, opacity: habit.done ? 0.62 : 1 }}>
       <Row gap={spacing.md} style={{ justifyContent: "space-between" }}>
-        <Row gap={spacing.md} style={{ flex: 1 }}>
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: radius.md,
-              backgroundColor: tintFor(habit.accent),
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon icon={habit.icon} size={24} color={habit.accent} strokeWidth={1.8} />
-          </View>
-          <Stack gap={4} style={{ flex: 1 }}>
-            <Typography
+        <AnimatedPress onPress={onOpen} haptic={false} style={{ flex: 1 }}>
+          <Row gap={spacing.md} style={{ flex: 1 }}>
+            <View
               style={{
-                fontFamily: fonts.heading,
-                fontSize: 17,
-                lineHeight: 22,
-                color: colors.fg,
-                textDecorationLine: habit.done ? "line-through" : "none",
+                width: 48,
+                height: 48,
+                borderRadius: radius.md,
+                backgroundColor: tintFor(habit.accent),
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              {habit.name}
-            </Typography>
-            {habit.done ? (
-              <Typography variant="metaItalic" color={colors.success}>
-                Kept · best {habit.bestStreak}
+              <Icon icon={habit.icon} size={24} color={habit.accent} strokeWidth={1.8} />
+            </View>
+            <Stack gap={4} style={{ flex: 1 }}>
+              <Typography
+                style={{
+                  fontFamily: fonts.heading,
+                  fontSize: 17,
+                  lineHeight: 22,
+                  color: colors.fg,
+                  textDecorationLine: habit.done ? "line-through" : "none",
+                }}
+              >
+                {habit.name}
               </Typography>
-            ) : (
-              <Typography variant="metaItalic">
-                {habit.time} · streak {habit.streak} · best {habit.bestStreak}
-              </Typography>
-            )}
-          </Stack>
-        </Row>
+              {habit.done ? (
+                <Typography variant="metaItalic" color={colors.success}>
+                  Kept today · streak {habit.streak}
+                </Typography>
+              ) : (
+                <Typography variant="metaItalic">
+                  {habit.time} · streak {habit.streak}
+                </Typography>
+              )}
+            </Stack>
+          </Row>
+        </AnimatedPress>
+
         {habit.done ? (
           <View
             style={{
               width: 36,
               height: 36,
               borderRadius: radius.pill,
-              backgroundColor: colors.success + "22",
+              backgroundColor: `${colors.success}22`,
               alignItems: "center",
               justifyContent: "center",
             }}
@@ -326,7 +398,7 @@ function HabitRow({ habit }: { habit: Habit }) {
         ) : (
           <Row gap={spacing.sm}>
             <AnimatedPress
-              onPress={() => router.push(`/invite/${habit.id}`)}
+              onPress={onInvite}
               style={{
                 width: 40,
                 height: 40,
@@ -339,7 +411,7 @@ function HabitRow({ habit }: { habit: Habit }) {
               <Icon icon={UserAdd01Icon} size={18} color={colors.fg} strokeWidth={1.8} />
             </AnimatedPress>
             <AnimatedPress
-              onPress={() => router.push(`/camera/${habit.id}`)}
+              onPress={onProve}
               haptic="medium"
               style={{
                 paddingHorizontal: spacing.lg,
@@ -353,19 +425,13 @@ function HabitRow({ habit }: { habit: Habit }) {
               }}
             >
               <Icon icon={Camera01Icon} size={16} color={colors.bg} strokeWidth={2} />
-              <Typography
-                color={colors.bg}
-                style={{ fontFamily: fonts.bodyBold, fontSize: 13 }}
-              >
+              <Typography color={colors.bg} style={{ fontFamily: fonts.bodyBold, fontSize: 13 }}>
                 Prove
               </Typography>
             </AnimatedPress>
           </Row>
         )}
       </Row>
-      <View style={{ paddingLeft: 48 + spacing.md, paddingTop: spacing.sm }}>
-        <HistoryStrip history={habit.history} accent={habit.accent} />
-      </View>
     </View>
   );
 }

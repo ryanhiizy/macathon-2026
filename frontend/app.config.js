@@ -6,7 +6,6 @@ module.exports = ({ config }) => {
     ...expo,
     plugins: [
       ...(expo.plugins ?? []),
-      "expo-dev-client",
       ["expo-notifications", { enableBackgroundRemoteNotifications: false }],
     ],
     mods: {

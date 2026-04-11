@@ -3,8 +3,8 @@ import { View } from "react-native";
 import {
   Home09Icon,
   Target02Icon,
-  UserGroupIcon,
   UserCircleIcon,
+  UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
 import { Icon } from "@/components/icon";

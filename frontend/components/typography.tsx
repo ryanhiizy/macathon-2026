@@ -12,6 +12,7 @@ type Variant =
   | "label"
   | "meta"
   | "metaItalic"
+  | "caption"
   | "tiny";
 
 type Props = TextProps & {
@@ -32,6 +33,7 @@ const variantStyle: Record<Variant, TextStyle> = {
   label: type.label,
   meta: type.meta,
   metaItalic: type.metaItalic,
+  caption: type.caption,
   tiny: type.tiny,
 };
 
@@ -94,6 +96,9 @@ export const Meta = (p: Omit<Props, "variant">) => (
 );
 export const MetaIt = (p: Omit<Props, "variant">) => (
   <Typography variant="metaItalic" {...p} />
+);
+export const Caption = (p: Omit<Props, "variant">) => (
+  <Typography variant="caption" {...p} />
 );
 export const Tiny = (p: Omit<Props, "variant">) => (
   <Typography variant="tiny" {...p} />

@@ -50,7 +50,7 @@ Fill in at least:
 
 - `EXPO_PUBLIC_SUPABASE_URL` — required
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY` — required
-- `EXPO_PUBLIC_YOLO_API_URL` — required once the app calls the local AI server
+- `EXPO_PUBLIC_PROMPT_API_URL` — required once the app calls the local AI server
 - `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` — required once prompt generation is wired
 
 ## Supabase one-time setup
@@ -66,14 +66,14 @@ Follow [docs/infrastructure/supabase.md](../docs/infrastructure/supabase.md) and
 
 ## Local AI server
 
-The server implementation lives at `backend/yolo_server.py`. Start it with:
+The server implementation lives at `backend/prompt_verification_server.py`. Start it with:
 
 ```bash
 source yolo-env/bin/activate
-uvicorn yolo_server:app --host 0.0.0.0 --port 8000
+uvicorn backend.prompt_verification_server:app --host 0.0.0.0 --port 8000
 ```
 
-The server contract and sample implementation live in [docs/infrastructure/yolo-server.md](../docs/infrastructure/yolo-server.md).
+The server contract and sample implementation live in [docs/infrastructure/prompt-verification-server.md](../docs/infrastructure/prompt-verification-server.md).
 
 ## Running the app
 
@@ -91,7 +91,7 @@ cd frontend
 npx expo start --tunnel
 ```
 
-If you are using a tunnel for the AI server, set `EXPO_PUBLIC_YOLO_API_URL` to the HTTPS tunnel URL.
+If you are using a tunnel for the AI server, set `EXPO_PUBLIC_PROMPT_API_URL` to the HTTPS tunnel URL.
 
 ## Ready-to-build checklist
 

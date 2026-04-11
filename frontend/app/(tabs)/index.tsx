@@ -1,33 +1,33 @@
-import { useEffect, useState } from "react";
-import { View, Pressable, RefreshControl } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Pressable, RefreshControl, View } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
-  Easing,
 } from "react-native-reanimated";
 import {
   BellDotIcon,
-  MessageAdd01Icon,
   Comment01Icon,
+  MessageAdd01Icon,
 } from "@hugeicons/core-free-icons";
-import { Screen, Row, Stack } from "@/components/layout";
-import { Typography } from "@/components/typography";
-import { Icon } from "@/components/icon";
-import { Segmented } from "@/components/segmented";
-import { StreakFlame } from "@/components/streak-flame";
 import { Avatar, AvatarStack } from "@/components/avatar";
-import { BragStat } from "@/components/brag-stat";
 import { AnimatedPress } from "@/components/animated-press";
+import { BragStat } from "@/components/brag-stat";
+import { Icon } from "@/components/icon";
 import { LikeButton } from "@/components/like-button";
 import { PhotoCarousel } from "@/components/photo-carousel";
-import { colors, fonts, radius, spacing } from "@/lib/theme";
+import { Screen, Row, Stack } from "@/components/layout";
+import { Segmented } from "@/components/segmented";
+import { StreakFlame } from "@/components/streak-flame";
+import { Typography } from "@/components/typography";
 import {
   FEED_POSTS,
-  type SoloPost as SoloPostData,
   type GroupPost as GroupPostData,
+  type SoloPost as SoloPostData,
 } from "@/lib/mock";
+import { colors, fonts, radius, spacing } from "@/lib/theme";
 
 const PULL_MESSAGES = [
   "See who showed up today",
@@ -39,11 +39,28 @@ export default function Home() {
   const [feedIdx, setFeedIdx] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [pullMessageIdx, setPullMessageIdx] = useState(0);
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const onRefresh = () => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+
     setRefreshing(true);
     setPullMessageIdx((i) => (i + 1) % PULL_MESSAGES.length);
-    setTimeout(() => setRefreshing(false), 900);
+    refreshTimeoutRef.current = setTimeout(() => {
+      setRefreshing(false);
+      refreshTimeoutRef.current = null;
+    }, 900);
   };
 
   const inkWidth = useSharedValue(0);
@@ -90,11 +107,7 @@ export default function Home() {
           </Pressable>
         </Row>
       </Row>
-      <Segmented
-        options={["Friends", "Circles"]}
-        value={feedIdx}
-        onChange={setFeedIdx}
-      />
+      <Segmented options={["Friends", "Circles"]} value={feedIdx} onChange={setFeedIdx} />
     </Stack>
   );
 
@@ -124,9 +137,11 @@ export default function Home() {
               />
             );
           }
+
           if (post.kind === "group") {
             return <GroupPost key={post.id} post={post} />;
           }
+
           return <SoloPost key={post.id} post={post} />;
         })}
       </Stack>
@@ -175,8 +190,11 @@ function SoloPost({ post }: { post: SoloPostData }) {
 }
 
 function GroupPost({ post }: { post: GroupPostData }) {
-  const avatars =
-    post.participants?.map((p) => ({ color: p.color, letter: p.letter })) ?? [];
+  const avatars = post.participants.map((participant) => ({
+    color: participant.color,
+    letter: participant.letter,
+  }));
+
   return (
     <Stack gap={spacing.md}>
       <Row style={{ justifyContent: "space-between" }}>
@@ -232,19 +250,17 @@ function GroupPost({ post }: { post: GroupPostData }) {
         }
       />
 
-      {post.participants && (
-        <Row gap={spacing.sm} style={{ flexWrap: "wrap" }}>
-          {post.participants.map((p, i) => (
-            <StreakMiniChip
-              key={i}
-              letter={p.letter}
-              color={p.color}
-              days={p.streak}
-              name={p.name}
-            />
-          ))}
-        </Row>
-      )}
+      <Row gap={spacing.sm} style={{ flexWrap: "wrap" }}>
+        {post.participants.map((participant) => (
+          <StreakMiniChip
+            key={participant.name}
+            letter={participant.letter}
+            color={participant.color}
+            days={participant.streak}
+            name={participant.name}
+          />
+        ))}
+      </Row>
     </Stack>
   );
 }
@@ -268,7 +284,7 @@ function StreakMiniChip({
         paddingLeft: 4,
         paddingVertical: 4,
         borderRadius: radius.pill,
-        backgroundColor: color + "18",
+        backgroundColor: `${color}18`,
       }}
     >
       <Avatar color={color} letter={letter} size={22} ring={false} />
@@ -277,7 +293,7 @@ function StreakMiniChip({
           fontFamily: fonts.bodyBold,
           fontSize: 12,
           lineHeight: 14,
-          color: color,
+          color,
         }}
       >
         {name} · {days}

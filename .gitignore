@@ -1,9 +1,11 @@
+.conductor/
 .context/
 .DS_Store
 *.pyc
 __pycache__/
 .pytest_cache/
 .venv/
+backend-env/
 yolo-env/
 backend/.venv/
 backend/__pycache__/

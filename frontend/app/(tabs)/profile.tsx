@@ -1,13 +1,14 @@
 import { View } from "react-native";
 import { Image } from "expo-image";
-import { Settings02Icon } from "@hugeicons/core-free-icons";
-import { Screen, Row, Stack, Divider } from "@/components/layout";
-import { Typography } from "@/components/typography";
-import { Icon } from "@/components/icon";
-import { AnimatedPress } from "@/components/animated-press";
+import { Fire03Icon, Settings02Icon } from "@hugeicons/core-free-icons";
 import { Avatar } from "@/components/avatar";
-import { colors, fonts, radius, spacing } from "@/lib/theme";
+import { AnimatedPress } from "@/components/animated-press";
+import { Icon } from "@/components/icon";
+import { Screen, Divider, Row, Stack } from "@/components/layout";
+import { ProgressBar } from "@/components/ui-controls";
+import { Typography } from "@/components/typography";
 import { pickPhoto } from "@/lib/mock";
+import { colors, fonts, radius, spacing } from "@/lib/theme";
 
 const STATS = [
   { label: "Habits", value: "8" },
@@ -52,17 +53,7 @@ export default function Profile() {
               color: colors.fg,
             }}
           >
-            Budi{" "}
-            <Typography
-              style={{
-                fontFamily: fonts.heading,
-                fontSize: 30,
-                lineHeight: 36,
-                color: colors.fg,
-              }}
-            >
-              Hartono
-            </Typography>
+            Budi Hartono
           </Typography>
           <Typography variant="metaItalic">@budi — joined April 2026</Typography>
         </Stack>
@@ -75,8 +66,8 @@ export default function Profile() {
       </Stack>
 
       <Row style={{ justifyContent: "space-between", paddingVertical: spacing.md }}>
-        {STATS.map((stat, i) => (
-          <View key={i} style={{ alignItems: "center", flex: 1 }}>
+        {STATS.map((stat) => (
+          <View key={stat.label} style={{ alignItems: "center", flex: 1 }}>
             <Typography
               style={{
                 fontFamily: fonts.heading,
@@ -91,6 +82,34 @@ export default function Profile() {
           </View>
         ))}
       </Row>
+
+      <Divider />
+
+      <Stack gap={spacing.sm}>
+        <Row style={{ justifyContent: "space-between" }}>
+          <Typography
+            style={{
+              fontFamily: fonts.heading,
+              fontSize: 18,
+              lineHeight: 22,
+              color: colors.fg,
+            }}
+          >
+            Weekly consistency
+          </Typography>
+          <Row gap={spacing.xs}>
+            <Icon icon={Fire03Icon} size={16} color={colors.primary} />
+            <Typography
+              variant="caption"
+              color={colors.primary}
+              style={{ fontFamily: fonts.bodyBold }}
+            >
+              72%
+            </Typography>
+          </Row>
+        </Row>
+        <ProgressBar color={colors.primary} progress={0.72} />
+      </Stack>
 
       <Divider />
 
@@ -129,7 +148,7 @@ export default function Profile() {
                     right: 0,
                     bottom: 0,
                     padding: 6,
-                    backgroundColor: colors.black + "70",
+                    backgroundColor: `${colors.black}70`,
                   }}
                 >
                   <Typography

@@ -46,6 +46,7 @@ export const palette = {
 
 export const colors = {
   bg: palette.paper,
+  card: palette.paper,
   bgRaised: palette.base50,
   bgSunk: palette.base100,
   ui: palette.base100,
@@ -200,6 +201,12 @@ export const type = {
     lineHeight: 16,
     fontStyle: "italic" as const,
     color: colors.fgFaint,
+  },
+  caption: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.fgMuted,
   },
   tiny: {
     fontFamily: fonts.bodyMedium,

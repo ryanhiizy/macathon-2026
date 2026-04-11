@@ -1,4 +1,5 @@
 import { ReactNode, useRef, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -10,7 +11,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors, spacing } from "@/lib/theme";
+import { colors, radius, spacing } from "@/lib/theme";
 
 type ScreenProps = {
   children: ReactNode;
@@ -65,6 +66,13 @@ export function Screen({
           style={[styles.stickyHeader, headerElevated && styles.stickyHeaderElevated]}
         >
           {stickyHeader}
+          {headerElevated && (
+            <LinearGradient
+              pointerEvents="none"
+              colors={[`${colors.black}1f`, `${colors.black}00`]}
+              style={styles.stickyHeaderShadow}
+            />
+          )}
         </View>
       )}
       {body}
@@ -83,6 +91,14 @@ export function Row({
       {...rest}
       style={[{ flexDirection: "row", alignItems: "center", gap }, style]}
     >
+      {children}
+    </View>
+  );
+}
+
+export function Card({ style, children, ...rest }: ViewProps) {
+  return (
+    <View {...rest} style={[styles.card, style]}>
       {children}
     </View>
   );
@@ -132,15 +148,26 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     backgroundColor: colors.bg,
     zIndex: 1,
+    position: "relative",
   },
   stickyHeaderElevated: {
-    shadowColor: colors.black,
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: `${colors.black}14`,
+    borderBottomColor: `${colors.black}18`,
+  },
+  stickyHeaderShadow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: -10,
+    height: 10,
+  },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   scroll: {
     paddingHorizontal: spacing.lg,
