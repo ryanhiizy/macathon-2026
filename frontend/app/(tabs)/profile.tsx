@@ -1,9 +1,13 @@
-import { Pressable, View } from "react-native";
-import { Settings02Icon, Fire03Icon } from "@hugeicons/core-free-icons";
-import { Screen, Card, Row, Stack } from "@/components/layout";
-import { Typography, Eyebrow } from "@/components/typography";
+import { View } from "react-native";
+import { Image } from "expo-image";
+import { Settings02Icon } from "@hugeicons/core-free-icons";
+import { Screen, Row, Stack, Divider } from "@/components/layout";
+import { Typography } from "@/components/typography";
 import { Icon } from "@/components/icon";
-import { colors, radius, spacing, fonts } from "@/lib/theme";
+import { AnimatedPress } from "@/components/animated-press";
+import { Avatar } from "@/components/avatar";
+import { colors, fonts, radius, spacing } from "@/lib/theme";
+import { pickPhoto } from "@/lib/mock";
 
 const STATS = [
   { label: "Habits", value: "8" },
@@ -12,137 +16,134 @@ const STATS = [
   { label: "Circles", value: "6" },
 ];
 
-const GRID_ACCENTS = [
-  colors.orange,
-  colors.cyan,
-  colors.green,
-  colors.purple,
-  colors.blue,
-  colors.magenta,
-  colors.yellow,
-  colors.red,
-  colors.orange,
-];
+const POSTS = Array.from({ length: 9 }).map((_, i) => ({
+  photoIdx: i,
+  habit: ["Morning walk", "Hydrate", "Meditate", "Read", "Run"][i % 5],
+}));
 
 export default function Profile() {
+  const header = (
+    <Row style={{ justifyContent: "flex-end" }}>
+      <AnimatedPress
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: radius.pill,
+          backgroundColor: colors.bgRaised,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Icon icon={Settings02Icon} size={20} color={colors.fg} strokeWidth={1.8} />
+      </AnimatedPress>
+    </Row>
+  );
+
   return (
-    <Screen>
-      <Row style={{ justifyContent: "flex-end" }}>
-        <Pressable
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: radius.pill,
-            backgroundColor: colors.card,
-            borderWidth: 1,
-            borderColor: colors.border,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon icon={Settings02Icon} size={22} color={colors.fg} />
-        </Pressable>
-      </Row>
-
-      <Stack gap={spacing.md} style={{ alignItems: "center" }}>
-        <View
-          style={{
-            width: 96,
-            height: 96,
-            borderRadius: radius.pill,
-            backgroundColor: colors.primary,
-            alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 3,
-            borderColor: colors.card,
-          }}
-        >
-          <Typography style={{ fontFamily: fonts.heading, fontSize: 40, color: colors.onPrimary }}>
-            B
-          </Typography>
-        </View>
-        <View style={{ alignItems: "center" }}>
-          <Typography style={{ fontFamily: fonts.heading, fontSize: 26, color: colors.fg }}>
-            Budi Hartono
-          </Typography>
-          <Typography variant="caption">@budi · joined Apr 2026</Typography>
-        </View>
-      </Stack>
-
-      <Card>
-        <Row style={{ justifyContent: "space-between" }}>
-          {STATS.map((stat, i) => (
-            <View key={i} style={{ alignItems: "center", flex: 1 }}>
-              <Typography style={{ fontFamily: fonts.heading, fontSize: 22, color: colors.fg }}>
-                {stat.value}
-              </Typography>
-              <Typography variant="caption">{stat.label}</Typography>
-            </View>
-          ))}
-        </Row>
-      </Card>
-
-      <Card>
-        <Eyebrow>Bio</Eyebrow>
-        <Typography variant="bodyMuted">
-          Building small habits into rituals. Currently chasing 100 days of morning walks.
-        </Typography>
-      </Card>
-
-      <Card>
-        <Row style={{ justifyContent: "space-between" }}>
-          <Eyebrow>Weekly consistency</Eyebrow>
-          <Row gap={spacing.xs}>
-            <Icon icon={Fire03Icon} size={16} color={colors.primary} />
-            <Typography variant="caption" color={colors.primary} style={{ fontFamily: fonts.bodyBold }}>
-              72%
-            </Typography>
-          </Row>
-        </Row>
-        <View
-          style={{
-            height: 10,
-            borderRadius: radius.pill,
-            backgroundColor: colors.ui,
-            overflow: "hidden",
-          }}
-        >
-          <View
+    <Screen stickyHeader={header}>
+      <Stack gap={spacing.lg} style={{ alignItems: "center", paddingTop: spacing.sm }}>
+        <Avatar color={colors.primary} letter="B" size={104} ring={false} />
+        <Stack gap={spacing.xs} style={{ alignItems: "center" }}>
+          <Typography
             style={{
-              width: "72%",
-              height: "100%",
-              borderRadius: radius.pill,
-              backgroundColor: colors.primary,
+              fontFamily: fonts.heading,
+              fontSize: 30,
+              lineHeight: 36,
+              color: colors.fg,
             }}
-          />
-        </View>
-      </Card>
-
-      <Stack gap={spacing.sm}>
-        <Eyebrow>Recent proofs</Eyebrow>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-          {GRID_ACCENTS.map((accent, i) => (
-            <View
-              key={i}
+          >
+            Budi{" "}
+            <Typography
               style={{
-                width: "31.5%",
-                aspectRatio: 1,
-                borderRadius: radius.md,
-                backgroundColor: colors.ui,
-                borderWidth: 1,
-                borderColor: colors.border,
-                alignItems: "center",
-                justifyContent: "center",
+                fontFamily: fonts.heading,
+                fontSize: 30,
+                lineHeight: 36,
+                color: colors.fg,
               }}
             >
+              Hartono
+            </Typography>
+          </Typography>
+          <Typography variant="metaItalic">@budi — joined April 2026</Typography>
+        </Stack>
+        <Typography
+          variant="lede"
+          style={{ textAlign: "center", paddingHorizontal: spacing.lg }}
+        >
+          Stacking small habits into something bigger. Currently chasing 100 days of morning walks.
+        </Typography>
+      </Stack>
+
+      <Row style={{ justifyContent: "space-between", paddingVertical: spacing.md }}>
+        {STATS.map((stat, i) => (
+          <View key={i} style={{ alignItems: "center", flex: 1 }}>
+            <Typography
+              style={{
+                fontFamily: fonts.heading,
+                fontSize: 28,
+                lineHeight: 32,
+                color: colors.fg,
+              }}
+            >
+              {stat.value}
+            </Typography>
+            <Typography variant="metaItalic">{stat.label}</Typography>
+          </View>
+        ))}
+      </Row>
+
+      <Divider />
+
+      <Stack gap={spacing.md}>
+        <Typography
+          style={{
+            fontFamily: fonts.heading,
+            fontSize: 18,
+            lineHeight: 22,
+            color: colors.fg,
+          }}
+        >
+          Recent proofs
+        </Typography>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+          {POSTS.map((post, i) => (
+            <View key={i} style={{ width: "31.8%" }}>
               <View
                 style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: radius.pill,
-                  backgroundColor: accent,
+                  aspectRatio: 1,
+                  borderRadius: radius.sm,
+                  overflow: "hidden",
+                  backgroundColor: colors.bgSunk,
                 }}
-              />
+              >
+                <Image
+                  source={pickPhoto(post.photoIdx)}
+                  style={{ width: "100%", height: "100%" }}
+                  contentFit="cover"
+                  transition={240}
+                />
+                <View
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    padding: 6,
+                    backgroundColor: colors.black + "70",
+                  }}
+                >
+                  <Typography
+                    color={colors.bg}
+                    style={{
+                      fontFamily: fonts.heading,
+                      fontSize: 10.5,
+                      lineHeight: 13,
+                    }}
+                  >
+                    {post.habit}
+                  </Typography>
+                </View>
+              </View>
             </View>
           ))}
         </View>
