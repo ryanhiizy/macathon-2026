@@ -7,6 +7,7 @@ import * as SystemUI from "expo-system-ui";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   useFonts,
+  Merriweather_400Regular,
   Merriweather_400Regular_Italic,
   Merriweather_700Bold,
 } from "@expo-google-fonts/merriweather";
@@ -35,6 +36,7 @@ const navigationTheme = {
 
 export default function RootLayout() {
   const [loaded] = useFonts({
+    Merriweather_400Regular,
     Merriweather_700Bold,
     Merriweather_400Regular_Italic,
     Inter_400Regular,
@@ -92,6 +94,21 @@ export default function RootLayout() {
             options={{ presentation: "modal", animation: "slide_from_bottom" }}
           />
           <Stack.Screen name="circle/[id]" />
+          <Stack.Screen
+            name="search-circles"
+            options={{ gestureEnabled: true, fullScreenGestureEnabled: true }}
+          />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="messages" />
+          <Stack.Screen
+            name="new-chat"
+            options={{ presentation: "modal", animation: "slide_from_bottom" }}
+          />
+          <Stack.Screen name="chat/[id]" />
+          <Stack.Screen
+            name="edit-profile"
+            options={{ presentation: "modal", animation: "slide_from_bottom" }}
+          />
         </Stack>
       </ThemeProvider>
     </GestureHandlerRootView>
