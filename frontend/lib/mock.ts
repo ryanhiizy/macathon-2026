@@ -110,7 +110,9 @@ export type SoloPost = {
   streak: number;
   color: string;
   letter: string;
-  photoIdxs: number[];
+  photoIdxs?: number[];
+  photos?: { uri: string }[];
+  promptText?: string;
   caption: string;
   likes: number;
   comments: number;
@@ -122,7 +124,9 @@ export type GroupPost = {
   name: string;
   handle: string;
   when: string;
-  photoIdxs: number[];
+  photoIdxs?: number[];
+  photos?: { uri: string }[];
+  promptText?: string;
   caption: string;
   likes: number;
   comments: number;
@@ -494,23 +498,30 @@ export type Friend = {
 };
 
 export const FRIENDS: Friend[] = [
-  { id: "a", name: "Sarah K.", handle: "@sarahk", color: colors.blue, letter: "S" },
-  { id: "b", name: "Mia Chen", handle: "@miachen", color: colors.green, letter: "M" },
-  { id: "c", name: "Jae Park", handle: "@jaepark", color: colors.cyan, letter: "J" },
-  { id: "d", name: "Theo Vinci", handle: "@theov", color: colors.orange, letter: "T" },
-  { id: "e", name: "Nina Ray", handle: "@ninaray", color: colors.magenta, letter: "N" },
-  { id: "f", name: "Omar H.", handle: "@omarh", color: colors.yellow, letter: "O" },
-  { id: "g", name: "Kai Lo", handle: "@kailo", color: colors.purple, letter: "K" },
+  { id: "mu01", name: "Sarah K.", handle: "@sarahk", color: colors.blue, letter: "S" },
+  { id: "mu02", name: "Mia Chen", handle: "@miachen", color: colors.green, letter: "M" },
+  { id: "mu03", name: "Jae Park", handle: "@jaepark", color: colors.cyan, letter: "J" },
+  { id: "mu04", name: "Theo Vinci", handle: "@theov", color: colors.orange, letter: "T" },
+  { id: "mu05", name: "Nina Ray", handle: "@ninaray", color: colors.magenta, letter: "N" },
+  { id: "mu06", name: "Omar H.", handle: "@omarh", color: colors.yellow, letter: "O" },
+  { id: "mu07", name: "Kai Lo", handle: "@kailo", color: colors.purple, letter: "K" },
+  { id: "mu08", name: "Ava Lin", handle: "@avalin", color: colors.red, letter: "A" },
+  { id: "mu09", name: "Leo Cruz", handle: "@leocruz", color: colors.orange, letter: "L" },
+  { id: "mu10", name: "Zoe Kim", handle: "@zoekim", color: colors.cyan, letter: "Z" },
+  { id: "mu11", name: "Ravi S.", handle: "@ravis", color: colors.green, letter: "R" },
+  { id: "mu12", name: "Ella Wu", handle: "@ellawu", color: colors.magenta, letter: "E" },
 ];
 
 export const CIRCLE_MEMBERS = [
-  { id: "1", name: "Sarah K.", handle: "@sarahk", letter: "S", color: colors.blue, streak: 47 },
-  { id: "2", name: "You", handle: "@brayden", letter: "B", color: colors.purple, streak: 23 },
-  { id: "3", name: "Mia Chen", handle: "@miachen", letter: "M", color: colors.green, streak: 19 },
-  { id: "4", name: "Jae Park", handle: "@jaepark", letter: "J", color: colors.cyan, streak: 14 },
-  { id: "5", name: "Theo Vinci", handle: "@theov", letter: "T", color: colors.orange, streak: 11 },
-  { id: "6", name: "Nina Ray", handle: "@ninaray", letter: "N", color: colors.magenta, streak: 7 },
-  { id: "7", name: "Omar H.", handle: "@omarh", letter: "O", color: colors.yellow, streak: 4 },
+  { id: "mu01", name: "Sarah K.", handle: "@sarahk", letter: "S", color: colors.blue, streak: 34 },
+  { id: "you", name: "You", handle: "@brayden", letter: "B", color: colors.purple, streak: 23 },
+  { id: "mu02", name: "Mia Chen", handle: "@miachen", letter: "M", color: colors.green, streak: 19 },
+  { id: "mu03", name: "Jae Park", handle: "@jaepark", letter: "J", color: colors.cyan, streak: 47 },
+  { id: "mu04", name: "Theo Vinci", handle: "@theov", letter: "T", color: colors.orange, streak: 17 },
+  { id: "mu05", name: "Nina Ray", handle: "@ninaray", letter: "N", color: colors.magenta, streak: 21 },
+  { id: "mu09", name: "Leo Cruz", handle: "@leocruz", letter: "L", color: colors.orange, streak: 9 },
+  { id: "mu10", name: "Zoe Kim", handle: "@zoekim", letter: "Z", color: colors.cyan, streak: 28 },
+  { id: "mu07", name: "Kai Lo", handle: "@kailo", letter: "K", color: colors.purple, streak: 23 },
 ];
 
 export const HABIT_ICONS: { icon: HugeiconsProps["icon"]; label: string }[] = [

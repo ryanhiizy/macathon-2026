@@ -9,6 +9,9 @@ import { Icon } from "@/components/icon";
 import { AnimatedPress } from "@/components/animated-press";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 import { HABIT_ICONS, ACCENT_OPTIONS } from "@/lib/mock";
+import { createHabit } from "@/lib/habits";
+import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 
 const TIME_SUGGESTIONS = [
   "6:00 AM",
@@ -20,13 +23,100 @@ const TIME_SUGGESTIONS = [
   "All day",
 ];
 
+// Map icon labels to DB categories
+const ICON_TO_CATEGORY: Record<string, string> = {
+  Sunrise: "morning",
+  Water: "water",
+  Yoga: "meditation",
+  Book: "reading",
+  Run: "running",
+  Coffee: "morning",
+  Plant: "morning",
+  Create: "morning",
+};
+
+// "7:30 AM" → "07:30:00", "All day" → "00:00:00"
+function parseTime(display: string): string {
+  if (display === "All day") return "00:00:00";
+  const match = display.match(/^(\d+):(\d+)\s(AM|PM)$/);
+  if (!match) return "07:00:00";
+  let h = Number(match[1]);
+  const m = match[2];
+  if (match[3] === "PM" && h !== 12) h += 12;
+  if (match[3] === "AM" && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${m}:00`;
+}
+
+async function getOrCreateCircle(userId: string): Promise<string | null> {
+  const { data: memberships } = await supabase
+    .from("circle_members")
+    .select("circle_id")
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (memberships && memberships.length > 0) {
+    return memberships[0].circle_id;
+  }
+
+  const { data: circle, error } = await supabase
+    .from("circles")
+    .insert({
+      name: "My Habits",
+      created_by: userId,
+      invite_code: `personal-${userId.slice(0, 8)}`,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.warn("[create-habit] create circle error:", error.message);
+    return null;
+  }
+
+  await supabase.from("circle_members").insert({
+    circle_id: circle.id,
+    user_id: userId,
+  });
+
+  return circle.id;
+}
+
 export default function CreateHabit() {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [iconIdx, setIconIdx] = useState(0);
   const [accent, setAccent] = useState(ACCENT_OPTIONS[0]);
   const [time, setTime] = useState("7:30 AM");
+  const [saving, setSaving] = useState(false);
 
   const ChosenIcon = HABIT_ICONS[iconIdx].icon;
+  const canSave = name.trim().length > 0;
+
+  async function handleCreate() {
+    if (!canSave || saving || !user) return;
+    setSaving(true);
+
+    const circleId = await getOrCreateCircle(user.id);
+    if (!circleId) {
+      setSaving(false);
+      return;
+    }
+
+    const category = ICON_TO_CATEGORY[HABIT_ICONS[iconIdx].label] ?? "morning";
+    const result = await createHabit({
+      name: name.trim(),
+      category,
+      verification_mode: "trust",
+      target_time: parseTime(time),
+      circle_id: circleId,
+      user_id: user.id,
+    });
+
+    setSaving(false);
+    if (result) {
+      router.back();
+    }
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top", "bottom"]}>
@@ -210,23 +300,24 @@ export default function CreateHabit() {
 
         <View>
           <AnimatedPress
-            onPress={() => router.back()}
+            onPress={handleCreate}
             haptic="medium"
             scale={0.97}
             style={{
               marginTop: spacing.lg,
               paddingVertical: spacing.lg,
               borderRadius: radius.pill,
-              backgroundColor: colors.fg,
+              backgroundColor: canSave && !saving ? colors.fg : colors.fgDim,
               alignItems: "center",
               justifyContent: "center",
+              opacity: canSave && !saving ? 1 : 0.5,
             }}
           >
             <Typography
               color={colors.bg}
               style={{ fontFamily: fonts.bodyBold, fontSize: 16, letterSpacing: 0.3 }}
             >
-              Begin this habit
+              {saving ? "Creating..." : "Begin this habit"}
             </Typography>
           </AnimatedPress>
         </View>

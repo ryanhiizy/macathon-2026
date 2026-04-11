@@ -9,7 +9,7 @@ import {
   NaturalFoodIcon,
 } from "@hugeicons/core-free-icons";
 import { colors } from "@/lib/theme";
-import { supabase, getTestUserId } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -127,7 +127,7 @@ export function formatTime(dbTime: string): string {
 /**
  * Fetch all habits for a user, enriched with streak and today's status.
  */
-export async function fetchHabits(userId: string = getTestUserId()): Promise<HabitView[]> {
+export async function fetchHabits(userId: string): Promise<HabitView[]> {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   const { data: habits, error } = await supabase
@@ -202,7 +202,7 @@ export type HabitDetailView = HabitView & {
  */
 export async function fetchHabitDetail(
   habitId: string,
-  userId: string = getTestUserId()
+  userId: string,
 ): Promise<HabitDetailView | null> {
   const { data: habit, error } = await supabase
     .from("habits")
@@ -300,12 +300,12 @@ export async function createHabit(habit: {
   verification_mode: "verifiable" | "trust";
   target_time: string; // HH:MM or HH:MM:SS
   circle_id: string;
-  user_id?: string;
+  user_id: string;
 }) {
   const { data, error } = await supabase
     .from("habits")
     .insert({
-      user_id: habit.user_id ?? getTestUserId(),
+      user_id: habit.user_id,
       circle_id: habit.circle_id,
       name: habit.name,
       category: habit.category,

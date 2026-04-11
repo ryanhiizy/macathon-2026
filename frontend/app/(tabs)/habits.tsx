@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Easing, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import Svg, { Circle } from "react-native-svg";
 import {
   Camera01Icon,
   Fire02Icon,
@@ -9,17 +9,34 @@ import {
   Tick02Icon,
   UserAdd01Icon,
 } from "@hugeicons/core-free-icons";
+import Svg, { Circle } from "react-native-svg";
 import { CoachInsightTeaser } from "@/components/CoachInsightCard";
 import { AnimatedPress } from "@/components/animated-press";
 import { Icon } from "@/components/icon";
 import { Divider, Row, Screen, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
-import { WEEK_DAYS } from "@/lib/mock";
+import { useAuth } from "@/lib/auth-context";
 import { fetchHabits, generateMockHabits, type HabitView } from "@/lib/habits";
-import { ensureTestSession } from "@/lib/supabase";
+import { WEEK_DAYS } from "@/lib/mock";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 
 type TimeOfDay = "morning" | "afternoon" | "evening";
+
+const TIME_ORDER: TimeOfDay[] = ["morning", "afternoon", "evening"];
+const TIME_LABEL: Record<TimeOfDay, string> = {
+  morning: "Morning",
+  afternoon: "Afternoon",
+  evening: "Evening",
+};
+
+const DUE_SOON_MINUTES = 30;
+
+type Urgency = {
+  dueSoon: boolean;
+  overdue: boolean;
+  label: string | null;
+  color: string | null;
+};
 
 const greetingFor = (hour: number) => {
   if (hour < 5) return { label: "Night owl", sub: "The world's still dreaming." };
@@ -32,13 +49,6 @@ const greetingFor = (hour: number) => {
 
 const formatDate = (date: Date) =>
   date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-
-const TIME_ORDER: TimeOfDay[] = ["morning", "afternoon", "evening"];
-const TIME_LABEL: Record<TimeOfDay, string> = {
-  morning: "Morning",
-  afternoon: "Afternoon",
-  evening: "Evening",
-};
 
 function getTimeOfDay(time: string): TimeOfDay {
   if (time === "All day") return "afternoon";
@@ -56,21 +66,14 @@ function getTimeOfDay(time: string): TimeOfDay {
   return "evening";
 }
 
-const DUE_SOON_MINUTES = 30;
-
-type Urgency = {
-  dueSoon: boolean;
-  overdue: boolean;
-  label: string | null;
-  color: string | null;
-};
-
 function minutesUntilDue(targetTime: string): number | null {
-  const parts = targetTime.split(":").map(Number);
-  if (parts.length < 2) return null;
-  const [h, m] = parts;
+  const [hours, minutes] = targetTime.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
   const now = new Date();
-  const targetMinutes = h * 60 + m;
+  const targetMinutes = hours * 60 + minutes;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   return targetMinutes - nowMinutes;
 }
@@ -79,10 +82,12 @@ function getUrgency(habit: HabitView): Urgency {
   if (habit.done) {
     return { dueSoon: false, overdue: false, label: null, color: null };
   }
+
   const diff = minutesUntilDue(habit.targetTime);
   if (diff === null) {
     return { dueSoon: false, overdue: false, label: null, color: null };
   }
+
   if (diff > 0 && diff <= DUE_SOON_MINUTES) {
     return {
       dueSoon: true,
@@ -91,6 +96,7 @@ function getUrgency(habit: HabitView): Urgency {
       color: colors.warning,
     };
   }
+
   if (diff < 0 && diff >= -60) {
     return {
       dueSoon: false,
@@ -99,25 +105,41 @@ function getUrgency(habit: HabitView): Urgency {
       color: colors.danger,
     };
   }
+
   return { dueSoon: false, overdue: false, label: null, color: null };
 }
 
 export default function Habits() {
   const router = useRouter();
+  const { user, demoSession } = useAuth();
   const [habits, setHabits] = useState<HabitView[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    await ensureTestSession();
-    const data = await fetchHabits();
-    setHabits([...data, ...generateMockHabits()]);
-    setLoading(false);
-  }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+    if (demoSession) {
+      setHabits(generateMockHabits());
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      setHabits([]);
+      setLoading(false);
+      return;
+    }
+
+    const data = await fetchHabits(user.id);
+    setHabits(data.length > 0 ? data : generateMockHabits());
+    setLoading(false);
+  }, [demoSession, user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const completed = habits.filter((habit) => habit.done).length;
   const progress = habits.length > 0 ? completed / habits.length : 0;
@@ -159,17 +181,7 @@ export default function Habits() {
             color: colors.fg,
           }}
         >
-          {greeting.label},{" "}
-          <Typography
-            style={{
-              fontFamily: fonts.heading,
-              fontSize: 32,
-              lineHeight: 38,
-              color: colors.primary,
-            }}
-          >
-            Budi
-          </Typography>
+          {greeting.label} check-in
         </Typography>
       </Stack>
       <AnimatedPress
@@ -224,13 +236,13 @@ export default function Habits() {
         </Stack>
       </Row>
 
-      {coachHabit && (
+      {coachHabit ? (
         <CoachInsightTeaser
           habitId={coachHabit.id}
           habitName={coachHabit.name}
           onPress={() => router.push(`/habit/${coachHabit.id}`)}
         />
-      )}
+      ) : null}
 
       <Stack gap={spacing.md}>
         <Row gap={spacing.sm} style={{ alignItems: "baseline", justifyContent: "space-between" }}>
@@ -253,15 +265,15 @@ export default function Habits() {
                 style={{
                   width: "100%",
                   aspectRatio: 1,
-                  borderRadius: radius.pill,
+                  borderRadius: radius.sm,
                   backgroundColor: day.done ? colors.primary : colors.bgRaised,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                {day.done && (
+                {day.done ? (
                   <Icon icon={Tick02Icon} size={16} color={colors.onPrimary} strokeWidth={2.8} />
-                )}
+                ) : null}
               </View>
               <Typography variant="tiny" color={day.done ? colors.fg : colors.fgDim}>
                 {day.label}
@@ -319,19 +331,18 @@ export default function Habits() {
                 </Row>
                 <Divider />
                 <Stack gap={0}>
-                  {items.map((habit) => {
-                    const urgency = getUrgency(habit);
-                    return (
-                    <HabitRow
-                      key={habit.id}
-                      habit={habit}
-                      urgency={urgency}
-                      onOpen={() => router.push(`/habit/${habit.id}`)}
-                      onInvite={() => router.push(`/invite/${habit.id}`)}
-                      onProve={() => router.push(`/camera/${habit.id}`)}
-                    />
-                    );
-                  })}
+                  {items.map((habit, index) => (
+                    <View key={habit.id}>
+                      <HabitRow
+                        habit={habit}
+                        urgency={getUrgency(habit)}
+                        onOpen={() => router.push(`/habit/${habit.id}`)}
+                        onInvite={() => router.push(`/invite/${habit.id}`)}
+                        onProve={() => router.push(`/camera/${habit.id}`)}
+                      />
+                      {index < items.length - 1 ? <Divider /> : null}
+                    </View>
+                  ))}
                 </Stack>
               </Stack>
             );
@@ -384,8 +395,18 @@ function PulsingDot({ color }: { color: string }) {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0.4, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim, {
+          toValue: 0.4,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
       ]),
     );
     loop.start();
@@ -456,12 +477,12 @@ function HabitRow({
                 >
                   {habit.name}
                 </Typography>
-                {urgent && urgency.label && (
+                {urgent && urgency.label ? (
                   <Row
                     gap={4}
                     style={{
                       alignItems: "center",
-                      backgroundColor: urgentColor + "1a",
+                      backgroundColor: `${urgentColor}1a`,
                       paddingHorizontal: 6,
                       paddingVertical: 2,
                       borderRadius: radius.pill,
@@ -479,7 +500,7 @@ function HabitRow({
                       {urgency.label}
                     </Typography>
                   </Row>
-                )}
+                ) : null}
               </Row>
               <Row gap={spacing.sm} style={{ alignItems: "center" }}>
                 <Typography variant="metaItalic" color={habit.done ? colors.success : undefined}>

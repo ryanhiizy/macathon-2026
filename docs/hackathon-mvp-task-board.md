@@ -13,7 +13,7 @@ Use this board to keep the team on the shortest path to a working demo.
 
 | ID | Status | Owner | Depends on | Done when |
 |---|---|---|---|---|
-| F1 | `done` | shared | none | Frontend deps installed, backend manifest exists, `.env.example` exists, and setup docs point to the right commands |
+| F1 | `done` | shared | none | Frontend deps installed, backend manifest exists, `frontend/.env.example` and `backend/.env.example` exist, and setup docs point to the right commands |
 | F2 | `todo` | backend | none | Supabase project exists with schema, storage bucket, Realtime, and `pg_cron` configured |
 | F3 | `todo` | backend | F2 | Canonical schema drift between docs is resolved and the chosen schema is written down in one place |
 | F4 | `todo` | shared | F1 | Everyone knows the MVP path and is pulling work from this board instead of ad hoc docs |

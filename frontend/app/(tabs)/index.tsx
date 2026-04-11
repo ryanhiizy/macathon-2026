@@ -1,10 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  View,
-} from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import Animated, {
   Easing,
@@ -26,16 +21,14 @@ import { CommentsSheet } from "@/components/comments-sheet";
 import { Icon } from "@/components/icon";
 import { LikeButton } from "@/components/like-button";
 import { PhotoCarousel } from "@/components/photo-carousel";
-import { Screen, Row, Stack } from "@/components/layout";
+import { Row, Screen, Stack } from "@/components/layout";
 import { Segmented } from "@/components/segmented";
 import { SwipeableTabs } from "@/components/swipeable-tabs";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
-import {
-  FEED_POSTS,
-  type GroupPost as GroupPostData,
-  type SoloPost as SoloPostData,
-} from "@/lib/mock";
+import { useAuth } from "@/lib/auth-context";
+import { getFeedPosts } from "@/lib/feed";
+import type { FeedPost, GroupPost as GroupPostData, SoloPost as SoloPostData } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 
 const PULL_MESSAGES = [
@@ -46,6 +39,7 @@ const PULL_MESSAGES = [
 
 export default function Home() {
   const router = useRouter();
+  const { user } = useAuth();
   const [feedIdx, setFeedIdx] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [pullMessageIdx, setPullMessageIdx] = useState(0);
@@ -67,13 +61,22 @@ export default function Home() {
     }
 
     setRefreshing(true);
-    setPullMessageIdx((i) => (i + 1) % PULL_MESSAGES.length);
+    setPullMessageIdx((index) => (index + 1) % PULL_MESSAGES.length);
     refreshTimeoutRef.current = setTimeout(() => {
       setRefreshing(false);
       refreshTimeoutRef.current = null;
     }, 900);
   };
 
+  const feedPosts = useMemo(() => getFeedPosts(user?.id), [user?.id]);
+  const friendsPosts = useMemo(
+    () => feedPosts.filter((post) => post.kind !== "group"),
+    [feedPosts],
+  );
+  const circlePosts = useMemo(
+    () => feedPosts.filter((post) => post.kind === "group"),
+    [feedPosts],
+  );
 
   const inkWidth = useSharedValue(0);
   useEffect(() => {
@@ -123,9 +126,6 @@ export default function Home() {
     </Stack>
   );
 
-  const friendsPosts = FEED_POSTS.filter((post) => post.kind !== "group");
-  const circlePosts = FEED_POSTS.filter((post) => post.kind === "group");
-
   const paneScroll = {
     contentContainerStyle: {
       paddingHorizontal: spacing.lg,
@@ -155,10 +155,7 @@ export default function Home() {
           >
             <FeedList posts={friendsPosts} onComment={setCommentPostId} />
           </ScrollView>,
-          <ScrollView
-            key="circles"
-            {...paneScroll}
-          >
+          <ScrollView key="circles" {...paneScroll}>
             <FeedList posts={circlePosts} onComment={setCommentPostId} />
           </ScrollView>,
         ]}
@@ -168,13 +165,7 @@ export default function Home() {
   );
 }
 
-function FeedList({
-  posts,
-  onComment,
-}: {
-  posts: typeof FEED_POSTS;
-  onComment: (id: string) => void;
-}) {
+function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: string) => void }) {
   return (
     <Stack gap={spacing.xxl}>
       {posts.map((post) => {
@@ -227,13 +218,33 @@ function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: str
         <StreakFlame days={post.streak} />
       </Row>
 
-      <Typography variant="body" style={{ paddingHorizontal: spacing.xs }}>
-        {post.caption}
-      </Typography>
+      {post.promptText ? (
+        <Typography variant="metaItalic" color={colors.fgMuted}>
+          {"\u2728"} {post.promptText}
+        </Typography>
+      ) : null}
+
+      <Typography variant="body">{post.caption}</Typography>
 
       <PhotoCarousel
         photoIdxs={post.photoIdxs}
-        footer={<PostActions likes={post.likes} comments={post.comments} onComment={() => onComment(post.id)} />}
+        photos={post.photos}
+        overlay={
+          <Row gap={spacing.xl}>
+            <LikeButton initialCount={post.likes} tint={colors.white} snapId={post.id} />
+            <AnimatedPress
+              onPress={() => onComment(post.id)}
+              style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+              scale={0.9}
+              haptic={false}
+            >
+              <Icon icon={Comment01Icon} size={18} color={colors.white} strokeWidth={1.7} />
+              <Typography variant="meta" color={colors.white}>
+                {post.comments}
+              </Typography>
+            </AnimatedPress>
+          </Row>
+        }
       />
     </Stack>
   );
@@ -265,7 +276,7 @@ function GroupPost({ post, onComment }: { post: GroupPostData; onComment: (id: s
             paddingHorizontal: 8,
             paddingVertical: 4,
             borderRadius: radius.pill,
-            backgroundColor: colors.purple + "1f",
+            backgroundColor: `${colors.purple}1f`,
           }}
         >
           <Icon icon={UserGroupIcon} size={14} color={colors.purple} />
@@ -278,39 +289,34 @@ function GroupPost({ post, onComment }: { post: GroupPostData; onComment: (id: s
         </View>
       </Row>
 
-      <Typography variant="body" style={{ paddingHorizontal: spacing.xs }}>
-        {post.caption}
-      </Typography>
+      {post.promptText ? (
+        <Typography variant="metaItalic" color={colors.fgMuted}>
+          {"\u2728"} {post.promptText}
+        </Typography>
+      ) : null}
+
+      <Typography variant="body">{post.caption}</Typography>
 
       <PhotoCarousel
         photoIdxs={post.photoIdxs}
-        footer={<PostActions likes={post.likes} comments={post.comments} onComment={() => onComment(post.id)} />}
+        photos={post.photos}
+        overlay={
+          <Row gap={spacing.xl}>
+            <LikeButton initialCount={post.likes} tint={colors.white} snapId={post.id} />
+            <AnimatedPress
+              onPress={() => onComment(post.id)}
+              style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+              scale={0.9}
+              haptic={false}
+            >
+              <Icon icon={Comment01Icon} size={18} color={colors.white} strokeWidth={1.7} />
+              <Typography variant="meta" color={colors.white}>
+                {post.comments}
+              </Typography>
+            </AnimatedPress>
+          </Row>
+        }
       />
     </Stack>
-  );
-}
-
-function PostActions({
-  likes,
-  comments,
-  onComment,
-}: {
-  likes: number;
-  comments: number;
-  onComment: () => void;
-}) {
-  return (
-    <Row gap={spacing.md} style={{ paddingTop: spacing.sm, paddingHorizontal: spacing.xs }}>
-      <LikeButton initialCount={likes} />
-      <AnimatedPress
-        onPress={onComment}
-        style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
-        scale={0.9}
-        haptic={false}
-      >
-        <Icon icon={Comment01Icon} size={18} color={colors.fg} strokeWidth={1.7} />
-        <Typography variant="meta">{comments}</Typography>
-      </AnimatedPress>
-    </Row>
   );
 }
