@@ -8,6 +8,7 @@ import {
   CookBookIcon,
   NaturalFoodIcon,
 } from "@hugeicons/core-free-icons";
+import { HABITS as DEMO_HABITS } from "@/lib/mock";
 import { colors } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 
@@ -101,10 +102,10 @@ function mockHabit(
 
 export function generateMockHabits(): HabitView[] {
   return [
-    mockHabit("mock-done", "Morning walk", SunriseIcon, colors.orange, 12, -120, true, "morning", "mock-circle-1"),
-    mockHabit("mock-due-soon", "Meditate", Yoga01Icon, colors.purple, 23, 15, false, "meditation", "mock-circle-3"),
-    mockHabit("mock-overdue", "Drink water", DropletIcon, colors.cyan, 5, -20, false, "water", "mock-circle-4"),
-    mockHabit("mock-normal", "Read 10 pages", BookOpen01Icon, colors.blue, 3, 180, false, "reading", "mock-circle-2"),
+    mockHabit("1", "Morning walk", SunriseIcon, colors.orange, 12, -120, true, "morning", "mock-circle-1"),
+    mockHabit("3", "Meditate", Yoga01Icon, colors.purple, 23, 15, false, "meditation", "mock-circle-3"),
+    mockHabit("2", "Drink water", DropletIcon, colors.cyan, 5, -20, false, "water", "mock-circle-4"),
+    mockHabit("4", "Read 10 pages", BookOpen01Icon, colors.blue, 3, 180, false, "reading", "mock-circle-2"),
   ];
 }
 
@@ -196,6 +197,32 @@ export type HabitDetailView = HabitView & {
   totalScheduled: number;
   history: { day: string; done: boolean }[];
 };
+
+export function getMockHabitDetail(habitId: string): HabitDetailView | null {
+  const habit = generateMockHabits().find((item) => item.id === habitId);
+  const demoHabit = DEMO_HABITS.find((item) => item.id === habitId);
+
+  if (!habit || !demoHabit) {
+    return null;
+  }
+
+  const totalScheduled = demoHabit.history.length;
+  const totalCompleted = demoHabit.history.filter(Boolean).length;
+  const history = demoHabit.history.map((done, index) => ({
+    day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][index] ?? "Day",
+    done,
+  }));
+
+  return {
+    ...habit,
+    bestStreak: demoHabit.bestStreak,
+    frequency: "Daily",
+    completionRate: totalScheduled > 0 ? totalCompleted / totalScheduled : 0,
+    totalCompleted,
+    totalScheduled,
+    history,
+  };
+}
 
 /**
  * Fetch a single habit by ID with detail stats for the detail page.

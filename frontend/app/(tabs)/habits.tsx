@@ -131,7 +131,7 @@ export default function Habits() {
     }
 
     const data = await fetchHabits(user.id);
-    setHabits(data.length > 0 ? data : generateMockHabits());
+    setHabits(data);
     setLoading(false);
   }, [demoSession, user]);
 

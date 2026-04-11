@@ -28,12 +28,29 @@ const PROMPT_BY_HABIT: Record<string, string> = {
 
 export default function CameraScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const habit = HABITS.find((h) => h.id === id) ?? HABITS[0];
-  const prompt = PROMPT_BY_HABIT[habit.id] ?? "Show us something honest.";
+  const habit = HABITS.find((h) => h.id === id);
+  const prompt = habit ? (PROMPT_BY_HABIT[habit.id] ?? "Show us something honest.") : null;
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
   const { trigger: triggerFlash, Flash } = useShutterFlash();
+
+  if (!habit) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.black }} edges={["top", "bottom"]}>
+        <Stack gap={spacing.xl} style={{ flex: 1, padding: spacing.xl, justifyContent: "center", alignItems: "center" }}>
+          <Typography serif color={colors.bg} style={{ fontSize: 24, lineHeight: 32, textAlign: "center" }}>
+            Habit not found
+          </Typography>
+          <AnimatedPress onPress={() => router.back()} haptic={false}>
+            <Typography color={colors.bg} variant="metaItalic">
+              Back
+            </Typography>
+          </AnimatedPress>
+        </Stack>
+      </SafeAreaView>
+    );
+  }
 
   if (!permission) {
     return <View style={{ flex: 1, backgroundColor: colors.black }} />;
