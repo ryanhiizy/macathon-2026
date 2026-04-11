@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { View, TextInput, ScrollView, Pressable } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,16 +20,6 @@ export default function InviteScreen() {
   const habit = HABITS.find((h) => h.id === id) ?? HABITS[0];
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
-  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (navigationTimeoutRef.current) {
-        clearTimeout(navigationTimeoutRef.current);
-      }
-    },
-    [],
-  );
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -210,14 +200,7 @@ export default function InviteScreen() {
             </Row>
             <AnimatedPress
               onPress={() => {
-                router.back();
-                if (navigationTimeoutRef.current) {
-                  clearTimeout(navigationTimeoutRef.current);
-                }
-                navigationTimeoutRef.current = setTimeout(() => {
-                  router.push(`/group-camera/${habit.id}`);
-                  navigationTimeoutRef.current = null;
-                }, 200);
+                router.replace(`/group-camera/${habit.id}`);
               }}
               haptic="medium"
               scale={0.97}
