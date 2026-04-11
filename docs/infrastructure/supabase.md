@@ -4,10 +4,12 @@ Canonical schema, RLS, storage, Realtime, cron, and auth notes for the hackathon
 
 ## Project setup
 
-Grab the project URL and publishable key, then put them in `frontend/.env`:
+Grab the project URL and a client key, then put them in `frontend/.env`:
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+# or legacy fallback:
 EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
