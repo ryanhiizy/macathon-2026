@@ -10,7 +10,8 @@ import { AnimatedPress } from "@/components/animated-press";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 import { HABIT_ICONS, ACCENT_OPTIONS } from "@/lib/mock";
 import { createHabit } from "@/lib/habits";
-import { supabase, getTestUserId, ensureTestSession } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 
 const TIME_SUGGESTIONS = [
   "6:00 AM",
@@ -46,8 +47,7 @@ function parseTime(display: string): string {
   return `${String(h).padStart(2, "0")}:${m}:00`;
 }
 
-async function getOrCreateCircle(): Promise<string | null> {
-  const userId = getTestUserId();
+async function getOrCreateCircle(userId: string): Promise<string | null> {
   const { data: memberships } = await supabase
     .from("circle_members")
     .select("circle_id")
@@ -82,6 +82,7 @@ async function getOrCreateCircle(): Promise<string | null> {
 }
 
 export default function CreateHabit() {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [iconIdx, setIconIdx] = useState(0);
   const [accent, setAccent] = useState(ACCENT_OPTIONS[0]);
@@ -93,10 +94,14 @@ export default function CreateHabit() {
 
   async function handleCreate() {
     if (!canSave || saving) return;
+    if (!user?.id) {
+      console.warn("[create-habit] no authenticated user");
+      return;
+    }
+
     setSaving(true);
 
-    await ensureTestSession();
-    const circleId = await getOrCreateCircle();
+    const circleId = await getOrCreateCircle(user.id);
     if (!circleId) {
       setSaving(false);
       return;
@@ -109,6 +114,7 @@ export default function CreateHabit() {
       verification_mode: "trust",
       target_time: parseTime(time),
       circle_id: circleId,
+      user_id: user.id,
     });
 
     setSaving(false);

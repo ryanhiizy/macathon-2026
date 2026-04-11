@@ -21,7 +21,6 @@ const POSTS = Array.from({ length: 9 }).map((_, i) => ({
 export default function Profile() {
   const { user, demoSession, signOut } = useAuth();
   const [profile, setProfile] = useState<AppProfile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -31,13 +30,11 @@ export default function Profile() {
     let isActive = true;
 
     const loadProfile = async () => {
-      setLoading(true);
       setError(null);
 
       if (demoSession) {
         if (isActive) {
           setProfile(null);
-          setLoading(false);
         }
         return;
       }
@@ -45,7 +42,6 @@ export default function Profile() {
       if (!user) {
         if (isActive) {
           setError("No signed-in user found.");
-          setLoading(false);
         }
         return;
       }
@@ -65,14 +61,11 @@ export default function Profile() {
       } else {
         setProfile(data);
       }
-
-      setLoading(false);
     };
 
     loadProfile().catch((loadError: unknown) => {
       if (!isActive) return;
       setError(loadError instanceof Error ? loadError.message : "Failed to load profile.");
-      setLoading(false);
     });
 
     return () => {

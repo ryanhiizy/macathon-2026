@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
 import { Screen, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { Avatar } from "@/components/avatar";
@@ -10,7 +9,6 @@ import { supabase } from "@/lib/supabase";
 import { DEMO_USERS, type DemoUser } from "@/lib/demo-users";
 
 export default function DemoPickerScreen() {
-  const router = useRouter();
   const [signingIn, setSigningIn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +46,7 @@ export default function DemoPickerScreen() {
             presence
           </Typography>
           <Typography variant="bodyMuted" style={{ textAlign: "center" }}>
-            Who's demoing today?
+            Who&apos;s demoing today?
           </Typography>
         </Stack>
 
