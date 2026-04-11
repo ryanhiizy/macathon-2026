@@ -13,9 +13,8 @@ import { Icon } from "@/components/icon";
 import { AnimatedPress } from "@/components/animated-press";
 import { StreakFlame } from "@/components/streak-flame";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
-import { fetchMyCircles, type CircleView } from "@/lib/circles";
+import { fetchMyCircles, circlePhotos, type CircleView } from "@/lib/circles";
 import { useAuth } from "@/lib/auth-context";
-import { pickPhoto } from "@/lib/mock";
 
 export default function Circles() {
   const { user } = useAuth();
@@ -92,15 +91,16 @@ export default function Circles() {
   return (
     <Screen stickyHeader={header}>
       <Stack gap={spacing.xxl}>
-        {circles.map((circle, i) => (
-          <CircleRowView key={circle.id} circle={circle} index={i} />
+        {circles.map((circle) => (
+          <CircleRowView key={circle.id} circle={circle} />
         ))}
       </Stack>
     </Screen>
   );
 }
 
-function CircleRowView({ circle, index }: { circle: CircleView; index: number }) {
+function CircleRowView({ circle }: { circle: CircleView }) {
+  const photos = circlePhotos(circle.id);
   return (
     <AnimatedPress
       onPress={() => router.push(`/circle/${circle.id}`)}
@@ -140,7 +140,7 @@ function CircleRowView({ circle, index }: { circle: CircleView; index: number })
       </Row>
 
       <Row gap={spacing.sm}>
-        {[0, 1, 2, 3].map((j) => (
+        {photos.map((uri, j) => (
           <View
             key={j}
             style={{
@@ -152,7 +152,7 @@ function CircleRowView({ circle, index }: { circle: CircleView; index: number })
             }}
           >
             <Image
-              source={pickPhoto(index * 2 + j)}
+              source={{ uri }}
               style={{ width: "100%", height: "100%" }}
               contentFit="cover"
               transition={300}
