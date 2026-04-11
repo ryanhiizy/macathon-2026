@@ -10,6 +10,7 @@ import {
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
+import { SegmentedPicker } from "@/components/swift-ui-bridges";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 
 const FEED_TABS = ["Friends", "Circles"];
@@ -33,45 +34,7 @@ export default function Home() {
         </Row>
       </Row>
 
-      <Row
-        gap={spacing.xs}
-        style={{
-          padding: 4,
-          borderRadius: radius.pill,
-          backgroundColor: colors.bgRaised,
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}
-      >
-        {FEED_TABS.map((tab, idx) => {
-          const selected = idx === feedIdx;
-
-          return (
-            <Pressable
-              key={tab}
-              onPress={() => setFeedIdx(idx)}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                borderRadius: radius.pill,
-                backgroundColor: selected ? colors.card : "transparent",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Typography
-                variant="caption"
-                style={{
-                  fontFamily: selected ? fonts.bodyBold : fonts.bodySemibold,
-                  color: selected ? colors.fg : colors.fgMuted,
-                }}
-              >
-                {tab}
-              </Typography>
-            </Pressable>
-          );
-        })}
-      </Row>
+      <SegmentedPicker options={FEED_TABS} selectedIndex={feedIdx} onChange={setFeedIdx} />
 
       <SoloPost />
       <MilestoneCard />

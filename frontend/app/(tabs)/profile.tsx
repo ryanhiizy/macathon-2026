@@ -3,6 +3,7 @@ import { Settings02Icon, Fire03Icon } from "@hugeicons/core-free-icons";
 import { Screen, Card, Row, Stack } from "@/components/layout";
 import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
+import { ProgressBar } from "@/components/swift-ui-bridges";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 
 const STATS = [
@@ -99,23 +100,7 @@ export default function Profile() {
             </Typography>
           </Row>
         </Row>
-        <View
-          style={{
-            height: 10,
-            borderRadius: radius.pill,
-            backgroundColor: colors.ui,
-            overflow: "hidden",
-          }}
-        >
-          <View
-            style={{
-              width: "72%",
-              height: "100%",
-              borderRadius: radius.pill,
-              backgroundColor: colors.primary,
-            }}
-          />
-        </View>
+        <ProgressBar color={colors.primary} progress={0.72} />
       </Card>
 
       <Stack gap={spacing.sm}>
