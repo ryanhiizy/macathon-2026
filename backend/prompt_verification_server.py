@@ -27,12 +27,14 @@ class GeneratePromptRequest(BaseModel):
 class GeneratePromptResponse(BaseModel):
     prompt_text: str
     id: str
+    source: str
 
 
 class VerifyPhotoResponse(BaseModel):
     passed: bool
     reason: str
     comment: str
+    source: str
 
 
 app = FastAPI(title="presence prompt + verification server")
@@ -82,6 +84,7 @@ async def verify_photo_endpoint(
         passed=result.passed,
         reason=result.reason,
         comment=result.comment,
+        source=result.source,
     )
 
 
@@ -102,4 +105,5 @@ def create_prompt(request: GeneratePromptRequest) -> GeneratePromptResponse:
     return GeneratePromptResponse(
         prompt_text=result.prompt_text,
         id=result.prompt_id,
+        source=result.source,
     )
