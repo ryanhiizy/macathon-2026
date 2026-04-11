@@ -45,15 +45,17 @@ When a circle member misses a habit or posts a verified snap, other members shou
 supabase
   .channel(`circle:${circleId}`)
   .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'snaps' }, payload => {
-    showToast(`${payload.new.user_name} just verified!`);
+    showToast('Someone in your circle just verified!');
   })
   .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'habit_instances' }, payload => {
     if (payload.new.status === 'missed') {
-      showToast(`${payload.new.user_name} missed their streak 💀`);
+      showToast('Someone in your circle missed their streak');
     }
   })
   .subscribe();
 ```
+
+The Realtime payload does not include `user_name` directly. Resolve the actor with a follow-up query or a cached `profiles` map joined through `habits`.
 
 ## Why no remote push?
 

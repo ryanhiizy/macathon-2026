@@ -1,23 +1,3 @@
-# Supabase Setup
-
-Canonical schema, RLS, storage, Realtime, cron, and auth notes for the hackathon MVP.
-
-## Project setup
-
-Grab the project URL and publishable key, then put them in `frontend/.env`:
-
-```bash
-EXPO_PUBLIC_SUPABASE_URL=...
-EXPO_PUBLIC_SUPABASE_ANON_KEY=...
-```
-
-Never commit `frontend/.env`.
-
-## Canonical schema
-
-Run this in the Supabase SQL editor. This is the schema the rest of the repo assumes.
-
-```sql
 create extension if not exists pgcrypto with schema extensions;
 
 -- profiles
@@ -66,8 +46,8 @@ create table habits (
   user_id uuid not null references profiles(id) on delete cascade,
   circle_id uuid not null references circles(id) on delete cascade,
   name text not null,
-  category text not null,          -- gym | running | cooking | meal_prep | reading | meditation | water | ...
-  verification_mode text not null, -- verifiable | trust
+  category text not null,
+  verification_mode text not null,
   target_time time not null,
   frequency text not null default 'daily',
   created_at timestamptz not null default now()
@@ -84,7 +64,7 @@ create table habit_instances (
   prompt_required_classes jsonb not null default '[]'::jsonb,
   attempt_count integer not null default 0,
   last_failure_reason text,
-  status text not null default 'pending', -- pending | verified | missed
+  status text not null default 'pending',
   verified_at timestamptz,
   created_at timestamptz not null default now(),
   unique (habit_id, scheduled_for)
@@ -94,7 +74,7 @@ create table habit_instances (
 create table snaps (
   id uuid primary key default gen_random_uuid(),
   habit_instance_id uuid not null unique references habit_instances(id) on delete cascade,
-  user_id uuid not null references profiles(id) on delete cascade, -- host / submitter
+  user_id uuid not null references profiles(id) on delete cascade,
   circle_id uuid not null references circles(id) on delete cascade,
   storage_path text not null,
   prompt_text text not null,
@@ -110,7 +90,6 @@ create table snaps (
 create table snap_participants (
   snap_id uuid not null references snaps(id) on delete cascade,
   user_id uuid not null references profiles(id) on delete cascade,
-  participant_habit_instance_id uuid not null unique references habit_instances(id) on delete cascade,
   streak_after_completion integer not null,
   primary key (snap_id, user_id)
 );
@@ -132,25 +111,8 @@ create index habit_instances_habit_schedule_idx on habit_instances (habit_id, sc
 create index snaps_circle_created_idx on snaps (circle_id, created_at desc);
 create index snaps_user_created_idx on snaps (user_id, created_at desc);
 create index snap_participants_user_id_idx on snap_participants (user_id);
-create index snap_participants_habit_instance_idx on snap_participants (participant_habit_instance_id);
 create index likes_user_id_idx on likes (user_id);
-```
 
-Use `text` instead of Postgres enums for hackathon speed. The app should treat these as constrained string unions.
-
-## Coverage notes
-
-- Monthly leaderboard is derived from verified activity in the current calendar month. Do not add a separate monthly streak table for MVP.
-- Milestone celebration cards are derived from `snaps.streak_after_completion` hitting `[7, 14, 30, 50, 100]`. No extra events table in V1.
-- Missed-habit cards and in-app toasts come from `habit_instances.status = 'missed'` updates. The client resolves the actor by joining `habit_instances -> habits -> profiles`.
-- Retry state lives on `habit_instances.attempt_count` and `last_failure_reason`. There is still only one accepted `snaps` row per instance.
-- Group Prove still uses one host `snaps` row, but every invited participant is tied back to their own `habit_instance` through `snap_participants.participant_habit_instance_id` so cron cannot later miss/reset a completed participant.
-
-## RLS
-
-For the hackathon demo, authenticated users can read and write everything in the app schema. Tighten this later if the MVP survives the weekend.
-
-```sql
 alter table profiles enable row level security;
 alter table follows enable row level security;
 alter table circles enable row level security;
@@ -195,13 +157,7 @@ create policy "auth delete all habits" on habits for delete using (auth.role() =
 create policy "auth delete all snaps" on snaps for delete using (auth.role() = 'authenticated');
 create policy "auth delete all snap_participants" on snap_participants for delete using (auth.role() = 'authenticated');
 create policy "auth delete all likes" on likes for delete using (auth.role() = 'authenticated');
-```
 
-## Storage
-
-Create a public bucket called `snaps`.
-
-```sql
 insert into storage.buckets (id, name, public)
 values ('snaps', 'snaps', true)
 on conflict (id) do nothing;
@@ -217,51 +173,12 @@ using (bucket_id = 'snaps');
 create policy "auth update snaps"
 on storage.objects for update
 using (bucket_id = 'snaps' and auth.role() = 'authenticated');
-```
 
-Path convention: `snaps/<circle_id>/<user_id>/<uuid>.jpg`
-
-## Realtime
-
-Enable Realtime on the tables the app actually listens to:
-
-```sql
 alter publication supabase_realtime add table snaps;
 alter publication supabase_realtime add table habit_instances;
 alter publication supabase_realtime add table circle_members;
 alter publication supabase_realtime add table likes;
-```
 
-Typical subscriptions:
-
-```ts
-supabase
-  .channel(`circle:${circleId}`)
-  .on('postgres_changes', {
-    event: 'INSERT',
-    schema: 'public',
-    table: 'snaps',
-    filter: `circle_id=eq.${circleId}`,
-  }, handleNewSnap)
-  .on('postgres_changes', {
-    event: 'UPDATE',
-    schema: 'public',
-    table: 'habit_instances',
-  }, handleMissedHabit)
-  .on('postgres_changes', {
-    event: 'UPDATE',
-    schema: 'public',
-    table: 'circle_members',
-    filter: `circle_id=eq.${circleId}`,
-  }, handleLeaderboardUpdate)
-  .subscribe();
-```
-
-## pg_cron
-
-Enable `pg_cron`, then schedule the missed-window reset:
-
-```sql
 create extension if not exists pg_cron with schema pg_catalog;
 
 grant usage on schema cron to postgres;
@@ -287,19 +204,3 @@ select cron.schedule(
       and cm.circle_id = e.circle_id;
   $$
 );
-```
-
-This runs every minute. It marks overdue instances as missed and resets the corresponding circle streaks.
-
-## Auth
-
-Use Supabase email OTP / magic link. In Expo Go dev, the redirect must be the `exp://...` URL produced by Expo Router:
-
-```ts
-await supabase.auth.signInWithOtp({
-  email,
-  options: { emailRedirectTo: Linking.createURL('/auth/callback') },
-});
-```
-
-Create the matching `profiles` row immediately after first sign-in.
