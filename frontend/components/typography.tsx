@@ -1,4 +1,4 @@
-import { Text, type TextProps, type TextStyle } from "react-native";
+import { Text, StyleSheet, type TextProps, type TextStyle } from "react-native";
 import { type, colors } from "@/lib/theme";
 
 type Variant = "display" | "h1" | "h2" | "h3" | "eyebrow" | "body" | "bodyMuted" | "label" | "caption";
@@ -21,7 +21,26 @@ const variantStyle: Record<Variant, TextStyle> = {
 };
 
 export function Typography({ variant = "body", color, style, ...rest }: Props) {
-  return <Text {...rest} style={[variantStyle[variant], color != null && { color }, style]} />;
+  const base = variantStyle[variant];
+  const flat = StyleSheet.flatten(style) as TextStyle | undefined;
+  // If caller overrides fontSize without lineHeight, autoscale to prevent tall
+  // fonts like Merriweather from being clipped by the variant's default lineHeight.
+  const overrideSize = flat?.fontSize;
+  const autoLineHeight =
+    overrideSize != null && overrideSize !== base.fontSize && flat?.lineHeight == null
+      ? Math.round(overrideSize * 1.4)
+      : undefined;
+  return (
+    <Text
+      {...rest}
+      style={[
+        base,
+        color != null && { color },
+        style,
+        autoLineHeight != null && { lineHeight: autoLineHeight },
+      ]}
+    />
+  );
 }
 
 export const Heading = (props: Omit<Props, "variant"> & { level?: 1 | 2 | 3 }) => (

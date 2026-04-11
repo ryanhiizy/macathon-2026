@@ -105,10 +105,10 @@ export const fonts = {
 } as const;
 
 export const type = {
-  display: { fontFamily: fonts.heading, fontSize: 40, lineHeight: 46, color: colors.fg },
-  h1: { fontFamily: fonts.heading, fontSize: 30, lineHeight: 38, color: colors.fg },
-  h2: { fontFamily: fonts.heading, fontSize: 24, lineHeight: 32, color: colors.fg },
-  h3: { fontFamily: fonts.heading, fontSize: 20, lineHeight: 28, color: colors.fg },
+  display: { fontFamily: fonts.heading, fontSize: 40, lineHeight: 56, color: colors.fg },
+  h1: { fontFamily: fonts.heading, fontSize: 30, lineHeight: 42, color: colors.fg },
+  h2: { fontFamily: fonts.heading, fontSize: 24, lineHeight: 34, color: colors.fg },
+  h3: { fontFamily: fonts.heading, fontSize: 20, lineHeight: 30, color: colors.fg },
   eyebrow: { fontFamily: fonts.bodySemibold, fontSize: 12, letterSpacing: 1.4, color: colors.primary },
   body: { fontFamily: fonts.body, fontSize: 16, lineHeight: 24, color: colors.fg },
   bodyMuted: { fontFamily: fonts.body, fontSize: 16, lineHeight: 24, color: colors.fgMuted },
