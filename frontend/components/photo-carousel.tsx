@@ -7,19 +7,16 @@ import {
   type NativeSyntheticEvent,
 } from "react-native";
 import { Image } from "expo-image";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
-import MaskedView from "@react-native-masked-view/masked-view";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { Typography } from "@/components/typography";
 import { pickPhoto } from "@/lib/mock";
 
 type Props = {
   photoIdxs: number[];
-  overlay?: ReactNode;
+  footer?: ReactNode;
 };
 
-export function PhotoCarousel({ photoIdxs, overlay }: Props) {
+export function PhotoCarousel({ photoIdxs, footer }: Props) {
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState(0);
 
@@ -34,7 +31,18 @@ export function PhotoCarousel({ photoIdxs, overlay }: Props) {
   const multi = photoIdxs.length > 1;
 
   const dots = multi ? (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+    <View
+      style={{
+        position: "absolute",
+        bottom: spacing.sm,
+        left: 0,
+        right: 0,
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
       {photoIdxs.map((_, i) => (
         <View
           key={i}
@@ -49,105 +57,80 @@ export function PhotoCarousel({ photoIdxs, overlay }: Props) {
     </View>
   ) : null;
 
-  const bottomOverlay = overlay ? (
-    <View style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}>
-      <MaskedView
-        style={{ height: 90 }}
-        maskElement={
-          <LinearGradient
-            colors={["transparent", "black"]}
-            style={{ flex: 1 }}
-          />
-        }
-      >
-        <BlurView intensity={50} tint="dark" style={{ flex: 1 }} />
-      </MaskedView>
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          paddingHorizontal: spacing.lg,
-          paddingBottom: spacing.md,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        {overlay}
-        {dots}
-      </View>
-    </View>
-  ) : null;
-
   if (photoIdxs.length === 1) {
     return (
-      <View
-        style={{
-          borderRadius: radius.lg,
-          overflow: "hidden",
-          backgroundColor: colors.bgSunk,
-        }}
-      >
-        <Image
-          source={pickPhoto(photoIdxs[0])}
-          style={{ width: "100%", aspectRatio: 1 }}
-          contentFit="cover"
-          transition={240}
-        />
-        {bottomOverlay}
+      <View>
+        <View
+          style={{
+            borderRadius: radius.md,
+            overflow: "hidden",
+            backgroundColor: colors.bgSunk,
+          }}
+        >
+          <Image
+            source={pickPhoto(photoIdxs[0])}
+            style={{ width: "100%", aspectRatio: 1 }}
+            contentFit="cover"
+            transition={240}
+          />
+        </View>
+        {footer}
       </View>
     );
   }
 
   return (
-    <View style={{ position: "relative" }}>
+    <View>
       <View
+        style={{ position: "relative" }}
         onLayout={onLayout}
-        style={{
-          borderRadius: radius.lg,
-          overflow: "hidden",
-          backgroundColor: colors.bgSunk,
-        }}
       >
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
+        <View
+          style={{
+            borderRadius: radius.md,
+            overflow: "hidden",
+            backgroundColor: colors.bgSunk,
+          }}
         >
-          {photoIdxs.map((idx, i) => (
-            <Image
-              key={i}
-              source={pickPhoto(idx)}
-              style={{ width, aspectRatio: 1 }}
-              contentFit="cover"
-              transition={240}
-            />
-          ))}
-        </ScrollView>
-        {bottomOverlay}
-      </View>
-      <View
-        style={{
-          position: "absolute",
-          top: spacing.md,
-          right: spacing.md,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: 3,
-          borderRadius: radius.pill,
-          backgroundColor: colors.black + "aa",
-        }}
-      >
-        <Typography
-          color={colors.bg}
-          style={{ fontFamily: fonts.bodyBold, fontSize: 11, lineHeight: 14 }}
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+          >
+            {photoIdxs.map((idx, i) => (
+              <Image
+                key={i}
+                source={pickPhoto(idx)}
+                style={{ width, aspectRatio: 1 }}
+                contentFit="cover"
+                transition={240}
+              />
+            ))}
+          </ScrollView>
+          {dots}
+        </View>
+        <View
+          style={{
+            position: "absolute",
+            top: spacing.md,
+            right: spacing.md,
+            paddingHorizontal: spacing.sm,
+            paddingVertical: 3,
+            borderRadius: radius.pill,
+            backgroundColor: colors.black + "aa",
+          }}
         >
-          {active + 1} / {photoIdxs.length}
-        </Typography>
+          <Typography
+            color={colors.bg}
+            style={{ fontFamily: fonts.bodyBold, fontSize: 11, lineHeight: 14 }}
+          >
+            {active + 1} / {photoIdxs.length}
+          </Typography>
+        </View>
       </View>
+      {footer}
     </View>
   );
 }

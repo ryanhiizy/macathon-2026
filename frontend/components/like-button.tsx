@@ -9,11 +9,10 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { FavouriteIcon } from "@hugeicons/core-free-icons";
-import { Icon } from "@/components/icon";
+import { Ionicons } from "@expo/vector-icons";
 import { Typography } from "@/components/typography";
 import { AnimatedPress } from "@/components/animated-press";
-import { colors, spacing } from "@/lib/theme";
+import { colors, palette, spacing } from "@/lib/theme";
 
 type FloatingHeart = { id: number; dx: number };
 
@@ -62,13 +61,12 @@ export function LikeButton({ initialCount, tint }: Props) {
   return (
     <AnimatedPress onPress={onPress} haptic={false} scale={0.95} style={{ position: "relative" }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-        <Icon
-          icon={FavouriteIcon}
+        <Ionicons
+          name={liked ? "heart" : "heart-outline"}
           size={18}
-          color={liked ? colors.red : (tint ?? colors.fg)}
-          strokeWidth={liked ? 2.2 : 1.7}
+          color={liked ? palette.red400 : (tint ?? colors.fg)}
         />
-        <Typography variant="meta" color={liked ? colors.red : (tint ?? colors.fg)}>
+        <Typography variant="meta" color={liked ? palette.red400 : (tint ?? colors.fg)}>
           {count}
         </Typography>
       </View>
@@ -126,7 +124,7 @@ function FloatHeart({ dx, delay }: { dx: number; delay: number }) {
         style,
       ]}
     >
-      <Icon icon={FavouriteIcon} size={14} color={colors.red} strokeWidth={2.4} />
+      <Ionicons name="heart" size={14} color={palette.red400} />
     </Animated.View>
   );
 }
