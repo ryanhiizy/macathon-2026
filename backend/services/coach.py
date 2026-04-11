@@ -108,11 +108,11 @@ def compute_habit_stats(settings: Settings, user_id: str, habit_id: str) -> Habi
     instance_ids = [i["id"] for i in instances]
     snaps = []
     if instance_ids:
-        # Query in batches if needed, but for MVP just get all user snaps in range
+        # Filter snaps to only those linked to this habit's instances
         snaps = _supabase_get(settings, "snaps", {
             "select": "created_at,is_group_post",
             "user_id": f"eq.{user_id}",
-            "created_at": f"gte.{cutoff}",
+            "habit_instance_id": f"in.({','.join(instance_ids)})",
         })
 
     # Completion hour analysis
@@ -265,7 +265,7 @@ def generate_insight(settings: Settings, stats: HabitStats) -> CoachInsight:
             client = Anthropic(api_key=settings.anthropic_api_key)
             response = client.messages.create(
                 model=settings.anthropic_model,
-                max_tokens=200,
+                max_tokens=400,
                 system=COACH_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": stats_message}],
             )

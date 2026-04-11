@@ -114,10 +114,14 @@ function getDismissKey(habitId?: string): string {
 }
 
 function getDemoInsights(habitId?: string, habitName?: string): Insight[] {
-  if (habitId && DEMO_INSIGHTS[habitId]) {
-    return DEMO_INSIGHTS[habitId];
-  }
+  // IDs are Supabase UUIDs now, so pick demo insights by habit name instead
   if (habitName) {
+    const lower = habitName.toLowerCase();
+    for (const insights of Object.values(DEMO_INSIGHTS)) {
+      if (insights[0]?.habit_name.toLowerCase() === lower) {
+        return insights;
+      }
+    }
     return GLOBAL_DEMO.map((i) => ({ ...i, habit_name: habitName }));
   }
   return GLOBAL_DEMO;
