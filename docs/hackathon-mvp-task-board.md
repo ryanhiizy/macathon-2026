@@ -22,7 +22,7 @@ Use this board to keep the team on the shortest path to a working demo.
 
 | ID | Status | Owner | Depends on | Done when |
 |---|---|---|---|---|
-| B1 | `todo` | backend | F2, F3 | `profiles`, `circles`, `circle_members`, `habits`, `habit_instances`, `snaps`, and `snap_participants` are finalized in Supabase |
+| B1 | `todo` | backend | F2, F3 | `profiles`, `follows`, `circles`, `circle_members`, `habits`, `habit_instances`, `snaps`, `snap_participants`, and `likes` are finalized in Supabase |
 | B2 | `todo` | backend | B1 | There is a clear way to create and fetch the current `habit_instance` with `scheduled_for`, `window_closes_at`, and prompt snapshot fields |
 | B3 | `todo` | backend | B2 | Verified snaps can atomically mark the instance verified and update `circle_members.current_streak` and `best_streak` |
 | B4 | `todo` | backend | B2 | Missed windows are marked server-side and streak resets happen through one trusted path |

@@ -75,3 +75,5 @@ function pickFallbackPrompt(category: Category, mode: 'solo' | 'group'): Prompt 
 ## Storage
 
 `habit_instance.prompt_text` — the actual text shown to the user. Fixed for that instance's lifetime once assigned.
+`habit_instance.prompt_required_classes` — the exact verification requirements frozen for that instance.
+`snap.prompt_text` — copied onto the feed post so the card renders the original challenge without another join.

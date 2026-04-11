@@ -41,7 +41,7 @@ The in-app camera for capturing proof snaps. Two modes: solo and group. Camera r
 3. Ready-status panel shows each participant: ready or waiting. Host is auto-marked ready.
 4. User takes the photo
 5. Confirm modal: "Submit" or "Retake"
-6. On submit: upload photo → YOLO check (if verifiable) → write `snap` row with `is_group_post=true` → write `snap_participants` rows → streaks increment for all participants
+6. On submit: upload photo → YOLO check (if verifiable) → write `snap` row with `is_group_post=true` → write `snap_participants` rows linked to each participant's `habit_instance` → streaks increment for all participants
 
 ### UI Elements
 

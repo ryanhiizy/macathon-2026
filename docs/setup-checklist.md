@@ -13,9 +13,11 @@ Use this as the short operational checklist. For the full setup flow, start with
 ## 2. Supabase
 
 - [ ] Create the Supabase project
-- [ ] Run the schema from [infrastructure/supabase.md](./infrastructure/supabase.md)
+- [ ] Run the canonical schema from [infrastructure/supabase.md](./infrastructure/supabase.md)
+- [ ] Confirm the core tables exist: `profiles`, `follows`, `circles`, `circle_members`, `habits`, `habit_instances`, `snaps`, `snap_participants`, `likes`
 - [ ] Create the public `snaps` bucket
-- [ ] Enable Realtime for `snaps` and `habit_instances`
+- [ ] Apply the storage policies from [infrastructure/supabase.md](./infrastructure/supabase.md)
+- [ ] Enable Realtime for `snaps`, `habit_instances`, `circle_members`, and `likes`
 - [ ] Enable `pg_cron` and add the missed-window reset job
 - [ ] Fill `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `frontend/.env`
 

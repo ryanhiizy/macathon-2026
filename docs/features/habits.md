@@ -72,4 +72,4 @@ Trust-based habits show at creation: *"We trust you on this one — your photo i
 
 ## Data
 
-Writes to `habits`, `habit_instances`, `snaps`, `snap_participants` tables. See [`../architecture/data-model.md`](../architecture/data-model.md).
+Writes to `habits`, `habit_instances`, `snaps`, `snap_participants` tables. For Group Prove, each participant row in `snap_participants` links back to that participant's own `habit_instance` so every member can be marked verified without leaving a pending instance behind. See [`../architecture/data-model.md`](../architecture/data-model.md).

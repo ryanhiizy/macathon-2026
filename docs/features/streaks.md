@@ -36,7 +36,7 @@ The client is **never trusted** to reset streaks. A scheduled pg_cron job runs e
 1. Select all `habit_instances` where `status = 'pending'` AND `window_closes_at < now()`
 2. Mark them `missed`
 3. Reset `circle_members.current_streak = 0`
-4. Insert a "streak broken" event → Realtime broadcasts to the Circle
+4. Realtime broadcasts the `habit_instances` status update to the Circle
 
 See [`../infrastructure/supabase.md`](../infrastructure/supabase.md) for the cron job definition.
 
