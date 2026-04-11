@@ -1,7 +1,7 @@
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -17,15 +17,8 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import { Text, View } from "react-native";
-import { type Session } from "@supabase/supabase-js";
 import { colors } from "@/lib/theme";
-import { supabase } from "@/lib/supabase";
-import {
-  getDemoSession,
-  onDemoAuthStateChange,
-  signOutDemoUser,
-  type DemoSession,
-} from "@/lib/demo-auth";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -43,8 +36,6 @@ const navigationTheme = {
 };
 
 export default function RootLayout() {
-  const router = useRouter();
-  const pathname = usePathname();
   const [loaded] = useFonts({
     Merriweather_700Bold,
     Merriweather_400Regular_Italic,
@@ -53,69 +44,31 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
-  const [session, setSession] = useState<Session | null>(null);
-  const [demoSession, setDemoSession] = useState<DemoSession | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isActive = true;
-
-    Promise.all([supabase.auth.getSession(), getDemoSession()])
-      .then(([supabaseResult, storedDemoSession]) => {
-        if (!isActive) return;
-
-        if (supabaseResult.error) {
-          setAuthError(supabaseResult.error.message);
-        } else {
-          setSession(supabaseResult.data.session);
-        }
-
-        setDemoSession(storedDemoSession);
-        setAuthReady(true);
-      })
-      .catch((error: unknown) => {
-        if (!isActive) return;
-        setAuthError(
-          error instanceof Error ? error.message : "Failed to read the current auth session.",
-        );
-        setAuthReady(true);
-      });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!isActive) return;
-      setSession(nextSession);
-      if (nextSession) {
-        signOutDemoUser().catch(() => {});
-      }
-      setAuthReady(true);
-    });
-
-    const demoSubscription = onDemoAuthStateChange((nextDemoSession) => {
-      if (!isActive) return;
-      setDemoSession(nextDemoSession);
-      setAuthReady(true);
-    });
-
-    return () => {
-      isActive = false;
-      subscription.unsubscribe();
-      demoSubscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (loaded && authReady) SplashScreen.hideAsync().catch(() => {});
-  }, [authReady, loaded]);
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
   }, []);
 
+  if (!loaded) return null;
+
+  return (
+    <AuthProvider>
+      <AuthGate fontsLoaded={loaded} />
+    </AuthProvider>
+  );
+}
+
+function AuthGate({ fontsLoaded }: { fontsLoaded: boolean }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { authReady, authError, isAuthenticated } = useAuth();
+
   useEffect(() => {
-    if (!loaded || !authReady) return;
+    if (fontsLoaded && authReady) SplashScreen.hideAsync().catch(() => {});
+  }, [authReady, fontsLoaded]);
+
+  useEffect(() => {
+    if (!fontsLoaded || !authReady) return;
 
     const isPublicRoute = pathname === "/auth" || pathname.startsWith("/auth/");
     const isAuthEntryRoute =
@@ -123,7 +76,6 @@ export default function RootLayout() {
       pathname === "/auth/login" ||
       pathname === "/auth/signup" ||
       pathname === "/auth/check-email";
-    const isAuthenticated = Boolean(session || demoSession);
 
     if (!isAuthenticated && !isPublicRoute) {
       router.replace("/auth");
@@ -133,9 +85,9 @@ export default function RootLayout() {
     if (isAuthenticated && isAuthEntryRoute) {
       router.replace("/");
     }
-  }, [authReady, demoSession, loaded, pathname, router, session]);
+  }, [authReady, fontsLoaded, isAuthenticated, pathname, router]);
 
-  if (!loaded || !authReady) return null;
+  if (!authReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>

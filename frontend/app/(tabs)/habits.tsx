@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import Svg, { Circle } from "react-native-svg";
 import {
   Camera01Icon,
@@ -15,7 +16,7 @@ import { Divider, Row, Screen, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { WEEK_DAYS } from "@/lib/mock";
 import { fetchHabits, type HabitView } from "@/lib/habits";
-import { ensureTestSession } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 
 type TimeOfDay = "morning" | "afternoon" | "evening";
@@ -57,20 +58,23 @@ function getTimeOfDay(time: string): TimeOfDay {
 
 export default function Habits() {
   const router = useRouter();
+  const { user } = useAuth();
   const [habits, setHabits] = useState<HabitView[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
-    await ensureTestSession();
-    const data = await fetchHabits();
+    const data = await fetchHabits(user.id);
     setHabits(data);
     setLoading(false);
-  }, []);
+  }, [user]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const completed = habits.filter((habit) => habit.done).length;
   const progress = habits.length > 0 ? completed / habits.length : 0;

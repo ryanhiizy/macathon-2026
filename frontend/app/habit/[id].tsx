@@ -18,21 +18,21 @@ import { Icon } from "@/components/icon";
 import { CoachInsightCard } from "@/components/CoachInsightCard";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
 import { fetchHabitDetail, type HabitDetailView } from "@/lib/habits";
-import { ensureTestSession } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
 
 export default function HabitDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const [habit, setHabit] = useState<HabitDetailView | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!id) return;
-    await ensureTestSession();
-    const data = await fetchHabitDetail(id);
+    if (!id || !user) return;
+    const data = await fetchHabitDetail(id, user.id);
     setHabit(data);
     setLoading(false);
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
     load();
