@@ -64,6 +64,7 @@ export async function fetchCommentCounts(
     .in("post_id", postIds);
 
   const counts: Record<string, number> = {};
+  for (const id of postIds) counts[id] = 0;
   for (const row of data ?? []) {
     counts[row.post_id] = (counts[row.post_id] ?? 0) + 1;
   }
