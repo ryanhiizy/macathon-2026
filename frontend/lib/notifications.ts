@@ -76,7 +76,7 @@ export async function triggerDemoNotification(
 
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: `Time to prove: ${target.name}`,
+      title: `Stay present, Time to prove it: ${target.name}`,
       body: prompt,
       data: { habitId: target.id, screen: "camera" },
       sound: true,
