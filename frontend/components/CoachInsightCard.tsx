@@ -147,19 +147,12 @@ type CompactProps = {
 
 export function CoachInsightTeaser({ habitId, habitName, onPress }: CompactProps) {
   const [insight, setInsight] = useState<Insight | null>(null);
-  const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fadeAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const wasDismissed = await AsyncStorage.getItem(getDismissKey("teaser"));
-      if (wasDismissed) {
-        setDismissed(true);
-        setLoading(false);
-        return;
-      }
       if (!cancelled) {
         const demos = getDemoInsights(habitId, habitName);
         const dayIndex = new Date().getDate() % demos.length;
@@ -172,64 +165,103 @@ export function CoachInsightTeaser({ habitId, habitName, onPress }: CompactProps
     return () => { cancelled = true; };
   }, [fadeAnim, habitId, habitName]);
 
-  if (dismissed || loading || !insight) return null;
+  if (loading || !insight) return null;
 
   const typeLabel = INSIGHT_TYPE_LABELS[insight.insight_type] ?? "Insight";
 
   return (
     <Animated.View style={{ opacity: fadeAnim }}>
       <Pressable onPress={onPress}>
-        <Row gap={spacing.md} style={{ paddingVertical: spacing.sm }}>
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: radius.pill,
-              backgroundColor: `${colors.purple}14`,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon icon={AiMagicIcon} size={17} color={colors.purple} />
-          </View>
-          <Stack gap={2} style={{ flex: 1 }}>
-            <Row gap={spacing.sm} style={{ alignItems: "center" }}>
+        <View
+          style={{
+            backgroundColor: colors.bgRaised,
+            borderRadius: radius.lg,
+            padding: spacing.lg,
+            gap: spacing.md,
+          }}
+        >
+          <Row gap={spacing.sm} style={{ alignItems: "center" }}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: radius.pill,
+                backgroundColor: `${colors.purple}1a`,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon icon={AiMagicIcon} size={16} color={colors.purple} />
+            </View>
+            <Typography
+              style={{
+                fontFamily: fonts.bodySemibold,
+                fontSize: 13,
+                lineHeight: 16,
+                color: colors.purple,
+                letterSpacing: 0.3,
+              }}
+            >
+              AI Coach
+            </Typography>
+            <View style={{ flex: 1 }} />
+            <View
+              style={{
+                backgroundColor: `${colors.purple}18`,
+                borderRadius: radius.pill,
+                paddingHorizontal: spacing.sm,
+                paddingVertical: 3,
+              }}
+            >
               <Typography
                 style={{
-                  fontFamily: fonts.bodySemibold,
-                  fontSize: 13,
-                  lineHeight: 16,
+                  fontFamily: fonts.bodyMedium,
+                  fontSize: 11,
+                  lineHeight: 14,
                   color: colors.purple,
                 }}
               >
                 {typeLabel}
               </Typography>
-              <View
-                style={{
-                  width: 3,
-                  height: 3,
-                  borderRadius: 1.5,
-                  backgroundColor: colors.fgDim,
-                }}
-              />
-              <Typography variant="meta" numberOfLines={1} style={{ flex: 1 }}>
-                {insight.habit_name}
-              </Typography>
-            </Row>
+            </View>
+          </Row>
+
+          <Typography
+            style={{
+              fontFamily: fonts.heading,
+              fontSize: 16,
+              lineHeight: 22,
+              color: colors.fg,
+            }}
+          >
+            {insight.headline}
+          </Typography>
+          <Typography
+            style={{
+              fontFamily: fonts.body,
+              fontSize: 13.5,
+              lineHeight: 20,
+              color: colors.fgMuted,
+            }}
+            numberOfLines={2}
+          >
+            {insight.detail}
+          </Typography>
+
+          <Row gap={spacing.xs} style={{ alignItems: "center" }}>
             <Typography
               style={{
-                fontFamily: fonts.body,
-                fontSize: 14,
-                lineHeight: 19,
-                color: colors.fg,
+                fontFamily: fonts.bodySemibold,
+                fontSize: 12.5,
+                lineHeight: 16,
+                color: colors.purple,
               }}
-              numberOfLines={1}
             >
-              {insight.headline}
+              View more insights
             </Typography>
-          </Stack>
-          <Icon icon={ArrowRight01Icon} size={16} color={colors.fgDim} />
-        </Row>
+            <Icon icon={ArrowRight01Icon} size={14} color={colors.purple} />
+          </Row>
+        </View>
       </Pressable>
     </Animated.View>
   );

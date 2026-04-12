@@ -177,7 +177,7 @@ export default function EditHabit() {
   if (!habit) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top", "bottom"]}>
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
           <AnimatedPress
             onPress={() => router.back()}
             style={{
@@ -209,7 +209,7 @@ export default function EditHabit() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Row style={{ justifyContent: "space-between", paddingTop: spacing.sm }}>
+        <Row style={{ justifyContent: "space-between", paddingTop: spacing.lg }}>
           <AnimatedPress
             onPress={() => router.back()}
             style={{

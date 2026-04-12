@@ -109,7 +109,7 @@ export default function CreateCircle() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Header — matches Messages / Notifications */}
-        <Row style={{ paddingTop: spacing.sm, gap: spacing.md }}>
+        <Row style={{ paddingTop: spacing.lg, gap: spacing.md }}>
           <AnimatedPress onPress={() => router.back()} hitSlop={12} scale={0.88}>
             <Icon icon={ArrowLeft02Icon} size={24} color={colors.fg} />
           </AnimatedPress>
@@ -169,8 +169,9 @@ export default function CreateCircle() {
             style={{
               fontFamily: fonts.heading,
               fontSize: 24,
+              lineHeight: 32,
               color: colors.fg,
-              paddingVertical: spacing.sm,
+              paddingVertical: spacing.md,
               borderBottomWidth: 2,
               borderBottomColor: colors.border,
             }}
@@ -467,7 +468,6 @@ export default function CreateCircle() {
           haptic="medium"
           scale={0.97}
           style={{
-            marginTop: spacing.md,
             paddingVertical: spacing.lg,
             borderRadius: radius.pill,
             backgroundColor: canSave && !saving ? colors.fg : colors.fgDim,

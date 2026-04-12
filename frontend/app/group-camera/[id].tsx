@@ -8,7 +8,6 @@ import {
   CameraRotated01Icon,
   FlashIcon,
   FlashOffIcon,
-  Tick02Icon,
   Clock01Icon,
 } from "@hugeicons/core-free-icons";
 import { Row, Stack } from "@/components/layout";
@@ -39,9 +38,6 @@ export default function GroupCameraScreen() {
   const habitNameParam = Array.isArray(params.name) ? params.name[0] : params.name;
   const targetTimeParam = Array.isArray(params.targetTime) ? params.targetTime[0] : params.targetTime;
   const categoryParam = Array.isArray(params.category) ? params.category[0] : params.category;
-  const participantCountParam = Array.isArray(params.participantCount)
-    ? params.participantCount[0]
-    : params.participantCount;
   const fallbackHabit = HABITS.find((h) => h.id === id);
   const habit = useMemo(() => {
     if (!id) return null;

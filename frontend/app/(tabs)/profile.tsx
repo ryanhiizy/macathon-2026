@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, Share, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { ActivityIndicator, Modal, Pressable, Share, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import {
@@ -8,6 +9,7 @@ import {
   PencilEdit02Icon,
   Settings02Icon,
   Share08Icon,
+  Tick01Icon,
 } from "@hugeicons/core-free-icons";
 import { Avatar } from "@/components/avatar";
 import { AnimatedPress } from "@/components/animated-press";
@@ -15,7 +17,7 @@ import { Icon } from "@/components/icon";
 import { Card, Row, Screen, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { useAuth } from "@/lib/auth-context";
-import { getDemoUserById } from "@/lib/demo-users";
+import { DEMO_USERS, getDemoUserById, type DemoUser } from "@/lib/demo-users";
 import { generateMockHabits, type HabitView } from "@/lib/habits";
 import { pickPhoto } from "@/lib/mock";
 import { triggerDemoNotification } from "@/lib/notifications";
@@ -42,6 +44,8 @@ export default function Profile() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
 
   const demoUser = user ? getDemoUserById(user.id) : undefined;
   const demoHabit = useMemo<HabitView | null>(
@@ -49,29 +53,25 @@ export default function Profile() {
     [demoSession],
   );
 
-  useEffect(() => {
-    let isActive = true;
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    const loadProfile = async () => {
-      setLoading(true);
-      setError(null);
+    if (demoSession) {
+      setProfile(null);
+      setSnapPhotos([]);
+      setLoading(false);
+      return;
+    }
 
-      if (demoSession) {
-        if (isActive) {
-          setProfile(null);
-          setLoading(false);
-        }
-        return;
-      }
+    if (!user) {
+      setError("No signed-in user found.");
+      setSnapPhotos([]);
+      setLoading(false);
+      return;
+    }
 
-      if (!user) {
-        if (isActive) {
-          setError("No signed-in user found.");
-          setLoading(false);
-        }
-        return;
-      }
-
+    try {
       await ensureProfile(user);
 
       const { data, error: profileError } = await supabase
@@ -80,15 +80,12 @@ export default function Profile() {
         .eq("id", user.id)
         .single();
 
-      if (!isActive) return;
-
       if (profileError) {
         setError(profileError.message);
       } else {
         setProfile(data);
       }
 
-      // Fetch user's posted snaps for the photo grid
       const { data: snaps } = await supabase
         .from("snaps")
         .select("storage_path")
@@ -96,7 +93,7 @@ export default function Profile() {
         .order("created_at", { ascending: false })
         .limit(9);
 
-      if (isActive && snaps && snaps.length > 0) {
+      if (snaps && snaps.length > 0) {
         const photos = snaps.map((snap) => {
           const publicUrl = supabase.storage
             .from("snaps")
@@ -104,21 +101,21 @@ export default function Profile() {
           return resolveCircleSnapPhoto(snap.storage_path, publicUrl);
         });
         setSnapPhotos(photos);
+      } else {
+        setSnapPhotos([]);
       }
-
-      setLoading(false);
-    };
-
-    loadProfile().catch((loadError: unknown) => {
-      if (!isActive) return;
+    } catch (loadError: unknown) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load profile.");
+    } finally {
       setLoading(false);
-    });
-
-    return () => {
-      isActive = false;
-    };
+    }
   }, [demoSession, user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile]),
+  );
 
   const displayName = profile?.display_name ?? demoSession?.displayName ?? demoUser?.name ?? "Presence User";
   const handle = profile?.handle ?? demoSession?.handle ?? "presence";
@@ -128,6 +125,7 @@ export default function Profile() {
     FALLBACK_BIO;
   const joinedLabel = formatJoinDate(profile?.created_at ?? demoSession?.createdAt ?? null);
   const avatarLetter = displayName.slice(0, 1).toUpperCase() || "P";
+  const avatarUrl = profile?.avatar_url ?? null;
 
   const stats = demoUser?.stats ?? FALLBACK_STATS;
   const statsList = [
@@ -150,11 +148,38 @@ export default function Profile() {
     setSigningOut(false);
   };
 
+  const switchToUser = async (target: DemoUser) => {
+    if (target.id === user?.id) {
+      setShowSwitcher(false);
+      return;
+    }
+
+    setSwitchingTo(target.id);
+    setError(null);
+
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: target.email,
+        password: target.password,
+      });
+
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+
+      setShowSwitcher(false);
+    } finally {
+      setSwitchingTo(null);
+    }
+  };
+
   const header = (
     <Row style={{ justifyContent: "space-between", alignItems: "center" }}>
       <AnimatedPress
         style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
         haptic="light"
+        onPress={() => setShowSwitcher(true)}
       >
         <Typography
           style={{
@@ -197,6 +222,12 @@ export default function Profile() {
             {demoUser?.avatar ? (
               <Image
                 source={demoUser.avatar}
+                style={{ width: 104, height: 104, borderRadius: radius.pill }}
+                contentFit="cover"
+              />
+            ) : avatarUrl ? (
+              <Image
+                source={{ uri: avatarUrl }}
                 style={{ width: 104, height: 104, borderRadius: radius.pill }}
                 contentFit="cover"
               />
@@ -302,6 +333,62 @@ export default function Profile() {
           ) : null}
         </>
       )}
+      <Modal
+        visible={showSwitcher}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSwitcher(false)}
+      >
+        <View style={profileStyles.switcherBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowSwitcher(false)} />
+          <View style={profileStyles.switcherSheet}>
+            {DEMO_USERS.map((target) => {
+              const isCurrent = target.id === user?.id;
+              const isLoading = switchingTo === target.id;
+              return (
+                <Pressable
+                  key={target.id}
+                  onPress={() => switchToUser(target)}
+                  disabled={switchingTo !== null}
+                  style={({ pressed }) => [
+                    profileStyles.switcherRow,
+                    pressed && { backgroundColor: colors.uiHover },
+                    isCurrent && { backgroundColor: colors.bgSunk },
+                  ]}
+                >
+                  {target.avatar ? (
+                    <Image
+                      source={target.avatar}
+                      style={{ width: 36, height: 36, borderRadius: radius.pill }}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Avatar color={target.color} letter={target.name[0]} size={36} ring={false} />
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Typography
+                      style={{
+                        fontFamily: fonts.bodySemibold,
+                        fontSize: 15,
+                        lineHeight: 20,
+                        color: colors.fg,
+                      }}
+                    >
+                      {target.name}
+                    </Typography>
+                    <Typography variant="metaItalic">{target.email}</Typography>
+                  </View>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : isCurrent ? (
+                    <Icon icon={Tick01Icon} size={18} color={colors.primary} strokeWidth={2.5} />
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -415,5 +502,28 @@ const profileStyles = StyleSheet.create({
     fontFamily: fonts.bodySemibold,
     fontSize: 14,
     lineHeight: 18,
+  },
+  switcherBackdrop: {
+    flex: 1,
+    justifyContent: "flex-start",
+    paddingTop: 100,
+    paddingHorizontal: spacing.md,
+  },
+  switcherSheet: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.sm,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  switcherRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
 });

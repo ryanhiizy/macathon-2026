@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   RunningShoesIcon,
   Dumbbell01Icon,
@@ -11,6 +11,8 @@ import {
   Comment01Icon,
 } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
+import MaskedView from "@react-native-masked-view/masked-view";
+import { LinearGradient } from "expo-linear-gradient";
 import { AnimatedPress } from "@/components/animated-press";
 import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icon";
@@ -98,6 +100,14 @@ export function BragStat({
       >
         <View
           style={{
+            ...StyleSheet.absoluteFillObject,
+            backgroundColor: accent,
+            opacity: 0.12,
+          }}
+          pointerEvents="none"
+        />
+        <View
+          style={{
             position: "absolute",
             right: 12,
             top: -32,
@@ -109,17 +119,38 @@ export function BragStat({
         </View>
 
         <View style={{ gap: 2 }}>
-          <Typography
-            style={{
-              fontFamily: fonts.heading,
-              fontSize: 64,
-              lineHeight: 68,
-              color: accent,
-              letterSpacing: -3,
-            }}
+          <MaskedView
+            maskElement={
+              <Typography
+                style={{
+                  fontFamily: fonts.heading,
+                  fontSize: 64,
+                  lineHeight: 68,
+                  letterSpacing: -3,
+                }}
+              >
+                {value}
+              </Typography>
+            }
           >
-            {value}
-          </Typography>
+            <LinearGradient
+              colors={[colors.white, accent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            >
+              <Typography
+                style={{
+                  fontFamily: fonts.heading,
+                  fontSize: 64,
+                  lineHeight: 68,
+                  letterSpacing: -3,
+                  opacity: 0,
+                }}
+              >
+                {value}
+              </Typography>
+            </LinearGradient>
+          </MaskedView>
           <Typography
             style={{
               fontFamily: fonts.heading,
