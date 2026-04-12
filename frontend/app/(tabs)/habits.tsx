@@ -47,11 +47,14 @@ const greetingFor = (hour: number) => {
   return "Good night";
 };
 
-const completionMessage = (done: number, total: number) => {
+const completionMessage = (done: number, missed: number, total: number) => {
   if (total === 0) return "Add your first habit";
   if (done === total) return "You crushed it today";
+  if (done + missed === total && missed > 0) return "Tomorrow's a new day";
+  if (missed > 0 && done > 0) return "Keep going, don't look back";
   if (done / total >= 0.5) return "More than halfway there";
   if (done > 0) return "You've started strong";
+  if (missed > 0) return "Shake it off, still time left";
   return "A fresh page to fill";
 };
 
@@ -150,7 +153,8 @@ export default function Habits() {
   );
 
   const completed = habits.filter((habit) => habit.done).length;
-  const progress = habits.length > 0 ? completed / habits.length : 0;
+  const missed = habits.filter((habit) => !habit.done && getUrgency(habit).overdue).length;
+  const actionable = habits.length - completed - missed;
 
   const firstName = useMemo(() => {
     if (demoSession) return demoSession.displayName.split(" ")[0];
@@ -219,7 +223,7 @@ export default function Habits() {
     <Screen stickyHeader={header}>
       <Row gap={spacing.lg} style={{ alignItems: "center" }}>
         <View style={{ width: 96, height: 96, alignItems: "center", justifyContent: "center" }}>
-          <ProgressRing progress={progress} />
+          <ProgressRing completed={completed} missed={missed} total={habits.length} />
           <View style={{ position: "absolute", alignItems: "center" }}>
             <Typography
               style={{
@@ -245,9 +249,16 @@ export default function Habits() {
               color: colors.fg,
             }}
           >
-            {Math.max(habits.length - completed, 0)} habits left
+            {actionable === 0 && habits.length > 0
+              ? "All wrapped up"
+              : `${actionable} habit${actionable === 1 ? "" : "s"} left`}
           </Typography>
-          <Typography variant="bodyMuted">{completionMessage(completed, habits.length)}</Typography>
+          {missed > 0 ? (
+            <Typography variant="bodyMuted" color={colors.danger}>
+              {missed} missed
+            </Typography>
+          ) : null}
+          <Typography variant="bodyMuted">{completionMessage(completed, missed, habits.length)}</Typography>
         </Stack>
       </Row>
 
@@ -338,13 +349,28 @@ export default function Habits() {
   );
 }
 
-function ProgressRing({ progress }: { progress: number }) {
+function ProgressRing({
+  completed,
+  missed,
+  total,
+}: {
+  completed: number;
+  missed: number;
+  total: number;
+}) {
   const size = 96;
   const strokeWidth = 10;
   const radiusValue = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radiusValue;
-  const safe = Math.max(0, Math.min(progress, 1));
-  const offset = circumference * (1 - safe);
+
+  const completedFrac = total > 0 ? Math.min(completed / total, 1) : 0;
+  const missedFrac = total > 0 ? Math.min(missed / total, 1 - completedFrac) : 0;
+
+  const completedLen = circumference * completedFrac;
+  const missedLen = circumference * missedFrac;
+
+  const completedRotation = -90;
+  const missedRotation = completedRotation + completedFrac * 360;
 
   return (
     <Svg width={size} height={size}>
@@ -356,18 +382,32 @@ function ProgressRing({ progress }: { progress: number }) {
         strokeWidth={strokeWidth}
         fill="none"
       />
-      <Circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radiusValue}
-        stroke={colors.primary}
-        strokeWidth={strokeWidth}
-        fill="none"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform={`rotate(-90, ${size / 2}, ${size / 2})`}
-      />
+      {completedLen > 0 && (
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radiusValue}
+          stroke={colors.primary}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${completedLen} ${circumference - completedLen}`}
+          transform={`rotate(${completedRotation}, ${size / 2}, ${size / 2})`}
+        />
+      )}
+      {missedLen > 0 && (
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radiusValue}
+          stroke={colors.danger}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${missedLen} ${circumference - missedLen}`}
+          transform={`rotate(${missedRotation}, ${size / 2}, ${size / 2})`}
+        />
+      )}
     </Svg>
   );
 }
@@ -518,6 +558,27 @@ function HabitRow({
           >
             <Icon icon={Tick02Icon} size={20} color={colors.success} strokeWidth={2.4} />
           </View>
+        ) : urgency.overdue ? (
+          <View
+            style={{
+              paddingHorizontal: spacing.lg,
+              height: 40,
+              borderRadius: radius.pill,
+              backgroundColor: `${colors.danger}18`,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Typography
+              style={{
+                fontFamily: fonts.bodySemibold,
+                fontSize: 13,
+                color: `${colors.danger}88`,
+              }}
+            >
+              Missed
+            </Typography>
+          </View>
         ) : (
           <Row gap={spacing.sm}>
             <AnimatedPress
@@ -540,7 +601,7 @@ function HabitRow({
                 paddingHorizontal: spacing.lg,
                 height: 40,
                 borderRadius: radius.pill,
-                backgroundColor: urgent ? urgentColor : colors.fg,
+                backgroundColor: urgency.dueSoon ? urgentColor : colors.fg,
                 alignItems: "center",
                 justifyContent: "center",
                 flexDirection: "row",
@@ -549,7 +610,7 @@ function HabitRow({
             >
               <Icon icon={Camera01Icon} size={16} color={colors.bg} strokeWidth={2} />
               <Typography color={colors.bg} style={{ fontFamily: fonts.bodyBold, fontSize: 13 }}>
-                Prove
+                Snap it
               </Typography>
             </AnimatedPress>
           </Row>
