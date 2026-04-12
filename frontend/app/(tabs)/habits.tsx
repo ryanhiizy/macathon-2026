@@ -175,7 +175,7 @@ export default function Habits() {
         <Typography variant="metaItalic">{dateLabel}</Typography>
         <Typography
           style={{
-            fontFamily: fonts.heading,
+            fontFamily: fonts.headingLight,
             fontSize: 32,
             lineHeight: 38,
             color: colors.fg,
@@ -265,7 +265,7 @@ export default function Habits() {
                 style={{
                   width: "100%",
                   aspectRatio: 1,
-                  borderRadius: radius.sm,
+                  borderRadius: radius.pill,
                   backgroundColor: day.done ? colors.primary : colors.bgRaised,
                   alignItems: "center",
                   justifyContent: "center",
