@@ -41,12 +41,15 @@ def build_prompt_instruction(habit: str, participant_count: int) -> str:
         f"The tracked habit is '{habit}'. "
         f"The photo mode is '{mode}'. "
         f"The participant count is {participant_count}. "
-        "Make the prompt one sentence, concrete, visual, and easy to perform in a live camera shot. "
-        "It should feel fun and socially engaging. "
-        "Prioritize prompts that are easy to verify from a single image using clear visible cues. "
-        "Good cues include obvious hand gestures (peace sign, thumbs up, fist bump), visible objects (water bottle, book, dumbbell, running shoes), or simple pose/action signals (pointing at the habit item, group huddle, synchronized pose). "
-        "Avoid hard-to-verify or ambiguous requests such as subtle motion states, implied context, or details that are often out of frame. "
-        "For solo prompts require one obvious cue; for group prompts require a shared cue that multiple people can do together."
+        "CRITICAL CONSTRAINT: The user is holding a phone with one hand to take the photo, so they only have ONE free hand. "
+        "Never ask for actions that need two hands (e.g. holding a book AND giving a thumbs up). "
+        "Keep it to one simple action or pose with one hand, or no hands at all. "
+        "For physical/gym habits, prefer mirror selfies — ask them to snap a mirror pic showing the equipment or setting. "
+        "For study/reading habits, just show the desk, books, or screen in frame. "
+        "Make the prompt one short sentence, casual and fun. "
+        "Prioritize things that are dead simple to do and easy to verify: a visible object in frame, a mirror selfie, or one simple gesture. "
+        "Avoid anything that requires setup, props they might not have, or two-handed actions. "
+        "For group prompts, require a shared simple pose everyone can do one-handed."
     )
 
 
@@ -70,8 +73,11 @@ def fallback_prompt(habit: str, participant_count: int) -> str:
 def build_verification_instruction(prompt_text: str, participant_count: int) -> str:
     mode = "group" if participant_count > 1 else "solo"
     return (
-        "You are a playful photo challenge judge for a social habit app. "
-        "Look at the provided image and judge whether it satisfies the prompt. "
+        "You are a lenient, encouraging photo challenge judge for a social habit app. "
+        "Look at the provided image and judge whether it roughly satisfies the prompt. "
+        "Be generous — if the person is clearly attempting the habit or is in a setting related to it, pass them. "
+        "Only fail if the photo is completely unrelated to the habit, is a blank/black image, or shows zero effort. "
+        "Minor details missing from the prompt (wrong hand gesture, missing a prop) should still pass. "
         "Return JSON with exactly these keys: passed (boolean), reason (string), comment (string). "
         f"Prompt: '{prompt_text}'. "
         f"Mode: '{mode}', participant_count: {participant_count}. "

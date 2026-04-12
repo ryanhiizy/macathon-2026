@@ -24,7 +24,7 @@ import { AnimatedPress } from "@/components/animated-press";
 import { ShutterButton, useShutterFlash } from "@/components/shutter";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { useAuth } from "@/lib/auth-context";
-import { getHabitCaptureMeta, submitSoloSnap, verifySnapPhoto } from "@/lib/snaps";
+import { fetchAIPrompt, getHabitCaptureMeta, submitSoloSnap, verifySnapPhoto } from "@/lib/snaps";
 
 function isDemoPassEnabled() {
   const value = process.env.EXPO_PUBLIC_ENABLE_DEMO_PASS?.trim().toLowerCase();
@@ -48,10 +48,7 @@ export default function CameraScreen() {
   const cameraRef = useRef<CameraView | null>(null);
   const { trigger: triggerFlash, Flash } = useShutterFlash();
   const demoPassEnabled = useMemo(() => isDemoPassEnabled(), []);
-  const prompt = useMemo(
-    () => `Show yourself doing ${habitName.toLowerCase()}.`,
-    [habitName],
-  );
+  const [prompt, setPrompt] = useState(`Show yourself doing ${habitName.toLowerCase()}.`);
 
   useEffect(() => {
     if (!id || !user?.id) {
@@ -59,8 +56,11 @@ export default function CameraScreen() {
     }
 
     getHabitCaptureMeta(id, user.id)
-      .then((habit) => {
+      .then(async (habit) => {
         setHabitName(habit.name);
+        setPrompt(`Show yourself doing ${habit.name.toLowerCase()}.`);
+        const aiPrompt = await fetchAIPrompt(habit.name);
+        setPrompt(aiPrompt);
       })
       .catch((loadError: unknown) => {
         setError(loadError instanceof Error ? loadError.message : "Failed to load habit.");
@@ -133,6 +133,7 @@ export default function CameraScreen() {
         userId: user.id,
         localUri: capturedUri,
         caption,
+        promptText: prompt,
       });
 
       router.replace("/");
