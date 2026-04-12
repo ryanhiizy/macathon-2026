@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -28,6 +28,7 @@ import {
   fetchCircle,
   fetchCircleMembers,
   fetchCircleSnaps,
+  getMockCircleLeaderboard,
   type CircleView,
   type CircleMemberView,
   type CircleSnapView,
@@ -95,6 +96,11 @@ export default function CircleDetail() {
     useCallback(() => {
       load();
     }, [load]),
+  );
+
+  const leaderboardMembers = useMemo(
+    () => (id ? getMockCircleLeaderboard(String(id), user?.id) : []),
+    [id, user?.id],
   );
 
   const screenState = resolveCircleDetailScreenState({
@@ -208,27 +214,26 @@ export default function CircleDetail() {
             </AnimatedPress>
           </Row>
 
-          <Stack gap={spacing.md} style={{ alignItems: "center", paddingVertical: spacing.sm }}>
+          <Row gap={spacing.md} style={{ alignItems: "center", paddingVertical: spacing.sm }}>
             <View
               style={{
-                width: 88,
-                height: 88,
-                borderRadius: radius.lg,
+                width: 56,
+                height: 56,
+                borderRadius: radius.md,
                 backgroundColor: tintFor(circle.accent),
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Icon icon={circle.icon} size={44} color={circle.accent} strokeWidth={1.6} />
+              <Icon icon={circle.icon} size={28} color={circle.accent} strokeWidth={1.6} />
             </View>
-            <View style={{ alignItems: "center", gap: spacing.xs }}>
+            <View style={{ gap: 2, flex: 1 }}>
               <Typography
                 style={{
                   fontFamily: fonts.heading,
-                  fontSize: 28,
-                  lineHeight: 34,
+                  fontSize: 22,
+                  lineHeight: 28,
                   color: colors.fg,
-                  textAlign: "center",
                 }}
               >
                 {circle.name}
@@ -240,7 +245,7 @@ export default function CircleDetail() {
                 {circle.habit}
               </Typography>
             </View>
-          </Stack>
+          </Row>
 
           <Segmented options={TABS} value={tab} onChange={setTab} />
         </View>
@@ -256,7 +261,7 @@ export default function CircleDetail() {
               <FeedTab snaps={snaps} onComment={setCommentPostId} />
             </ScrollView>,
             <ScrollView key="leaderboard" {...paneScroll}>
-              <LeaderboardTab accent={circle.accent} members={members} userId={user?.id} />
+              <LeaderboardTab accent={circle.accent} members={leaderboardMembers} userId={user?.id} />
             </ScrollView>,
             <ScrollView key="about" {...paneScroll}>
               <AboutTab
@@ -412,7 +417,7 @@ function LeaderboardTab({ accent, members, userId }: { accent: string; members: 
 }
 
 function memberMeta(member: CircleMemberView) {
-  return [member.handle, member.vibe].filter(Boolean).join(" · ") || "Circle member";
+  return [member.handle, member.vibe ?? member.lastActive].filter(Boolean).join(" · ") || "Circle member";
 }
 
 function AboutTab({

@@ -148,6 +148,8 @@ const TAGGED_FEED: TaggedPost[] = [
       value: "21",
       unit: "days of meditation",
       caption: "Three full weeks without missing. The calm is contagious.",
+      likes: 18,
+      comments: 4,
     },
   },
   {
@@ -244,6 +246,8 @@ const TAGGED_FEED: TaggedPost[] = [
       value: "28",
       unit: "days of running",
       caption: "A full month of 5Ks. Her longest streak yet — and she's still going.",
+      likes: 42,
+      comments: 7,
     },
   },
   {
@@ -326,6 +330,8 @@ const TAGGED_FEED: TaggedPost[] = [
       value: "44",
       unit: "days of journaling",
       caption: "Morning pages, every single day. Proof that showing up is the whole game.",
+      likes: 27,
+      comments: 5,
     },
   },
 
@@ -363,6 +369,8 @@ const TAGGED_FEED: TaggedPost[] = [
       value: "30",
       unit: "phone-free evenings",
       caption: "Digital sunset, every single night. His screen time is down 60%.",
+      likes: 35,
+      comments: 6,
     },
   },
 
