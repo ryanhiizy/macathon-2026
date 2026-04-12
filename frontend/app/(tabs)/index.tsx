@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from "react-native-reanimated";
 import {
   BellDotIcon,
   Comment01Icon,
@@ -21,6 +14,7 @@ import { CommentsSheet } from "@/components/comments-sheet";
 import { Icon } from "@/components/icon";
 import { LikeButton } from "@/components/like-button";
 import { PhotoCarousel } from "@/components/photo-carousel";
+import { ScribbleUnderline } from "@/components/scribble-underline";
 import { Row, Screen, Stack } from "@/components/layout";
 import { Segmented } from "@/components/segmented";
 import { SwipeableTabs } from "@/components/swipeable-tabs";
@@ -78,15 +72,6 @@ export default function Home() {
     [feedPosts],
   );
 
-  const inkWidth = useSharedValue(0);
-  useEffect(() => {
-    inkWidth.value = withDelay(
-      260,
-      withTiming(116, { duration: 520, easing: Easing.out(Easing.cubic) }),
-    );
-  }, [inkWidth]);
-  const inkStyle = useAnimatedStyle(() => ({ width: inkWidth.value }));
-
   const header = (
     <Stack gap={spacing.lg}>
       <Row style={{ justifyContent: "space-between" }}>
@@ -101,17 +86,9 @@ export default function Home() {
           >
             presence
           </Typography>
-          <Animated.View
-            style={[
-              {
-                height: 2,
-                backgroundColor: colors.primary,
-                borderRadius: 1,
-                marginTop: -2,
-              },
-              inkStyle,
-            ]}
-          />
+          <View style={{ marginTop: -4 }}>
+            <ScribbleUnderline color={colors.primary} />
+          </View>
         </View>
         <Row gap={spacing.lg}>
           <Pressable hitSlop={10} onPress={() => router.push("/notifications")}>
@@ -219,31 +196,29 @@ function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: str
       </Row>
 
       {post.promptText ? (
-        <Typography variant="metaItalic" color={colors.fgMuted}>
+        <Typography
+          variant="metaItalic"
+          color={colors.fgMuted}
+          style={{ paddingHorizontal: spacing.xs }}
+        >
           {"\u2728"} {post.promptText}
         </Typography>
       ) : null}
 
-      <Typography variant="body">{post.caption}</Typography>
+      <Typography variant="body" style={{ paddingHorizontal: spacing.xs }}>
+        {post.caption}
+      </Typography>
 
       <PhotoCarousel
         photoIdxs={post.photoIdxs}
         photos={post.photos}
-        overlay={
-          <Row gap={spacing.xl}>
-            <LikeButton initialCount={post.likes} tint={colors.white} snapId={post.id} />
-            <AnimatedPress
-              onPress={() => onComment(post.id)}
-              style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
-              scale={0.9}
-              haptic={false}
-            >
-              <Icon icon={Comment01Icon} size={18} color={colors.white} strokeWidth={1.7} />
-              <Typography variant="meta" color={colors.white}>
-                {post.comments}
-              </Typography>
-            </AnimatedPress>
-          </Row>
+        footer={
+          <PostActions
+            likes={post.likes}
+            comments={post.comments}
+            snapId={post.id}
+            onComment={() => onComment(post.id)}
+          />
         }
       />
     </Stack>
@@ -290,33 +265,58 @@ function GroupPost({ post, onComment }: { post: GroupPostData; onComment: (id: s
       </Row>
 
       {post.promptText ? (
-        <Typography variant="metaItalic" color={colors.fgMuted}>
+        <Typography
+          variant="metaItalic"
+          color={colors.fgMuted}
+          style={{ paddingHorizontal: spacing.xs }}
+        >
           {"\u2728"} {post.promptText}
         </Typography>
       ) : null}
 
-      <Typography variant="body">{post.caption}</Typography>
+      <Typography variant="body" style={{ paddingHorizontal: spacing.xs }}>
+        {post.caption}
+      </Typography>
 
       <PhotoCarousel
         photoIdxs={post.photoIdxs}
         photos={post.photos}
-        overlay={
-          <Row gap={spacing.xl}>
-            <LikeButton initialCount={post.likes} tint={colors.white} snapId={post.id} />
-            <AnimatedPress
-              onPress={() => onComment(post.id)}
-              style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
-              scale={0.9}
-              haptic={false}
-            >
-              <Icon icon={Comment01Icon} size={18} color={colors.white} strokeWidth={1.7} />
-              <Typography variant="meta" color={colors.white}>
-                {post.comments}
-              </Typography>
-            </AnimatedPress>
-          </Row>
+        footer={
+          <PostActions
+            likes={post.likes}
+            comments={post.comments}
+            snapId={post.id}
+            onComment={() => onComment(post.id)}
+          />
         }
       />
     </Stack>
+  );
+}
+
+function PostActions({
+  likes,
+  comments,
+  snapId,
+  onComment,
+}: {
+  likes: number;
+  comments: number;
+  snapId: string;
+  onComment: () => void;
+}) {
+  return (
+    <Row gap={spacing.md} style={{ paddingTop: spacing.sm, paddingHorizontal: spacing.xs }}>
+      <LikeButton initialCount={likes} snapId={snapId} />
+      <AnimatedPress
+        onPress={onComment}
+        style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+        scale={0.9}
+        haptic={false}
+      >
+        <Icon icon={Comment01Icon} size={18} color={colors.fg} strokeWidth={1.7} />
+        <Typography variant="meta">{comments}</Typography>
+      </AnimatedPress>
+    </Row>
   );
 }
