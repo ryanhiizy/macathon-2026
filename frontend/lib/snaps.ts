@@ -316,6 +316,7 @@ export async function submitGroupSnap(params: {
   localUri: string;
   caption?: string;
   promptText?: string;
+  participantIds?: string[];
 }) {
   // Look up the habit by ID only — group proves don't require ownership
   const { data: habit, error: habitError } = await supabase
@@ -382,13 +383,43 @@ export async function submitGroupSnap(params: {
     throw new Error(error.message);
   }
 
-  // Flag as group post
+  // Flag as group post and insert circle members as participants
   const snapResult = Array.isArray(data) ? data[0] : data;
   if (snapResult?.snap_id) {
     await supabase
       .from("snaps")
       .update({ is_group_post: true })
       .eq("id", snapResult.snap_id);
+
+    // Insert the author + invited participants as snap_participants
+    const allParticipantIds = [
+      params.userId,
+      ...(params.participantIds ?? []),
+    ].filter((pid, i, arr) => arr.indexOf(pid) === i); // dedupe
+
+    // Fetch streaks for all participants
+    const { data: memberStreaks } = await supabase
+      .from("circle_members")
+      .select("user_id, current_streak")
+      .in("user_id", allParticipantIds);
+
+    const streakMap = new Map(
+      (memberStreaks ?? []).map((m: { user_id: string; current_streak: number }) => [
+        m.user_id,
+        m.current_streak,
+      ]),
+    );
+
+    const participantRows = allParticipantIds.map((uid) => ({
+      snap_id: snapResult.snap_id,
+      user_id: uid,
+      streak_after_completion: streakMap.get(uid) ?? 0,
+    }));
+
+    await supabase.from("snap_participants").upsert(participantRows, {
+      onConflict: "snap_id,user_id",
+      ignoreDuplicates: true,
+    });
   }
 
   return {

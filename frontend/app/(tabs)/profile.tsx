@@ -86,15 +86,41 @@ export default function Profile() {
         setProfile(data);
       }
 
-      const { data: snaps } = await supabase
+      // Fetch snaps the user authored
+      const { data: ownSnaps } = await supabase
         .from("snaps")
-        .select("storage_path")
+        .select("id, storage_path, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(9);
 
-      if (snaps && snaps.length > 0) {
-        const photos = snaps.map((snap) => {
+      // Fetch group snaps the user participated in (but didn't author)
+      const { data: participantRows } = await supabase
+        .from("snap_participants")
+        .select("snap_id")
+        .eq("user_id", user.id);
+
+      const ownIds = new Set((ownSnaps ?? []).map((s) => s.id));
+      const extraIds = (participantRows ?? [])
+        .map((r) => r.snap_id)
+        .filter((sid: string) => !ownIds.has(sid));
+
+      let groupSnaps: { id: string; storage_path: string; created_at: string }[] = [];
+      if (extraIds.length > 0) {
+        const { data } = await supabase
+          .from("snaps")
+          .select("id, storage_path, created_at")
+          .in("id", extraIds);
+        groupSnaps = (data ?? []) as typeof groupSnaps;
+      }
+
+      // Merge and sort by date, newest first
+      const allSnaps = [...(ownSnaps ?? []), ...groupSnaps]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 9);
+
+      if (allSnaps.length > 0) {
+        const photos = allSnaps.map((snap) => {
           const publicUrl = supabase.storage
             .from("snaps")
             .getPublicUrl(snap.storage_path).data.publicUrl;

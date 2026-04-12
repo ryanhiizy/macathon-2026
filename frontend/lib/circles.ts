@@ -128,6 +128,11 @@ export function rememberCircleConfig(circleId: string, config: CircleConfigEntry
   runtimeCircleConfigs.set(circleId, config);
 }
 
+/** Returns true for pre-seeded demo circles (not user-created ones). */
+export function isSeededCircle(circleId: string): boolean {
+  return circleId in CIRCLE_CONFIG;
+}
+
 // ---------------------------------------------------------------------------
 // Per-circle preview photos (shown on the circles list)
 // ---------------------------------------------------------------------------
@@ -756,6 +761,11 @@ export async function fetchCircleSnaps(circleId: string): Promise<CircleSnapView
       isGroup: snap.is_group_post,
     };
   });
+  // Only show fallback posts for pre-seeded circles, not user-created ones
+  if (!CIRCLE_CONFIG[circleId]) {
+    return realSnaps;
+  }
+
   const fallbackSnaps = buildFallbackSnaps({
     circleId,
     habit: config.habit,

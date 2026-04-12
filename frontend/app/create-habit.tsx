@@ -74,7 +74,7 @@ function formatTimeDisplay(hour: number, minute: number): string {
 }
 
 async function getOrCreateCircle(userId: string): Promise<string | null> {
-  const personalInviteCode = `personal-${userId.slice(0, 8)}`;
+  const personalInviteCode = `personal-${userId}`;
   const { data: existingCircle } = await supabase
     .from("circles")
     .select("id")

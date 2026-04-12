@@ -29,6 +29,7 @@ import {
   fetchCircleMembers,
   fetchCircleSnaps,
   getMockCircleLeaderboard,
+  isSeededCircle,
   type CircleView,
   type CircleMemberView,
   type CircleSnapView,
@@ -99,7 +100,7 @@ export default function CircleDetail() {
   );
 
   const leaderboardMembers = useMemo(
-    () => (id ? getMockCircleLeaderboard(String(id), user?.id) : []),
+    () => (id && isSeededCircle(String(id)) ? getMockCircleLeaderboard(String(id), user?.id) : []),
     [id, user?.id],
   );
 
@@ -266,7 +267,6 @@ export default function CircleDetail() {
             <ScrollView key="about" {...paneScroll}>
               <AboutTab
                 description={circle.description ?? ""}
-                about={circle.about}
                 members={members}
                 userId={user?.id}
               />
@@ -422,12 +422,10 @@ function memberMeta(member: CircleMemberView) {
 
 function AboutTab({
   description,
-  about,
   members,
   userId,
 }: {
   description: string;
-  about: string;
   members: CircleMemberView[];
   userId?: string;
 }) {
@@ -440,13 +438,6 @@ function AboutTab({
           Description
         </Typography>
         <Typography variant="lede">{description}</Typography>
-      </Stack>
-
-      <Stack gap={spacing.sm}>
-        <Typography variant="metaItalic" color={colors.fgFaint}>
-          Circle vibe
-        </Typography>
-        <Typography variant="body">{about}</Typography>
       </Stack>
 
       <Stack gap={spacing.sm}>
