@@ -1,5 +1,7 @@
 import * as Notifications from "expo-notifications";
 import { fetchHabits, type HabitView } from "@/lib/habits";
+import { supabase } from "@/lib/supabase";
+import { CHAT_THREADS } from "@/lib/mock";
 
 // ---------------------------------------------------------------------------
 // Handler — show banner even when app is foregrounded
@@ -86,4 +88,89 @@ export async function triggerDemoNotification(
   });
 
   return id;
+}
+
+// ---------------------------------------------------------------------------
+// Message push notifications (Instagram-style)
+// ---------------------------------------------------------------------------
+
+/** The conversation the user is currently viewing (set by chat screen) */
+let activeConversationId: string | null = null;
+
+export function setActiveConversation(id: string | null) {
+  activeConversationId = id;
+}
+
+/**
+ * Fire a local notification for an incoming message.
+ * Instagram-style: sender name, message preview, "now".
+ */
+async function triggerMessageNotification(
+  senderName: string,
+  body: string,
+  conversationId: string,
+  isGroup: boolean,
+) {
+  const thread = CHAT_THREADS.find((t) => t.id === conversationId);
+  const name = isGroup && thread ? thread.name : senderName;
+  const preview = isGroup ? `${senderName}: ${body}` : body;
+  const trimmed = preview.length > 100 ? preview.slice(0, 97) + "..." : preview;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: name,
+      body: trimmed,
+      data: { conversationId, screen: "chat" },
+      sound: "default",
+      ...(conversationId ? { threadId: conversationId } : {}),
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 1,
+    },
+  });
+}
+
+/**
+ * Subscribe to all new messages globally and fire push notifications
+ * for messages from other users. Call once at app startup.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToMessageNotifications(currentUserId: string) {
+  const channel = supabase
+    .channel("global-msg-notifications")
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages" },
+      (payload) => {
+        const msg = payload.new as {
+          sender_id: string;
+          sender_name: string;
+          body: string;
+          conversation_id: string;
+        };
+
+        // Don't notify for own messages
+        if (msg.sender_id === currentUserId) return;
+
+        // Don't notify if user is already viewing that conversation
+        if (msg.conversation_id === activeConversationId) return;
+
+        const thread = CHAT_THREADS.find((t) => t.id === msg.conversation_id);
+        const isGroup = thread?.isGroup ?? false;
+
+        console.log("[msg-notif] incoming from", msg.sender_name, "→ firing notification");
+        triggerMessageNotification(
+          msg.sender_name,
+          msg.body,
+          msg.conversation_id,
+          isGroup,
+        );
+      },
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
