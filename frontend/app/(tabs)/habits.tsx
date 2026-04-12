@@ -18,6 +18,7 @@ import { Typography } from "@/components/typography";
 import { useAuth } from "@/lib/auth-context";
 import { fetchHabits, generateMockHabits, type HabitView } from "@/lib/habits";
 
+import { getDemoUserById } from "@/lib/demo-users";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 
 type TimeOfDay = "morning" | "afternoon" | "evening";
@@ -158,9 +159,11 @@ export default function Habits() {
 
   const firstName = useMemo(() => {
     if (demoSession) return demoSession.displayName.split(" ")[0];
-    const meta = user?.user_metadata;
-    const raw = meta?.full_name ?? meta?.name ?? meta?.display_name ?? "";
-    return (raw as string).split(" ")[0] || null;
+    if (user) {
+      const demo = getDemoUserById(user.id);
+      if (demo) return demo.name;
+    }
+    return null;
   }, [demoSession, user]);
 
   const { greeting, dateLabel } = useMemo(() => {
