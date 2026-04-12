@@ -1,38 +1,49 @@
 # presence
+*Built at Macathon 2026.*
 
-Hackathon MVP for a social habit-tracking app with live photo proof, Circle accountability, and a local AI/YOLO verification server.
+A social habit-tracking app — Habit Tracker × BeReal × Strava. Prove your habits with live photos, compete with friends in Circles, and let AI keep it fun.
 
-## Repo layout
+## Try it
+Since this is a native mobile app, we've hosted everything so you can just follow the steps to get it on your phone:
 
-- `frontend/` — Expo app
-- `backend/` — local FastAPI + YOLO server work
-- `docs/` — product, architecture, setup, and planning docs
+IOS
+1. Download Testflight
+2. Scan the QR Code below with your phone camera
+3. Access the presence app via Expo beta app
 
-## Start here
+![Demo QR Code](demo-photos/PresenceAppDownload.png)
 
-1. Read [frontend/README.md](frontend/README.md)
-2. Copy [frontend/.env.example](frontend/.env.example) to `frontend/.env`
-3. Copy [backend/.env.example](backend/.env.example) to `backend/.env`
-4. Follow [docs/infrastructure/supabase.md](docs/infrastructure/supabase.md) to create the Supabase project
-5. Use [docs/hackathon-mvp-task-board.md](docs/hackathon-mvp-task-board.md) to pick work in dependency order
+## How It Works
 
-## Fastest onboarding path
+1. Create a daily habit (gym, cooking, reading, etc.)
+2. Get a notification around your target time
+3. Open the in-app camera and receive an AI-generated photo prompt
+4. Take a live photo following the prompt
+5. YOLO object detection verifies the photo on the backend
+6. Your verified snap posts to your Circles' feed — miss the window and your streak resets
 
-```bash
-cd frontend
-npm install
+## Tech Stack
 
-cd ..
-python3 -m venv yolo-env
-source yolo-env/bin/activate
-pip install -r backend/requirements.txt
+| Layer | Tech |
+|---|---|
+| Mobile app | React Native + Expo SDK 55, TypeScript, Expo Router, NativeWind |
+| Backend-as-a-Service | Supabase (Auth, Postgres, Storage, Realtime) |
+| AI / Verification server | FastAPI + Claude/OpenAI/Gemini for prompt generation |
+| Hosting (server) | Fly.io or local laptop via tunnel |
+
+## Repo Layout
+```
+frontend/          Expo app (screens, components, lib)
+├── app/           Expo Router screens (tabs, auth, camera, circles, habits, …)
+├── components/    Shared UI components
+├── lib/           Data layer, Supabase client, business logic
+└── constants/     Theme, prompt bank
+
+backend/           FastAPI prompt + verification server
+├── prompt_verification_server.py
+└── config.py
+
+docs/              Product, architecture, and planning docs
 ```
 
-After that, fill in the real Supabase and YOLO values, start the local AI server, then run Expo from `frontend/`.
 
-## Core docs
-
-- [docs/project_overview.md](docs/project_overview.md)
-- [docs/Architecture.md](docs/Architecture.md)
-- [docs/setup-checklist.md](docs/setup-checklist.md)
-- [docs/hackathon-mvp-task-board.md](docs/hackathon-mvp-task-board.md)
