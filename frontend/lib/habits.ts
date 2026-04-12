@@ -240,8 +240,7 @@ export async function fetchHabits(userId: string): Promise<HabitView[]> {
     };
   });
 
-  // Apply demo time overrides so urgency states always show
-  return applyDemoTimes(views);
+  return views;
 }
 
 /** Extended view for the habit detail page. */

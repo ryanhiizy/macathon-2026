@@ -23,6 +23,8 @@ import {
   type HabitDetailView,
 } from "@/lib/habits";
 import { useAuth } from "@/lib/auth-context";
+import { scheduleHabitNotifications } from "@/lib/notifications";
+import { fetchHabits } from "@/lib/habits";
 
 const TIME_SUGGESTIONS = [
   "6:00 AM",
@@ -140,6 +142,12 @@ export default function EditHabit() {
     setSaving(false);
 
     if (result) {
+      // Reschedule all habit notifications with updated times
+      if (user) {
+        fetchHabits(user.id).then((habits) =>
+          scheduleHabitNotifications(habits).catch(() => {}),
+        );
+      }
       router.back();
     }
   }
@@ -157,6 +165,12 @@ export default function EditHabit() {
           }
           const ok = await deleteHabit(id!);
           if (ok) {
+            // Reschedule notifications without the deleted habit
+            if (user) {
+              fetchHabits(user.id).then((habits) =>
+                scheduleHabitNotifications(habits).catch(() => {}),
+              );
+            }
             router.dismissAll();
           }
         },
