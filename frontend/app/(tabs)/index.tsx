@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -22,8 +23,8 @@ import { Screen, Row, Stack } from "@/components/layout";
 import { Segmented } from "@/components/segmented";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
-import { type GroupPost as GroupPostData, type SoloPost as SoloPostData } from "@/lib/mock";
-import { getFeedPosts } from "@/lib/feed";
+import { type FeedPost, type GroupPost as GroupPostData, type SoloPost as SoloPostData } from "@/lib/mock";
+import { loadFeedPosts } from "@/lib/feed";
 import { useAuth } from "@/lib/auth-context";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 
@@ -36,9 +37,15 @@ const PULL_MESSAGES = [
 export default function Home() {
   const { user } = useAuth();
   const [feedIdx, setFeedIdx] = useState(0);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [pullMessageIdx, setPullMessageIdx] = useState(0);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const refreshFeed = useCallback(async () => {
+    const nextPosts = await loadFeedPosts(user?.id);
+    setPosts(nextPosts);
+  }, [user?.id]);
 
   useEffect(
     () => () => {
@@ -49,6 +56,12 @@ export default function Home() {
     [],
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      refreshFeed();
+    }, [refreshFeed])
+  );
+
   const onRefresh = () => {
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
@@ -57,6 +70,7 @@ export default function Home() {
     setRefreshing(true);
     setPullMessageIdx((i) => (i + 1) % PULL_MESSAGES.length);
     refreshTimeoutRef.current = setTimeout(() => {
+      refreshFeed().catch(() => {});
       setRefreshing(false);
       refreshTimeoutRef.current = null;
     }, 900);
@@ -124,7 +138,7 @@ export default function Home() {
       }
     >
       <Stack gap={spacing.xxl}>
-        {getFeedPosts(user?.id).map((post) => {
+        {posts.map((post) => {
           if (post.kind === "dispatch") {
             return (
               <BragStat

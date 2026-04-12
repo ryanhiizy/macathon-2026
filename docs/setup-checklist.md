@@ -29,6 +29,13 @@ Use this as the short operational checklist. For the full setup flow, start with
 - [ ] Verify `curl http://localhost:8000/health` returns `{"ok":true}`
 - [ ] Set `EXPO_PUBLIC_PROMPT_API_URL` in `frontend/.env`
 
+### Hosted verifier option
+
+- [ ] Deploy the backend with Fly using `fly.toml`
+- [ ] Set Fly secrets for the AI provider and Supabase service access
+- [ ] Point `EXPO_PUBLIC_PROMPT_API_URL` at `https://presence-ai-jackng96.fly.dev`
+- [ ] Use the hosted URL for TestFlight and teammate Expo Go setups
+
 ## 4. Expo app
 
 - [ ] Run `npx expo start --lan` from `frontend/` when the phone and laptop share Wi-Fi

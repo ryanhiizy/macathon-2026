@@ -2,6 +2,7 @@ import { MOCK_USERS } from "@/lib/mock-users";
 import type { FeedPost } from "@/lib/mock";
 import { DEMO_USERS } from "@/lib/demo-users";
 import { colors } from "@/lib/theme";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Per-user social feeds. Each demo account sees a different mix:
@@ -471,4 +472,134 @@ export function getFeedPosts(userId?: string): FeedPost[] {
 
   // Unknown user: show all visible posts in default order
   return TAGGED_FEED.filter((t) => t.visibleTo.includes(userId)).map((t) => t.post);
+}
+
+type SnapRow = {
+  id: string;
+  user_id: string;
+  habit_instance_id: string;
+  storage_path: string;
+  prompt_text: string;
+  caption: string | null;
+  streak_after_completion: number;
+  created_at: string;
+  is_group_post: boolean;
+};
+
+type ProfileRow = {
+  id: string;
+  display_name: string;
+  handle: string;
+};
+
+type HabitInstanceFeedRow = {
+  id: string;
+  habit_id: string;
+};
+
+type HabitRow = {
+  id: string;
+  name: string;
+};
+
+const REAL_FEED_COLORS = [
+  colors.blue,
+  colors.green,
+  colors.cyan,
+  colors.orange,
+  colors.purple,
+  colors.magenta,
+];
+
+function colorForUser(userId: string) {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i += 1) {
+    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  }
+  return REAL_FEED_COLORS[hash % REAL_FEED_COLORS.length];
+}
+
+function formatWhen(timestamp: string) {
+  const diffMs = Date.now() - new Date(timestamp).getTime();
+  const minutes = Math.max(1, Math.floor(diffMs / (60 * 1000)));
+
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+async function fetchRecentRealFeedPosts(userId?: string): Promise<FeedPost[]> {
+  if (!userId) {
+    return [];
+  }
+
+  const { data: snaps, error: snapError } = await supabase
+    .from("snaps")
+    .select(
+      "id, user_id, habit_instance_id, storage_path, prompt_text, caption, streak_after_completion, created_at, is_group_post",
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (snapError || !snaps?.length) {
+    return [];
+  }
+
+  const snapRows = snaps as SnapRow[];
+  const habitInstanceIds = [...new Set(snapRows.map((snap) => snap.habit_instance_id))];
+  const profileIds = [...new Set(snapRows.map((snap) => snap.user_id))];
+
+  const [{ data: profiles }, { data: habitInstances }] = await Promise.all([
+    supabase.from("profiles").select("id, display_name, handle").in("id", profileIds),
+    supabase.from("habit_instances").select("id, habit_id").in("id", habitInstanceIds),
+  ]);
+
+  const habitIds = [...new Set((habitInstances ?? []).map((item) => item.habit_id))];
+  const { data: habits } = await supabase.from("habits").select("id, name").in("id", habitIds);
+
+  const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile as ProfileRow]));
+  const habitInstanceMap = new Map(
+    (habitInstances ?? []).map((instance) => [instance.id, instance as HabitInstanceFeedRow]),
+  );
+  const habitMap = new Map((habits ?? []).map((habit) => [habit.id, habit as HabitRow]));
+
+  return snapRows
+    .filter((snap) => !snap.is_group_post)
+    .map((snap) => {
+      const profile = profileMap.get(snap.user_id);
+      const habitInstance = habitInstanceMap.get(snap.habit_instance_id);
+      const habit = habitInstance ? habitMap.get(habitInstance.habit_id) : null;
+      const displayName = profile?.display_name || "Presence User";
+      const publicUrl = supabase.storage.from("snaps").getPublicUrl(snap.storage_path).data.publicUrl;
+
+      return {
+        id: snap.id,
+        kind: "solo" as const,
+        name: displayName,
+        handle: habit?.name || "Habit check-in",
+        when: formatWhen(snap.created_at),
+        streak: snap.streak_after_completion,
+        color: colorForUser(snap.user_id),
+        letter: displayName.slice(0, 1).toUpperCase() || "P",
+        photos: [{ uri: publicUrl }],
+        promptText: snap.prompt_text || undefined,
+        caption: snap.caption || `Checked in for ${habit?.name ?? "your habit"}.`,
+        likes: 0,
+        comments: 0,
+      };
+    });
+}
+
+export async function loadFeedPosts(userId?: string): Promise<FeedPost[]> {
+  const [realPosts, mockPosts] = await Promise.all([
+    fetchRecentRealFeedPosts(userId),
+    Promise.resolve(getFeedPosts(userId)),
+  ]);
+
+  return [...realPosts, ...mockPosts];
 }
