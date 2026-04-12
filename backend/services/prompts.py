@@ -36,20 +36,24 @@ class VerificationResult:
 def build_prompt_instruction(habit: str, participant_count: int) -> str:
     mode = "group" if participant_count > 1 else "solo"
     return (
-        "You are writing a short, playful photo challenge for a social habit-tracking app. "
+        "You are writing a short, fun photo challenge for a social habit-tracking app. "
         "Return JSON with exactly this key: prompt_text. "
         f"The tracked habit is '{habit}'. "
         f"The photo mode is '{mode}'. "
         f"The participant count is {participant_count}. "
-        "CRITICAL CONSTRAINT: The user is holding a phone with one hand to take the photo, so they only have ONE free hand. "
-        "Never ask for actions that need two hands (e.g. holding a book AND giving a thumbs up). "
-        "Keep it to one simple action or pose with one hand, or no hands at all. "
-        "For physical/gym habits, prefer mirror selfies — ask them to snap a mirror pic showing the equipment or setting. "
-        "For study/reading habits, just show the desk, books, or screen in frame. "
-        "Make the prompt one short sentence, casual and fun. "
-        "Prioritize things that are dead simple to do and easy to verify: a visible object in frame, a mirror selfie, or one simple gesture. "
-        "Avoid anything that requires setup, props they might not have, or two-handed actions. "
-        "For group prompts, require a shared simple pose everyone can do one-handed."
+        "CRITICAL CONSTRAINT: The user is holding a phone with one hand, so they only have ONE free hand. "
+        "THE PROMPT MUST BE DEAD EASY — something anyone can do in under 3 seconds with zero setup. "
+        "IMPORTANT: Always start the prompt with a single emoji that matches the habit activity "
+        "(e.g. 🧘 for yoga, 💪 for gym, 📚 for reading, 🏃 for running, 🎸 for music, 🍳 for cooking). "
+        "Pick the most fitting emoji — never use ✨ sparkles. "
+        "Good examples: '🧘 Show us your zen spot right now', "
+        "'💪 Quick selfie — show us that post-workout glow', "
+        "'📚 Snap whatever you're reading'. "
+        "Bad examples: anything requiring props, specific poses, setup, or two hands. "
+        "Keep it to ONE short sentence (under 12 words, not counting the emoji). Be playful and hype — use the energy of a supportive friend, not a task manager. "
+        "The prompt should feel like a fun dare, not an assignment. "
+        "Loosely tie it to the habit but don't make it hard to fulfill. "
+        "For group prompts, just ask everyone to get in frame together — keep it simple."
     )
 
 
@@ -61,13 +65,54 @@ def parse_prompt_payload(raw_text: str) -> str:
     return prompt_text.strip()
 
 
+HABIT_EMOJI_MAP: dict[str, str] = {
+    "yoga": "🧘",
+    "gym": "💪",
+    "workout": "💪",
+    "run": "🏃",
+    "running": "🏃",
+    "read": "📚",
+    "reading": "📚",
+    "study": "📚",
+    "cook": "🍳",
+    "cooking": "🍳",
+    "meditat": "🧘",
+    "walk": "🚶",
+    "water": "💧",
+    "sleep": "😴",
+    "stretch": "🤸",
+    "journal": "📝",
+    "music": "🎸",
+    "guitar": "🎸",
+    "piano": "🎹",
+    "code": "💻",
+    "swim": "🏊",
+    "bike": "🚴",
+    "climb": "🧗",
+    "hike": "🥾",
+    "dance": "💃",
+    "paint": "🎨",
+    "draw": "🎨",
+    "clean": "🧹",
+    "skin": "🧴",
+    "breath": "🌬️",
+}
+
+
+def _emoji_for_habit(habit: str) -> str:
+    h = habit.strip().lower()
+    for keyword, emoji in HABIT_EMOJI_MAP.items():
+        if keyword in h:
+            return emoji
+    return "🔥"
+
+
 def fallback_prompt(habit: str, participant_count: int) -> str:
     normalized_habit = habit.strip().lower() or "your habit"
+    emoji = _emoji_for_habit(habit)
     if participant_count > 1:
-        return (
-            f"Take a group photo while doing {normalized_habit}, and have everyone strike a different pose that shows how they tackle it."
-        )
-    return f"Take a photo of yourself doing {normalized_habit} with one playful detail in frame that shows your mood today."
+        return f"{emoji} Get the whole crew in frame — show us your {normalized_habit} energy!"
+    return f"{emoji} Quick selfie — show us you're on your {normalized_habit} grind!"
 
 
 def build_verification_instruction(prompt_text: str, participant_count: int) -> str:
