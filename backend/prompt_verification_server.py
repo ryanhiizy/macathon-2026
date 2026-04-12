@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
 from backend.config import get_settings
@@ -51,6 +52,12 @@ class VerifyPhotoResponse(BaseModel):
 
 
 app = FastAPI(title="presence prompt + verification server")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
@@ -87,6 +94,47 @@ async def verify_photo_endpoint(
             participant_count=participant_count,
             image_bytes=image_bytes,
             mime_type=file.content_type,
+        )
+    except PromptProviderError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"verification failed: {exc}") from exc
+
+    return VerifyPhotoResponse(
+        passed=result.passed,
+        reason=result.reason,
+        comment=result.comment,
+        source=result.source,
+    )
+
+
+@app.post("/verify-photo-raw", response_model=VerifyPhotoResponse)
+async def verify_photo_raw_endpoint(
+    request: Request,
+    prompt_text: str,
+    participant_count: int = 1,
+) -> VerifyPhotoResponse:
+    if participant_count < 1:
+        raise HTTPException(status_code=400, detail="participant_count must be >= 1")
+
+    if not prompt_text.strip():
+        raise HTTPException(status_code=400, detail="prompt_text must not be blank")
+
+    mime_type = request.headers.get("content-type", "")
+    if not mime_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="request body must be an image")
+
+    image_bytes = await request.body()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="request body must not be empty")
+
+    try:
+        result = verify_photo(
+            settings=get_settings(),
+            prompt_text=prompt_text.strip(),
+            participant_count=participant_count,
+            image_bytes=image_bytes,
+            mime_type=mime_type,
         )
     except PromptProviderError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

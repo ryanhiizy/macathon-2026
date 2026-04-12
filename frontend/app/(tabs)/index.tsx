@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import Animated, {
   Easing,
@@ -26,8 +27,8 @@ import { Segmented } from "@/components/segmented";
 import { SwipeableTabs } from "@/components/swipeable-tabs";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
+import { loadFeedPosts } from "@/lib/feed";
 import { useAuth } from "@/lib/auth-context";
-import { getFeedPosts } from "@/lib/feed";
 import type { FeedPost, GroupPost as GroupPostData, SoloPost as SoloPostData } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 
@@ -41,10 +42,16 @@ export default function Home() {
   const router = useRouter();
   const { user } = useAuth();
   const [feedIdx, setFeedIdx] = useState(0);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [pullMessageIdx, setPullMessageIdx] = useState(0);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const refreshFeed = useCallback(async () => {
+    const nextPosts = await loadFeedPosts(user?.id);
+    setPosts(nextPosts);
+  }, [user?.id]);
 
   useEffect(
     () => () => {
@@ -55,6 +62,12 @@ export default function Home() {
     [],
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      refreshFeed();
+    }, [refreshFeed])
+  );
+
   const onRefresh = () => {
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
@@ -63,20 +76,14 @@ export default function Home() {
     setRefreshing(true);
     setPullMessageIdx((index) => (index + 1) % PULL_MESSAGES.length);
     refreshTimeoutRef.current = setTimeout(() => {
+      refreshFeed().catch(() => {});
       setRefreshing(false);
       refreshTimeoutRef.current = null;
     }, 900);
   };
 
-  const feedPosts = useMemo(() => getFeedPosts(user?.id), [user?.id]);
-  const friendsPosts = useMemo(
-    () => feedPosts.filter((post) => post.kind !== "group"),
-    [feedPosts],
-  );
-  const circlePosts = useMemo(
-    () => feedPosts.filter((post) => post.kind === "group"),
-    [feedPosts],
-  );
+  const friendsPosts = posts.filter((post) => post.kind !== "group");
+  const circlePosts = posts.filter((post) => post.kind === "group");
 
   const inkWidth = useSharedValue(0);
   useEffect(() => {

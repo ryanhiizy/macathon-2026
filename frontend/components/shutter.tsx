@@ -11,6 +11,7 @@ import { colors } from "@/lib/theme";
 
 type Props = {
   onCapture?: () => void;
+  disabled?: boolean;
 };
 
 // Shutter button + full-screen white flash overlay. Render the <Flash/> at
@@ -41,7 +42,7 @@ export function useShutterFlash() {
   return { trigger, Flash };
 }
 
-export function ShutterButton({ onCapture }: Props) {
+export function ShutterButton({ onCapture, disabled = false }: Props) {
   const scale = useSharedValue(1);
   const ringScale = useSharedValue(1);
   const style = useAnimatedStyle(() => ({
@@ -52,6 +53,10 @@ export function ShutterButton({ onCapture }: Props) {
   }));
 
   const onPress = () => {
+    if (disabled) {
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
     scale.value = withSequence(
       withTiming(0.82, { duration: 70, easing: Easing.out(Easing.quad) }),
@@ -66,7 +71,7 @@ export function ShutterButton({ onCapture }: Props) {
   };
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} disabled={disabled}>
       <Animated.View
         style={[
           {
@@ -78,6 +83,7 @@ export function ShutterButton({ onCapture }: Props) {
             borderColor: colors.bg,
             alignItems: "center",
             justifyContent: "center",
+            opacity: disabled ? 0.5 : 1,
           },
           ringStyle,
         ]}

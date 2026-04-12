@@ -39,8 +39,8 @@ const FALLBACK_STATS = {
 export default function Profile() {
   const { user, demoSession, signOut } = useAuth();
   const [profile, setProfile] = useState<AppProfile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
   const demoUser = user ? getDemoUserById(user.id) : undefined;

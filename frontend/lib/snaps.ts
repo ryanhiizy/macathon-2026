@@ -1,0 +1,273 @@
+import { supabase } from "@/lib/supabase";
+
+type HabitCaptureMeta = {
+  id: string;
+  name: string;
+  circle_id: string;
+  target_time: string;
+};
+
+type HabitInstanceRow = {
+  id: string;
+  status: string;
+  window_closes_at: string;
+};
+
+type VerifyPhotoResponse = {
+  passed: boolean;
+  reason: string;
+  comment: string;
+  source: string;
+};
+
+type VerifyPhotoResult = {
+  passed: boolean;
+  reason: string;
+  message: string;
+  retryHint: string | null;
+};
+
+function buildPromptText(habitName: string) {
+  return `Show yourself doing ${habitName.toLowerCase()}.`;
+}
+
+function requirePromptApiUrl() {
+  const value = process.env.EXPO_PUBLIC_PROMPT_API_URL;
+
+  if (!value) {
+    throw new Error("Missing EXPO_PUBLIC_PROMPT_API_URL for photo verification.");
+  }
+
+  return value.replace(/\/+$/, "");
+}
+
+function buildFriendlyRetryMessage(rawReason: string, rawComment: string): Omit<VerifyPhotoResult, "passed"> {
+  const reason = rawReason.trim();
+  const normalized = `${rawReason} ${rawComment}`.toLowerCase();
+
+  if (
+    normalized.includes("small") ||
+    normalized.includes("compressed") ||
+    normalized.includes("blurry") ||
+    normalized.includes("clearer")
+  ) {
+    return {
+      reason,
+      message: "Bit blurry. We can't really see you.",
+      retryHint: "Try again with better light and hold still for one beat.",
+    };
+  }
+
+  if (
+    normalized.includes("core action") ||
+    normalized.includes("does not clearly show") ||
+    normalized.includes("not clearly show") ||
+    normalized.includes("obvious")
+  ) {
+    return {
+      reason,
+      message: "The camera caught vibes, not proof.",
+      retryHint: "Make the main habit action or object super obvious in frame.",
+    };
+  }
+
+  if (
+    normalized.includes("participant") ||
+    normalized.includes("group") ||
+    normalized.includes("people")
+  ) {
+    return {
+      reason,
+      message: "Fun shot, wrong cast list.",
+      retryHint: "Try again with everyone the prompt expects clearly visible.",
+    };
+  }
+
+  return {
+    reason,
+    message: "Nice try, but the main event is hiding.",
+    retryHint: "Retake it with the habit action centered and easy to spot.",
+  };
+}
+
+function buildScheduledFor(targetTime: string) {
+  const now = new Date();
+  const [hours = "7", minutes = "0", seconds = "0"] = targetTime.split(":");
+  const scheduled = new Date(now);
+  scheduled.setHours(Number(hours), Number(minutes), Number(seconds), 0);
+  return scheduled.toISOString();
+}
+
+function buildWindowClosesAt() {
+  const now = new Date();
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+  return endOfDay.toISOString();
+}
+
+function getLocalDayRange() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
+}
+
+async function fetchHabitCaptureMeta(habitId: string, userId: string): Promise<HabitCaptureMeta> {
+  const { data, error } = await supabase
+    .from("habits")
+    .select("id, name, circle_id, target_time")
+    .eq("id", habitId)
+    .eq("user_id", userId)
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Habit not found.");
+  }
+
+  return data;
+}
+
+export async function getHabitCaptureMeta(habitId: string, userId: string) {
+  return fetchHabitCaptureMeta(habitId, userId);
+}
+
+export async function verifySnapPhoto(params: { localUri: string; promptText: string }) {
+  const imageResponse = await fetch(params.localUri);
+  const imageBlob = await imageResponse.blob();
+  const mimeType = imageBlob.type || "image/jpeg";
+  const verifyUrl = `${requirePromptApiUrl()}/verify-photo-raw?prompt_text=${encodeURIComponent(
+    params.promptText,
+  )}&participant_count=1`;
+
+  const response = await fetch(verifyUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": mimeType,
+    },
+    body: imageBlob,
+  });
+
+  if (!response.ok) {
+    const fallbackText = await response.text();
+    throw new Error(fallbackText || "Photo verification failed.");
+  }
+
+  const result = (await response.json()) as VerifyPhotoResponse;
+
+  if (result.passed) {
+    return {
+      passed: true,
+      reason: result.reason,
+      message: result.comment || "Verified.",
+      retryHint: null,
+    } satisfies VerifyPhotoResult;
+  }
+
+  return {
+    passed: false,
+    ...buildFriendlyRetryMessage(result.reason, result.comment),
+  } satisfies VerifyPhotoResult;
+}
+
+export async function getOrCreateTodayHabitInstance(habitId: string, userId: string) {
+  const habit = await fetchHabitCaptureMeta(habitId, userId);
+  const range = getLocalDayRange();
+
+  const { data: existing, error: existingError } = await supabase
+    .from("habit_instances")
+    .select("id, status, window_closes_at")
+    .eq("habit_id", habitId)
+    .gte("scheduled_for", range.start)
+    .lt("scheduled_for", range.end)
+    .order("scheduled_for", { ascending: false })
+    .limit(1)
+    .maybeSingle<HabitInstanceRow>();
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  if (existing?.status === "verified") {
+    throw new Error("You already posted this habit today.");
+  }
+
+  if (existing) {
+    return {
+      habit,
+      habitInstanceId: existing.id,
+    };
+  }
+
+  const { data: created, error: createError } = await supabase
+    .from("habit_instances")
+    .insert({
+      habit_id: habitId,
+      scheduled_for: buildScheduledFor(habit.target_time),
+      window_closes_at: buildWindowClosesAt(),
+      prompt_id: `demo-${new Date().toISOString().slice(0, 10)}`,
+      prompt_text: buildPromptText(habit.name),
+    })
+    .select("id")
+    .single();
+
+  if (createError || !created) {
+    throw new Error(createError?.message ?? "Failed to create habit instance.");
+  }
+
+  return {
+    habit,
+    habitInstanceId: created.id as string,
+  };
+}
+
+export async function uploadSnapPhoto(userId: string, circleId: string, localUri: string) {
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  const filePath = `${circleId}/${userId}/${Date.now()}.jpg`;
+
+  const { error } = await supabase.storage.from("snaps").upload(filePath, blob, {
+    contentType: "image/jpeg",
+    upsert: false,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return filePath;
+}
+
+export async function submitSoloSnap(params: {
+  habitId: string;
+  userId: string;
+  localUri: string;
+  caption?: string;
+}) {
+  const { habit, habitInstanceId } = await getOrCreateTodayHabitInstance(params.habitId, params.userId);
+  const storagePath = await uploadSnapPhoto(params.userId, habit.circle_id, params.localUri);
+  const caption = params.caption?.trim() || `Checked in for ${habit.name}.`;
+
+  const { data, error } = await supabase.rpc("complete_verified_solo_snap", {
+    p_habit_instance_id: habitInstanceId,
+    p_storage_path: storagePath,
+    p_detected_classes: [],
+    p_caption: caption,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return {
+    habit,
+    habitInstanceId,
+    storagePath,
+    snap: Array.isArray(data) ? data[0] : data,
+  };
+}

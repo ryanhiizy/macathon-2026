@@ -1,8 +1,14 @@
-import { useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, TextInput, View, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CameraView, useCameraPermissions, type CameraType, type FlashMode } from "expo-camera";
+import {
+  CameraView,
+  useCameraPermissions,
+  type CameraType,
+  type FlashMode,
+} from "expo-camera";
 import {
   Cancel01Icon,
   CameraRotated01Icon,
@@ -17,40 +23,139 @@ import { Icon } from "@/components/icon";
 import { AnimatedPress } from "@/components/animated-press";
 import { ShutterButton, useShutterFlash } from "@/components/shutter";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
-import { HABITS } from "@/lib/mock";
+import { useAuth } from "@/lib/auth-context";
+import { getHabitCaptureMeta, submitSoloSnap, verifySnapPhoto } from "@/lib/snaps";
 
-const PROMPT_BY_HABIT: Record<string, string> = {
-  "1": "Throw a peace sign mid-stride on your morning walk.",
-  "2": "Show your water bottle — how full is it right now?",
-  "3": "Show your peaceful meditation corner.",
-  "4": "Hold up the book — reveal the cover.",
-};
+function isDemoPassEnabled() {
+  const value = process.env.EXPO_PUBLIC_ENABLE_DEMO_PASS?.trim().toLowerCase();
+  return value === "true" || value === "1" || value === "yes";
+}
 
 export default function CameraScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const habit = HABITS.find((h) => h.id === id);
-  const prompt = habit ? (PROMPT_BY_HABIT[habit.id] ?? "Show us something honest.") : null;
+  const { user } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [habitName, setHabitName] = useState("Habit check-in");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [capturedUri, setCapturedUri] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
+  const [retryHint, setRetryHint] = useState<string | null>(null);
+  const cameraRef = useRef<CameraView | null>(null);
   const { trigger: triggerFlash, Flash } = useShutterFlash();
+  const demoPassEnabled = useMemo(() => isDemoPassEnabled(), []);
+  const prompt = useMemo(
+    () => `Show yourself doing ${habitName.toLowerCase()}.`,
+    [habitName],
+  );
 
-  if (!habit) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.black }} edges={["top", "bottom"]}>
-        <Stack gap={spacing.xl} style={{ flex: 1, padding: spacing.xl, justifyContent: "center", alignItems: "center" }}>
-          <Typography serif color={colors.bg} style={{ fontSize: 24, lineHeight: 32, textAlign: "center" }}>
-            Habit not found
-          </Typography>
-          <AnimatedPress onPress={() => router.back()} haptic={false}>
-            <Typography color={colors.bg} variant="metaItalic">
-              Back
-            </Typography>
-          </AnimatedPress>
-        </Stack>
-      </SafeAreaView>
-    );
-  }
+  useEffect(() => {
+    if (!id || !user?.id) {
+      return;
+    }
+
+    getHabitCaptureMeta(id, user.id)
+      .then((habit) => {
+        setHabitName(habit.name);
+      })
+      .catch((loadError: unknown) => {
+        setError(loadError instanceof Error ? loadError.message : "Failed to load habit.");
+      });
+  }, [id, user?.id]);
+
+  const handleCapture = async () => {
+    if (!id || !user?.id) {
+      setError("You need to be signed in to post a habit photo.");
+      return;
+    }
+
+    if (!cameraRef.current || !isCameraReady || submitting) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+      setRetryMessage(null);
+      setRetryHint(null);
+      triggerFlash();
+
+      const picture = await cameraRef.current.takePictureAsync({
+        quality: 0.7,
+        shutterSound: false,
+      });
+
+      if (!picture?.uri) {
+        throw new Error("Camera did not return a photo.");
+      }
+
+      setCapturedUri(picture.uri);
+      setCaption(`Checked in for ${habitName}.`);
+    } catch (captureError) {
+      setError(
+        captureError instanceof Error ? captureError.message : "Failed to submit your habit photo.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePost = async (options?: { skipVerification?: boolean }) => {
+    if (!id || !user?.id || !capturedUri || submitting) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+      setRetryMessage(null);
+      setRetryHint(null);
+
+      if (!options?.skipVerification) {
+        const verification = await verifySnapPhoto({
+          localUri: capturedUri,
+          promptText: prompt,
+        });
+
+        if (!verification.passed) {
+          setRetryMessage(verification.message);
+          setRetryHint(verification.retryHint);
+          return;
+        }
+      }
+
+      await submitSoloSnap({
+        habitId: id,
+        userId: user.id,
+        localUri: capturedUri,
+        caption,
+      });
+
+      router.replace("/");
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error ? submitError.message : "Failed to submit your habit photo.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRetake = () => {
+    if (submitting) {
+      return;
+    }
+
+    setCapturedUri(null);
+    setCaption("");
+    setError(null);
+    setRetryMessage(null);
+    setRetryHint(null);
+  };
 
   if (!permission) {
     return <View style={{ flex: 1, backgroundColor: colors.black }} />;
@@ -93,12 +198,27 @@ export default function CameraScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.black }}>
       <CameraView
+        ref={cameraRef}
         style={StyleSheet.absoluteFill}
         facing={facing}
         flash={flash}
+        onCameraReady={() => setIsCameraReady(true)}
       />
       <Flash />
       <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+        {capturedUri ? (
+          <View style={StyleSheet.absoluteFill}>
+            <Image source={{ uri: capturedUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  backgroundColor: colors.black + "33",
+                },
+              ]}
+            />
+          </View>
+        ) : null}
         <View
           style={{
             paddingHorizontal: spacing.lg,
@@ -133,7 +253,7 @@ export default function CameraScreen() {
                 color={colors.bg}
                 style={{ fontFamily: fonts.heading, fontSize: 17, lineHeight: 22 }}
               >
-                {habit.name}
+                {habitName}
               </Typography>
               <Row gap={spacing.xs}>
                 <Icon icon={Clock01Icon} size={11} color={colors.bg} />
@@ -147,6 +267,7 @@ export default function CameraScreen() {
             </Stack>
             <AnimatedPress
               onPress={() => setFlash(flash === "off" ? "on" : "off")}
+              disabled={submitting || !!capturedUri}
               style={{
                 width: 40,
                 height: 40,
@@ -175,6 +296,7 @@ export default function CameraScreen() {
             backgroundColor: colors.bg + "f2",
             borderWidth: 1,
             borderColor: colors.primarySoft,
+            opacity: capturedUri ? 0 : 1,
           }}
         >
           <Row gap={spacing.sm} style={{ alignItems: "flex-start" }}>
@@ -201,25 +323,169 @@ export default function CameraScreen() {
 
         <View style={{ flex: 1 }} />
 
-        <View style={{ paddingBottom: spacing.lg }}>
-          <Row style={{ justifyContent: "space-around", alignItems: "center", paddingHorizontal: spacing.xl }}>
-            <View style={{ width: 52 }} />
-            <ShutterButton onCapture={triggerFlash} />
-            <AnimatedPress
-              onPress={() => setFacing(facing === "back" ? "front" : "back")}
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: radius.pill,
-                backgroundColor: colors.black + "80",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Icon icon={CameraRotated01Icon} size={22} color={colors.bg} />
-            </AnimatedPress>
-          </Row>
-        </View>
+        {error ? (
+          <View
+            style={{
+              marginHorizontal: spacing.lg,
+              marginBottom: spacing.md,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm,
+              borderRadius: radius.md,
+              backgroundColor: colors.bg + "f2",
+            }}
+          >
+            <Typography color={colors.danger} style={{ textAlign: "center" }}>
+              {error}
+            </Typography>
+          </View>
+        ) : null}
+
+        {retryMessage ? (
+          <View
+            style={{
+              marginHorizontal: spacing.lg,
+              marginBottom: spacing.md,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.md,
+              borderRadius: radius.md,
+              backgroundColor: colors.bg + "f2",
+              gap: spacing.xs,
+            }}
+          >
+            <Typography style={{ color: colors.fg, fontFamily: fonts.bodyBold, textAlign: "center" }}>
+              {retryMessage}
+            </Typography>
+            {retryHint ? (
+              <Typography color={colors.fgMuted} style={{ textAlign: "center" }}>
+                {retryHint}
+              </Typography>
+            ) : null}
+          </View>
+        ) : null}
+
+        {capturedUri ? (
+          <View
+            style={{
+              marginHorizontal: spacing.lg,
+              marginBottom: spacing.lg,
+              padding: spacing.lg,
+              borderRadius: radius.lg,
+              backgroundColor: colors.bg + "f2",
+              gap: spacing.md,
+            }}
+          >
+            <Stack gap={spacing.xs}>
+              <Typography variant="metaItalic" color={colors.primary}>
+                Add a caption
+              </Typography>
+              <TextInput
+                value={caption}
+                onChangeText={setCaption}
+                placeholder={`Checked in for ${habitName}.`}
+                placeholderTextColor={colors.fgFaint}
+                multiline
+                editable={!submitting}
+                style={{
+                  minHeight: 76,
+                  borderRadius: radius.md,
+                  backgroundColor: colors.bgRaised,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.md,
+                  color: colors.fg,
+                  fontFamily: fonts.body,
+                  fontSize: 15,
+                  lineHeight: 22,
+                  textAlignVertical: "top",
+                }}
+              />
+            </Stack>
+            <Row style={{ justifyContent: "space-between" }}>
+              <AnimatedPress
+                onPress={handleRetake}
+                disabled={submitting}
+                style={{
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.md,
+                  borderRadius: radius.pill,
+                  backgroundColor: colors.bgRaised,
+                }}
+              >
+                <Typography style={{ fontFamily: fonts.bodyBold, color: colors.fg }}>
+                  Retake
+                </Typography>
+              </AnimatedPress>
+              <Stack gap={spacing.sm} style={{ alignItems: "flex-end" }}>
+                <AnimatedPress
+                  onPress={() => handlePost()}
+                  disabled={submitting}
+                  style={{
+                    minWidth: 138,
+                    paddingHorizontal: spacing.lg,
+                    paddingVertical: spacing.md,
+                    borderRadius: radius.pill,
+                    backgroundColor: colors.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color={colors.onPrimary} />
+                  ) : (
+                    <Typography style={{ fontFamily: fonts.bodyBold, color: colors.onPrimary }}>
+                      Verify & Post
+                    </Typography>
+                  )}
+                </AnimatedPress>
+                {demoPassEnabled ? (
+                  <AnimatedPress
+                    onPress={() => handlePost({ skipVerification: true })}
+                    disabled={submitting}
+                    style={{
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
+                      borderRadius: radius.pill,
+                      backgroundColor: colors.bgRaised,
+                      borderWidth: 1,
+                      borderColor: colors.primarySoft,
+                    }}
+                  >
+                    <Typography style={{ fontFamily: fonts.bodyBold, color: colors.primary }}>
+                      Use Demo Pass
+                    </Typography>
+                  </AnimatedPress>
+                ) : null}
+              </Stack>
+            </Row>
+          </View>
+        ) : (
+          <View style={{ paddingBottom: spacing.lg }}>
+            <Row style={{ justifyContent: "space-around", alignItems: "center", paddingHorizontal: spacing.xl }}>
+              <View style={{ width: 52 }} />
+              <View style={{ alignItems: "center", justifyContent: "center" }}>
+                <ShutterButton onCapture={handleCapture} disabled={submitting || !isCameraReady} />
+                {submitting ? (
+                  <View style={{ position: "absolute" }}>
+                    <ActivityIndicator color={colors.primary} />
+                  </View>
+                ) : null}
+              </View>
+              <AnimatedPress
+                onPress={() => setFacing(facing === "back" ? "front" : "back")}
+                disabled={submitting}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: radius.pill,
+                  backgroundColor: colors.black + "80",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Icon icon={CameraRotated01Icon} size={22} color={colors.bg} />
+              </AnimatedPress>
+            </Row>
+          </View>
+        )}
       </SafeAreaView>
     </View>
   );

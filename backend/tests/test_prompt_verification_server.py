@@ -101,6 +101,48 @@ class PromptVerificationServerTests(unittest.TestCase):
         self.assertIn("comment", payload)
         self.assertEqual(payload["source"], "fallback")
 
+    def test_verify_photo_raw_returns_judgement_without_ai_provider(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "OPENAI_API_KEY": "",
+                "ANTHROPIC_API_KEY": "",
+            },
+            clear=False,
+        ):
+            response = self.client.post(
+                "/verify-photo-raw",
+                params={
+                    "prompt_text": "Take a joyful hydration photo",
+                    "participant_count": 1,
+                },
+                content=b"\xff\xd8\xff" + (b"x" * 25000),
+                headers={"content-type": "image/jpeg"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("passed", payload)
+        self.assertIn("reason", payload)
+        self.assertIn("comment", payload)
+        self.assertEqual(payload["source"], "fallback")
+
+    def test_verify_photo_raw_handles_cors_preflight(self) -> None:
+        response = self.client.options(
+            "/verify-photo-raw",
+            params={
+                "prompt_text": "Take a joyful hydration photo",
+                "participant_count": 1,
+            },
+            headers={
+                "origin": "http://localhost:55030",
+                "access-control-request-method": "POST",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["access-control-allow-origin"], "*")
+
     def test_verify_photo_falls_back_when_provider_errors(self) -> None:
         with patch.dict(
             os.environ,
