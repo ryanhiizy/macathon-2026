@@ -25,20 +25,20 @@ type SectionData =
   | { type: "circle"; data: CircleRow };
 
 const FRIEND_THREAD_ID: Record<string, string> = {
-  a: "dm1",
-  b: "dm2",
-  c: "dm4",
-  d: "dm5",
-  e: "dm7",
-  f: "dm8",
-  g: "dm9",
+  joel: "dm-joel",
+  emily: "dm-emily",
+  ryan: "dm-ryan",
+  mu04: "dm4",
+  mu05: "dm7",
+  mu06: "dm8",
+  mu07: "dm9",
 };
 
 const CIRCLE_THREAD_ID: Record<string, string> = {
-  "1": "dm6",
-  "2": "circle-2",
-  "3": "dm3",
-  "4": "circle-4",
+  "1": "group-morning",
+  "2": "group-team",
+  "3": "group-morning",
+  "4": "group-team",
 };
 
 export default function NewChat() {
@@ -85,7 +85,7 @@ export default function NewChat() {
   const handleSelect = useCallback(
     (item: SectionData) => {
       if (item.type === "person") {
-        const threadId = FRIEND_THREAD_ID[item.data.id] ?? "dm1";
+        const threadId = FRIEND_THREAD_ID[item.data.id] ?? `dm-${item.data.id}`;
         router.replace(`/chat/${threadId}`);
       } else {
         const threadId = CIRCLE_THREAD_ID[item.data.id] ?? `circle-${item.data.id}`;

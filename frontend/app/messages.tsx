@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -10,13 +10,14 @@ import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icon";
 import { Row } from "@/components/layout";
 import { Typography } from "@/components/typography";
-import { CHAT_THREADS, type ChatThread } from "@/lib/mock";
+import { type ChatThread } from "@/lib/mock";
+import { useThreads } from "@/lib/messages";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Messages() {
   const router = useRouter();
-  const [threads] = useState(CHAT_THREADS);
+  const { threads } = useThreads();
 
   const renderItem = useCallback(
     ({ item }: { item: ChatThread }) => (
