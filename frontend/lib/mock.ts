@@ -145,6 +145,8 @@ export type DispatchPost = {
   value: string;
   unit: string;
   caption: string;
+  likes: number;
+  comments: number;
 };
 
 export type FeedPost = SoloPost | GroupPost | DispatchPost;
@@ -177,6 +179,8 @@ export const FEED_POSTS: FeedPost[] = [
     value: "50",
     unit: "days of running",
     caption: "Her longest streak yet — and she's still going. Give her the flowers.",
+    likes: 31,
+    comments: 8,
   },
   {
     id: "p2",

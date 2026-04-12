@@ -69,21 +69,16 @@ export default function Home() {
 
     setRefreshing(true);
     setPullMessageIdx((index) => (index + 1) % PULL_MESSAGES.length);
+    void refreshFeed();
     refreshTimeoutRef.current = setTimeout(() => {
       setRefreshing(false);
       refreshTimeoutRef.current = null;
     }, 900);
   };
 
-  const feedPosts = useMemo(() => getFeedPosts(user?.id), [user?.id]);
-  const friendsPosts = useMemo(
-    () => feedPosts.filter((post) => post.kind !== "group"),
-    [feedPosts],
-  );
-  const circlePosts = useMemo(
-    () => feedPosts.filter((post) => post.kind === "group"),
-    [feedPosts],
-  );
+  const feedPosts = posts.length > 0 ? posts : getFeedPosts(user?.id);
+  const friendsPosts = feedPosts.filter((post) => post.kind !== "group");
+  const circlePosts = feedPosts.filter((post) => post.kind === "group");
 
   const header = (
     <Stack gap={spacing.lg}>
@@ -163,6 +158,7 @@ function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: str
           return (
             <BragStat
               key={post.id}
+              id={post.id}
               name={post.name}
               handle={post.handle}
               when={post.when}
@@ -172,6 +168,9 @@ function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: str
               value={post.value}
               unit={post.unit}
               caption={post.caption}
+              likes={post.likes}
+              comments={post.comments}
+              onComment={() => onComment(post.id)}
             />
           );
         }

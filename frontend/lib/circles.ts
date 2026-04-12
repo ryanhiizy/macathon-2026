@@ -11,6 +11,8 @@ import { Dumbbell01Icon, CookBookIcon } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
 import { colors } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
+import { DEMO_USERS } from "@/lib/demo-users";
+import { MOCK_USERS } from "@/lib/mock-users";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -40,6 +42,7 @@ export type CircleMemberView = {
   id: string;
   name: string;
   handle: string;
+  lastActive: string | null;
   letter: string;
   color: string;
   streak: number;
@@ -65,6 +68,31 @@ export type CircleSnapView = {
 // ---------------------------------------------------------------------------
 
 type CircleConfigEntry = { icon: HugeiconsProps["icon"]; accent: string; habit: string };
+type CircleMemberRow = {
+  user_id: string;
+  current_streak: number;
+  profiles: {
+    id: string;
+    display_name: string | null;
+    handle: string | null;
+    avatar_url: string | null;
+  }[] | null;
+};
+type CircleSnapRow = {
+  id: string;
+  user_id: string;
+  prompt_text: string;
+  caption: string | null;
+  storage_path: string;
+  streak_after_completion: number;
+  is_group_post: boolean;
+  created_at: string;
+};
+type ProfileMapRow = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
 
 const CIRCLE_CONFIG: Record<string, CircleConfigEntry> = {
   "c0000000-0000-0000-0000-000000000001": { icon: RunningShoesIcon, accent: colors.orange, habit: "Run 5 kilometers" },
@@ -84,9 +112,14 @@ const CIRCLE_CONFIG: Record<string, CircleConfigEntry> = {
 };
 
 const DEFAULT_CONFIG: CircleConfigEntry = { icon: SunriseIcon, accent: colors.primary, habit: "Daily habit" };
+const runtimeCircleConfigs = new Map<string, CircleConfigEntry>();
 
 function circleConfig(id: string) {
-  return CIRCLE_CONFIG[id] ?? DEFAULT_CONFIG;
+  return runtimeCircleConfigs.get(id) ?? CIRCLE_CONFIG[id] ?? DEFAULT_CONFIG;
+}
+
+export function rememberCircleConfig(circleId: string, config: CircleConfigEntry) {
+  runtimeCircleConfigs.set(circleId, config);
 }
 
 /** Generate deterministic mock analytics from circle ID. */
@@ -377,8 +410,152 @@ export async function fetchCircle(circleId: string): Promise<CircleView | null> 
   };
 }
 
+// ---------------------------------------------------------------------------
+// Mock leaderboard (demo / hackathon — no DB seed required)
+// ---------------------------------------------------------------------------
+
+type LeaderboardSeedUser = {
+  id: string;
+  name: string;
+  handle: string;
+  letter: string;
+};
+
+const MOCK_LAST_ACTIVE = [
+  "Just now",
+  "1m ago",
+  "3m ago",
+  "7m ago",
+  "12m ago",
+  "18m ago",
+  "25m ago",
+  "34m ago",
+  "48m ago",
+  "1h ago",
+  "2h ago",
+  "3h ago",
+  "5h ago",
+  "8h ago",
+  "14h ago",
+  "21h ago",
+  "1d ago",
+  "2d ago",
+  "4d ago",
+  "6d ago",
+];
+
+function hashCircleId(circleId: string): number {
+  let h = 0;
+  for (let i = 0; i < circleId.length; i++) {
+    h = (h * 31 + circleId.charCodeAt(i)) >>> 0;
+  }
+  return h;
+}
+
+function leaderboardUserPool(): LeaderboardSeedUser[] {
+  const demo: LeaderboardSeedUser[] = DEMO_USERS.map((u) => ({
+    id: u.id,
+    name: u.name,
+    handle: `@${u.name.toLowerCase()}`,
+    letter: u.name[0]?.toUpperCase() ?? "?",
+  }));
+  const mock: LeaderboardSeedUser[] = MOCK_USERS.map((u) => ({
+    id: u.id,
+    name: u.name,
+    handle: u.handle,
+    letter: u.letter,
+  }));
+  return [...demo, ...mock];
+}
+
+function pickLeaderboardSeeds(circleId: string, count: number): LeaderboardSeedUser[] {
+  const pool = leaderboardUserPool();
+  const order = pool.map((_, i) => i);
+  let s = hashCircleId(circleId);
+  for (let i = order.length - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) >>> 0;
+    const j = s % (i + 1);
+    const tmp = order[i]!;
+    order[i] = order[j]!;
+    order[j] = tmp;
+  }
+  const picked: LeaderboardSeedUser[] = [];
+  const seen = new Set<string>();
+  for (const idx of order) {
+    if (picked.length >= count) break;
+    const u = pool[idx]!;
+    if (!seen.has(u.id)) {
+      seen.add(u.id);
+      picked.push(u);
+    }
+  }
+  return picked;
+}
+
+function shuffleStrings(seed: string, items: string[]): string[] {
+  const out = [...items];
+  let s = hashCircleId(seed);
+  for (let i = out.length - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) >>> 0;
+    const j = s % (i + 1);
+    const tmp = out[i]!;
+    out[i] = out[j]!;
+    out[j] = tmp;
+  }
+  return out;
+}
+
+/** Irregular rungs so no two rows share a streak; small tweak stays within gaps. */
+const STREAK_RUNGS = [104, 95, 86, 78, 70, 62, 54, 46];
+
+function mockCircleMembers(circleId: string, viewerId?: string): CircleMemberView[] {
+  const count = 8;
+  let seeds = pickLeaderboardSeeds(circleId, count);
+  const pool = leaderboardUserPool();
+
+  if (viewerId && !seeds.some((u) => u.id === viewerId)) {
+    const viewer = pool.find((u) => u.id === viewerId);
+    seeds = seeds.slice(0, -1);
+    seeds.push(
+      viewer ?? {
+        id: viewerId,
+        name: "You",
+        handle: "",
+        letter: "Y",
+      },
+    );
+  }
+
+  const lastActives = shuffleStrings(`${circleId}:last`, MOCK_LAST_ACTIVE).slice(0, count);
+  const streakById = new Map<string, number>();
+  const byId = [...seeds].sort((a, b) => a.id.localeCompare(b.id));
+  byId.forEach((u, i) => {
+    const rung = STREAK_RUNGS[i] ?? 40;
+    const tweak = (hashCircleId(`${u.id}:${circleId}`) % 3) - 1;
+    streakById.set(u.id, Math.max(3, rung + tweak));
+  });
+
+  const members: CircleMemberView[] = seeds.map((u, i) => ({
+    id: u.id,
+    name: u.name,
+    handle: u.handle,
+    lastActive: lastActives[i] ?? "Just now",
+    letter: u.letter,
+    color: userColor(u.id),
+    streak: streakById.get(u.id) ?? 40,
+    avatarUrl: null,
+  }));
+
+  return members.sort((a, b) => b.streak - a.streak);
+}
+
+/** Deterministic mock leaderboard for any circle (no DB / seed). */
+export function getMockCircleLeaderboard(circleId: string, viewerId?: string): CircleMemberView[] {
+  return mockCircleMembers(circleId, viewerId);
+}
+
 /**
- * Fetch all members of a circle, sorted by streak (descending).
+ * Fetch circle members from Supabase (About tab, member counts). Leaderboard uses {@link getMockCircleLeaderboard}.
  */
 export async function fetchCircleMembers(circleId: string): Promise<CircleMemberView[]> {
   const { data, error } = await supabase
@@ -392,13 +569,31 @@ export async function fetchCircleMembers(circleId: string): Promise<CircleMember
     return [];
   }
 
-  return data.map((row: any): CircleMemberView => {
-    const profile = row.profiles;
+  const typedMembers = data as CircleMemberRow[];
+  const userIds = typedMembers.map((row) => row.user_id);
+  const { data: latestSnaps } = await supabase
+    .from("snaps")
+    .select("user_id, created_at")
+    .eq("circle_id", circleId)
+    .in("user_id", userIds)
+    .order("created_at", { ascending: false });
+
+  const lastSnapMap = new Map<string, string>();
+  for (const snap of latestSnaps ?? []) {
+    if (!lastSnapMap.has(snap.user_id)) {
+      lastSnapMap.set(snap.user_id, snap.created_at);
+    }
+  }
+
+  return typedMembers.map((row): CircleMemberView => {
+    const profile = row.profiles?.[0] ?? null;
     const name = profile?.display_name ?? "Unknown";
+    const lastSnap = lastSnapMap.get(row.user_id);
     return {
       id: row.user_id,
       name,
       handle: profile?.handle ? `@${profile.handle}` : "",
+      lastActive: lastSnap ? timeAgo(lastSnap) : null,
       letter: name[0]?.toUpperCase() ?? "?",
       color: userColor(row.user_id),
       streak: row.current_streak,
@@ -425,17 +620,17 @@ export async function fetchCircleSnaps(circleId: string): Promise<CircleSnapView
   }
 
   // Batch-fetch profiles for all snap authors
-  const userIds = [...new Set(snapRows.map((s: any) => s.user_id))];
+  const typedSnapRows = snapRows as CircleSnapRow[];
+  const userIds = [...new Set(typedSnapRows.map((snap) => snap.user_id))];
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, display_name, avatar_url")
     .in("id", userIds);
 
-  const profileMap = new Map(
-    (profiles ?? []).map((p: any) => [p.id, p])
-  );
+  const typedProfiles = (profiles ?? []) as ProfileMapRow[];
+  const profileMap = new Map(typedProfiles.map((profile) => [profile.id, profile]));
 
-  return snapRows.map((snap: any): CircleSnapView => {
+  return typedSnapRows.map((snap): CircleSnapView => {
     const profile = profileMap.get(snap.user_id);
     const name = profile?.display_name ?? "Unknown";
     return {

@@ -6,10 +6,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
-import { BlurView } from "expo-blur";
 import { Image, type ImageSource } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
-import MaskedView from "@react-native-masked-view/masked-view";
 import { Typography } from "@/components/typography";
 import { pickPhoto } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
@@ -17,11 +14,10 @@ import { colors, fonts, radius, spacing } from "@/lib/theme";
 type Props = {
   photoIdxs?: number[];
   photos?: ImageSource[];
-  overlay?: ReactNode;
   footer?: ReactNode;
 };
 
-export function PhotoCarousel({ photoIdxs, photos, overlay, footer }: Props) {
+export function PhotoCarousel({ photoIdxs, photos, footer }: Props) {
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState(0);
 
@@ -41,7 +37,7 @@ export function PhotoCarousel({ photoIdxs, photos, overlay, footer }: Props) {
   const isMulti = sources.length > 1;
 
   const dots = isMulti ? (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+    <View style={{ position: "absolute", left: 0, right: 0, bottom: spacing.md, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 }}>
       {sources.map((_, index) => (
         <View
           key={index}
@@ -53,33 +49,6 @@ export function PhotoCarousel({ photoIdxs, photos, overlay, footer }: Props) {
           }}
         />
       ))}
-    </View>
-  ) : null;
-
-  const bottomOverlay = overlay || isMulti ? (
-    <View style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
-      <MaskedView
-        style={{ height: 90 }}
-        maskElement={<LinearGradient colors={["transparent", "black"]} style={{ flex: 1 }} />}
-      >
-        <BlurView intensity={50} tint="dark" style={{ flex: 1 }} />
-      </MaskedView>
-      <View
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          paddingHorizontal: spacing.lg,
-          paddingBottom: spacing.md,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: overlay ? "space-between" : "center",
-        }}
-      >
-        {overlay}
-        {dots}
-      </View>
     </View>
   ) : null;
 
@@ -99,7 +68,6 @@ export function PhotoCarousel({ photoIdxs, photos, overlay, footer }: Props) {
             contentFit="cover"
             transition={240}
           />
-          {bottomOverlay}
         </View>
         {footer}
       </View>
@@ -134,7 +102,7 @@ export function PhotoCarousel({ photoIdxs, photos, overlay, footer }: Props) {
               />
             ))}
           </ScrollView>
-          {bottomOverlay}
+          {dots}
         </View>
         <View
           style={{

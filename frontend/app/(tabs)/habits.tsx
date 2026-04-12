@@ -13,7 +13,7 @@ import Svg, { Circle } from "react-native-svg";
 import { CoachInsightTeaser } from "@/components/CoachInsightCard";
 import { AnimatedPress } from "@/components/animated-press";
 import { Icon } from "@/components/icon";
-import { Divider, Row, Screen, Stack } from "@/components/layout";
+import { Row, Screen, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { useAuth } from "@/lib/auth-context";
 import { fetchHabits, generateMockHabits, type HabitView } from "@/lib/habits";
@@ -329,19 +329,16 @@ export default function Habits() {
                     {doneInGroup} of {items.length}
                   </Typography>
                 </Row>
-                <Divider />
                 <Stack gap={0}>
-                  {items.map((habit, index) => (
-                    <View key={habit.id}>
-                      <HabitRow
-                        habit={habit}
-                        urgency={getUrgency(habit)}
-                        onOpen={() => router.push(`/habit/${habit.id}`)}
-                        onInvite={() => router.push(`/invite/${habit.id}`)}
-                        onProve={() => router.push(`/camera/${habit.id}`)}
-                      />
-                      {index < items.length - 1 ? <Divider /> : null}
-                    </View>
+                  {items.map((habit) => (
+                    <HabitRow
+                      key={habit.id}
+                      habit={habit}
+                      urgency={getUrgency(habit)}
+                      onOpen={() => router.push(`/habit/${habit.id}`)}
+                      onInvite={() => router.push(`/invite/${habit.id}`)}
+                      onProve={() => router.push(`/camera/${habit.id}`)}
+                    />
                   ))}
                 </Stack>
               </Stack>

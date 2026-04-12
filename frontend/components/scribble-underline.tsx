@@ -30,7 +30,7 @@ export function ScribbleUnderline({
   color = "#8B7EC8",
   strokeWidth = 2.4,
   delay = 260,
-  duration = 620,
+  duration = 1000,
 }: ScribbleUnderlineProps) {
   const progress = useSharedValue(0);
 

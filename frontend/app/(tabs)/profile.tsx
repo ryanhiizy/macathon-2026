@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, Share, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -248,8 +248,6 @@ export default function Profile() {
             ))}
           </Row>
 
-          <DemoNotificationButton userId={user?.id} fallbackHabit={demoHabit} />
-
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
             {POSTS.map((post, index) => (
               <View key={index} style={{ width: "31.8%" }}>
@@ -272,6 +270,8 @@ export default function Profile() {
             ))}
           </View>
 
+          <DemoNotificationButton userId={user?.id} fallbackHabit={demoHabit} />
+
           {error ? (
             <Card style={{ borderColor: colors.danger }}>
               <Typography variant="bodyMuted" color={colors.danger}>
@@ -293,11 +293,28 @@ function DemoNotificationButton({
   fallbackHabit?: HabitView | null;
 }) {
   const [sent, setSent] = useState(false);
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   const handlePress = async () => {
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+    }
+
     setSent(true);
     await triggerDemoNotification(5, fallbackHabit ?? null, userId);
-    setTimeout(() => setSent(false), 3000);
+    resetTimeoutRef.current = setTimeout(() => {
+      setSent(false);
+      resetTimeoutRef.current = null;
+    }, 3000);
   };
 
   return (
@@ -305,7 +322,7 @@ function DemoNotificationButton({
       <Row
         gap={spacing.md}
         style={{
-          paddingVertical: spacing.md,
+          paddingVertical: spacing.xs,
           alignItems: "center",
         }}
       >
@@ -314,17 +331,17 @@ function DemoNotificationButton({
             width: 40,
             height: 40,
             borderRadius: radius.md,
-            backgroundColor: colors.primarySoft,
+            backgroundColor: colors.primary,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon icon={Notification03Icon} size={20} color={colors.primary} strokeWidth={1.8} />
+          <Icon icon={Notification03Icon} size={20} color={colors.onPrimary} strokeWidth={1.8} />
         </View>
         <Stack gap={2} style={{ flex: 1 }}>
           <Typography
             style={{
-              fontFamily: fonts.bodyBold,
+              fontFamily: fonts.bodyMedium,
               fontSize: 15,
               lineHeight: 20,
               color: colors.fg,
