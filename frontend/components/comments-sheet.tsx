@@ -76,11 +76,13 @@ export function CommentsSheet({ postId, onClose, onCommentPosted }: Props) {
   // Fetch comments from DB when sheet opens
   useEffect(() => {
     if (!postId) return;
+    let stale = false;
     setLoading(true);
     fetchComments(postId)
-      .then(setComments)
+      .then((data) => { if (!stale) setComments(data); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!stale) setLoading(false); });
+    return () => { stale = true; };
   }, [postId]);
 
   const dismiss = useCallback(() => {
