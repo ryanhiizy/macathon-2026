@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -20,11 +20,11 @@ import { Icon } from "@/components/icon";
 import { Row } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import {
-  CHAT_MESSAGES,
   CHAT_THREADS,
   CIRCLES,
   type ChatMessage,
 } from "@/lib/mock";
+import { useMessages } from "@/lib/messages";
 import { colors, fonts, spacing } from "@/lib/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -36,38 +36,14 @@ export default function Chat() {
     if (!id?.startsWith("circle-")) return null;
     return CIRCLES.find((circle) => circle.id === id.replace("circle-", "")) ?? null;
   }, [id]);
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    () => (id ? CHAT_MESSAGES[id] ?? [] : []),
-  );
+  const { messages, sendMessage: sendToDb } = useMessages(id);
   const [text, setText] = useState("");
   const listRef = useRef<FlatList<ChatMessage>>(null);
-
-  useEffect(() => {
-    setMessages(id ? CHAT_MESSAGES[id] ?? [] : []);
-  }, [id]);
-
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const frame = requestAnimationFrame(() => {
-      listRef.current?.scrollToEnd({ animated: false });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [messages.length]);
 
   const sendMessage = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    const msg: ChatMessage = {
-      id: `sent-${Date.now()}`,
-      senderId: "me",
-      senderName: "You",
-      senderColor: colors.purple,
-      senderLetter: "B",
-      text: trimmed,
-      when: "now",
-      isMe: true,
-    };
-    setMessages((prev) => [...prev, msg]);
+    sendToDb(trimmed);
     setText("");
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
   };
