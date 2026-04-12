@@ -65,6 +65,8 @@ export type CircleSnapView = {
   photos: { uri: string }[];
   when: string;
   isGroup: boolean;
+  likes?: number;
+  comments?: number;
 };
 
 // ---------------------------------------------------------------------------

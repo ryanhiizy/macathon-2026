@@ -65,7 +65,7 @@ export default function CircleDetail() {
     contentContainerStyle: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.sm,
-      paddingBottom: 120,
+      paddingBottom: 24,
     },
     showsVerticalScrollIndicator: false,
   } as const;
@@ -242,7 +242,7 @@ export default function CircleDetail() {
                 {circle.members} members · {circle.memberLabel}
               </Typography>
               <Typography variant="metaItalic" color={colors.fgFaint}>
-                {circle.habit}
+                {circle.habit.charAt(0).toUpperCase() + circle.habit.slice(1)}
               </Typography>
             </View>
           </Row>
@@ -297,55 +297,55 @@ function FeedTab({ snaps, onComment }: { snaps: CircleSnapView[]; onComment: (id
           <Row style={{ justifyContent: "space-between" }}>
             <Row gap={spacing.md}>
               <Avatar color={snap.color} letter={snap.letter} size={40} ring={false} />
-              <Stack gap={2}>
+              <View>
                 <Typography variant="label">{snap.name}</Typography>
                 <Typography variant="metaItalic">{snap.when}</Typography>
-              </Stack>
+              </View>
             </Row>
             <StreakFlame days={snap.streak} />
           </Row>
-          <Typography
-            variant="metaItalic"
-            color={colors.fgFaint}
-            style={{ marginTop: -spacing.xs }}
-          >
-            {snap.promptText}
-          </Typography>
-          {snap.isGroup ? (
-            <View
-              style={{
-                alignSelf: "flex-start",
-                backgroundColor: colors.bgRaised,
-                borderRadius: radius.pill,
-                paddingHorizontal: spacing.sm,
-                paddingVertical: 6,
-              }}
+
+          {snap.promptText ? (
+            <Typography
+              variant="metaItalic"
+              color={colors.fgMuted}
+              style={{ paddingHorizontal: spacing.xs }}
             >
-              <Typography variant="meta" color={colors.fgFaint}>
-                Group post
-              </Typography>
-            </View>
+              {"\u2728"} {snap.promptText}
+            </Typography>
           ) : null}
+
           {snap.caption ? (
-            <Typography variant="body">{snap.caption}</Typography>
+            <Typography variant="body" style={{ paddingHorizontal: spacing.xs }}>
+              {snap.caption}
+            </Typography>
           ) : null}
-          <PhotoCarousel photos={snap.photos} />
-          <Row gap={spacing.xl}>
-            <LikeButton snapId={snap.id} initialCount={0} />
-            <AnimatedPress
-              onPress={() => onComment(snap.id)}
-              style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
-              scale={0.9}
-              haptic={false}
-            >
-              <Icon icon={Comment01Icon} size={18} color={colors.fg} strokeWidth={1.7} />
-              <Typography variant="meta" color={colors.fg}>
-                0
-              </Typography>
-            </AnimatedPress>
-          </Row>
+
+          <PhotoCarousel
+            photos={snap.photos}
+            footer={
+              <Row gap={spacing.md} style={{ paddingTop: spacing.sm, paddingHorizontal: spacing.xs }}>
+                <LikeButton snapId={snap.id} initialCount={snap.likes ?? 0} />
+                <AnimatedPress
+                  onPress={() => onComment(snap.id)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+                  scale={0.9}
+                  haptic={false}
+                >
+                  <Icon icon={Comment01Icon} size={18} color={colors.fg} strokeWidth={1.7} />
+                  <Typography variant="meta">{snap.comments ?? 0}</Typography>
+                </AnimatedPress>
+              </Row>
+            }
+          />
         </Stack>
       ))}
+      <Typography
+        variant="metaItalic"
+        style={{ textAlign: "center", paddingVertical: spacing.xl, color: colors.fgFaint }}
+      >
+        You&apos;re all caught up. Go make some presence.
+      </Typography>
     </Stack>
   );
 }

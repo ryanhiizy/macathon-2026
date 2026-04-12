@@ -263,7 +263,8 @@ export function buildCircleMemberLabel(input: CircleVariationInput): string {
   const pick = createSeededValueGenerator(`${input.circleId}:member-label`);
   const labelPool = MEMBER_LABELS[tone];
 
-  return labelPool[Math.floor(pick(231, 0, labelPool.length))] ?? MEMBER_LABELS.default[0];
+  const label = labelPool[Math.floor(pick(231, 0, labelPool.length))] ?? MEMBER_LABELS.default[0];
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export function buildFallbackCircleFeedPosts(

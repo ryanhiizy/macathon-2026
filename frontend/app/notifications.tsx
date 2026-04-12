@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, SectionList, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { AnimatedPress } from "@/components/animated-press";
 import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icon";
@@ -40,11 +40,25 @@ function bucketNotifications(items: Notification[]): Section[] {
 export default function Notifications() {
   const router = useRouter();
   const [notifications] = useState(NOTIFICATIONS);
+  const [followedIds, setFollowedIds] = useState<Record<string, boolean>>({});
   const sections = bucketNotifications(notifications);
 
+  const toggleFollow = useCallback((id: string) => {
+    setFollowedIds((current) => ({
+      ...current,
+      [id]: !current[id],
+    }));
+  }, []);
+
   const renderItem = useCallback(
-    ({ item }: { item: Notification }) => <NotificationRow item={item} />,
-    [],
+    ({ item }: { item: Notification }) => (
+      <NotificationRow
+        item={item}
+        followed={Boolean(followedIds[item.id])}
+        onToggleFollow={() => toggleFollow(item.id)}
+      />
+    ),
+    [followedIds, toggleFollow],
   );
 
   const renderSectionHeader = useCallback(
@@ -87,7 +101,15 @@ export default function Notifications() {
   );
 }
 
-function NotificationRow({ item }: { item: Notification }) {
+function NotificationRow({
+  item,
+  followed,
+  onToggleFollow,
+}: {
+  item: Notification;
+  followed: boolean;
+  onToggleFollow: () => void;
+}) {
   return (
     <Pressable
       style={[styles.notifRow, !item.read && styles.notifRowUnread]}
@@ -112,11 +134,34 @@ function NotificationRow({ item }: { item: Notification }) {
         />
       )}
       {item.type === "follow" && (
-        <Pressable style={styles.followBtn}>
-          <Typography style={{ fontFamily: fonts.bodySemibold, fontSize: 13, lineHeight: 16, color: colors.onPrimary }}>
-            Follow
-          </Typography>
-        </Pressable>
+        <AnimatedPress
+          onPress={onToggleFollow}
+          haptic="medium"
+          scale={0.92}
+          style={[
+            styles.followBtn,
+            followed
+              ? { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }
+              : { backgroundColor: colors.fg, borderColor: colors.fg },
+          ]}
+        >
+          {followed ? (
+            <Row gap={4}>
+              <Icon icon={Tick02Icon} size={14} color={colors.primary} strokeWidth={2.2} />
+              <Typography
+                style={{ fontFamily: fonts.bodySemibold, fontSize: 13, lineHeight: 16, color: colors.primary }}
+              >
+                Following
+              </Typography>
+            </Row>
+          ) : (
+            <Typography
+              style={{ fontFamily: fonts.bodySemibold, fontSize: 13, lineHeight: 16, color: colors.bg }}
+            >
+              Follow
+            </Typography>
+          )}
+        </AnimatedPress>
       )}
     </Pressable>
   );
@@ -153,9 +198,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   followBtn: {
-    backgroundColor: colors.black,
     paddingHorizontal: 16,
     paddingVertical: 7,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    alignItems: "center",
   },
 });
