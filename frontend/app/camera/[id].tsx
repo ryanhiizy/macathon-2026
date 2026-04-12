@@ -49,7 +49,6 @@ export default function CameraScreen() {
   const { trigger: triggerFlash, Flash } = useShutterFlash();
   const demoPassEnabled = useMemo(() => isDemoPassEnabled(), []);
   const [prompt, setPrompt] = useState(`Show yourself doing ${habitName.toLowerCase()}.`);
-  const [promptLoading, setPromptLoading] = useState(true);
 
   useEffect(() => {
     if (!id || !user?.id) {
@@ -65,8 +64,7 @@ export default function CameraScreen() {
       })
       .catch((loadError: unknown) => {
         setError(loadError instanceof Error ? loadError.message : "Failed to load habit.");
-      })
-      .finally(() => setPromptLoading(false));
+      });
   }, [id, user?.id]);
 
   const handleCapture = async () => {
