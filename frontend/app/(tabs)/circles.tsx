@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { View, type LayoutChangeEvent } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, View, type LayoutChangeEvent } from "react-native";
 import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Search01Icon,
   PlusSignIcon,
@@ -10,10 +11,41 @@ import { Typography } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { Sparkline } from "@/components/sparkline";
 import { AnimatedPress } from "@/components/animated-press";
+import { resolveCirclesLoadState } from "@/lib/circle-screen-state";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
-import { CIRCLES, type CircleRow } from "@/lib/mock";
+import { fetchMyCircles, type CircleView } from "@/lib/circles";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Circles() {
+  const { user, demoSession } = useAuth();
+  const [circles, setCircles] = useState<CircleView[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+
+    const loadState = resolveCirclesLoadState({
+      userId: user?.id,
+      demoSessionId: demoSession?.id,
+    });
+
+    if (loadState.kind !== "authenticated") {
+      setCircles([]);
+      setLoading(false);
+      return;
+    }
+
+    const data = await fetchMyCircles(loadState.userId);
+    setCircles(data);
+    setLoading(false);
+  }, [demoSession?.id, user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
   const header = (
     <Row style={{ justifyContent: "space-between" }}>
       <AnimatedPress
@@ -57,10 +89,20 @@ export default function Circles() {
     </Row>
   );
 
+  if (loading) {
+    return (
+      <Screen stickyHeader={header}>
+        <View style={{ paddingTop: spacing.xxl, alignItems: "center" }}>
+          <ActivityIndicator color={colors.fgFaint} />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen stickyHeader={header}>
       <Stack gap={spacing.xxl}>
-        {CIRCLES.map((circle) => (
+        {circles.map((circle) => (
           <CircleRowView key={circle.id} circle={circle} />
         ))}
       </Stack>
@@ -70,7 +112,7 @@ export default function Circles() {
 
 const WEEK_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 
-function CircleRowView({ circle }: { circle: CircleRow }) {
+function CircleRowView({ circle }: { circle: CircleView }) {
   const { analytics: a } = circle;
   const todayPct = Math.round(a.todayRate * 100);
   const [chartW, setChartW] = useState(0);
