@@ -32,7 +32,7 @@ function buildPromptText(habitName: string) {
   return `Show yourself doing ${habitName.toLowerCase()}.`;
 }
 
-export async function fetchAIPrompt(habitName: string): Promise<string> {
+export async function fetchAIPrompt(habitName: string, participantCount = 1): Promise<string> {
   const baseUrl = process.env.EXPO_PUBLIC_PROMPT_API_URL?.replace(/\/+$/, "");
   if (!baseUrl) {
     return buildPromptText(habitName);
@@ -42,7 +42,7 @@ export async function fetchAIPrompt(habitName: string): Promise<string> {
     const response = await fetch(`${baseUrl}/generate-prompt`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ habit: habitName, participant_count: 1 }),
+      body: JSON.stringify({ habit: habitName, participant_count: participantCount }),
     });
 
     if (!response.ok) {
@@ -296,5 +296,94 @@ export async function submitSoloSnap(params: {
     habitInstanceId,
     storagePath,
     snap: Array.isArray(data) ? data[0] : data,
+  };
+}
+
+export async function submitGroupSnap(params: {
+  habitId: string;
+  userId: string;
+  localUri: string;
+  caption?: string;
+  promptText?: string;
+}) {
+  // Look up the habit by ID only — group proves don't require ownership
+  const { data: habit, error: habitError } = await supabase
+    .from("habits")
+    .select("id, name, circle_id, target_time")
+    .eq("id", params.habitId)
+    .single();
+
+  if (habitError || !habit) {
+    throw new Error(habitError?.message ?? "Habit not found.");
+  }
+
+  // Get or create today's habit instance (shared across participants)
+  const range = getLocalDayRange();
+  const { data: existing, error: existingError } = await supabase
+    .from("habit_instances")
+    .select("id, status, window_closes_at")
+    .eq("habit_id", params.habitId)
+    .gte("scheduled_for", range.start)
+    .lt("scheduled_for", range.end)
+    .order("scheduled_for", { ascending: false })
+    .limit(1)
+    .maybeSingle<HabitInstanceRow>();
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  let habitInstanceId: string;
+
+  if (existing) {
+    habitInstanceId = existing.id;
+  } else {
+    const { data: created, error: createError } = await supabase
+      .from("habit_instances")
+      .insert({
+        habit_id: params.habitId,
+        scheduled_for: buildScheduledFor(habit.target_time),
+        window_closes_at: buildWindowClosesAt(),
+        prompt_id: `demo-group-${new Date().toISOString().slice(0, 10)}`,
+        prompt_text: params.promptText || buildPromptText(habit.name),
+      })
+      .select("id")
+      .single();
+
+    if (createError || !created) {
+      throw new Error(createError?.message ?? "Failed to create habit instance.");
+    }
+
+    habitInstanceId = created.id as string;
+  }
+
+  const storagePath = await uploadSnapPhoto(params.userId, habit.circle_id, params.localUri);
+  const caption = params.caption?.trim() || `Group prove for ${habit.name}.`;
+
+  const { data, error } = await supabase.rpc("complete_verified_solo_snap", {
+    p_habit_instance_id: habitInstanceId,
+    p_storage_path: storagePath,
+    p_detected_classes: [],
+    p_caption: caption,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  // Flag as group post
+  const snapResult = Array.isArray(data) ? data[0] : data;
+  if (snapResult?.snap_id) {
+    await supabase
+      .from("snaps")
+      .update({ is_group_post: true })
+      .eq("id", snapResult.snap_id);
+  }
+
+  return {
+    habit,
+    habitInstanceId,
+    storagePath,
+    snap: snapResult,
   };
 }
