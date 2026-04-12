@@ -28,6 +28,7 @@ import { SwipeableTabs } from "@/components/swipeable-tabs";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
 import { loadFeedPosts } from "@/lib/feed";
+import { filterPostsForHomeTab } from "@/lib/home-feed-tabs";
 import { useAuth } from "@/lib/auth-context";
 import type { FeedPost, GroupPost as GroupPostData, SoloPost as SoloPostData } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
@@ -82,8 +83,8 @@ export default function Home() {
     }, 900);
   };
 
-  const friendsPosts = posts.filter((post) => post.kind !== "group");
-  const circlePosts = posts.filter((post) => post.kind === "group");
+  const friendsPosts = filterPostsForHomeTab(posts, "friends");
+  const circlePosts = filterPostsForHomeTab(posts, "circles");
 
   const inkWidth = useSharedValue(0);
   useEffect(() => {
