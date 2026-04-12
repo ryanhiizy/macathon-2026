@@ -244,7 +244,7 @@ type DetailProps = {
   serverUrl?: string;
 };
 
-export function CoachInsightCard({ habitId, habitName, userId, serverUrl }: DetailProps) {
+function useCoachInsights({ habitId, habitName, userId, serverUrl }: DetailProps) {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -261,7 +261,6 @@ export function CoachInsightCard({ habitId, habitName, userId, serverUrl }: Deta
         return;
       }
 
-      // Try server
       if (serverUrl && habitId && userId) {
         try {
           const resp = await fetch(`${serverUrl}/coach-insight`, {
@@ -281,7 +280,6 @@ export function CoachInsightCard({ habitId, habitName, userId, serverUrl }: Deta
         }
       }
 
-      // Fallback: all demo insights for this habit
       if (!cancelled) {
         setInsights(getDemoInsights(habitId, habitName));
       }
@@ -293,12 +291,20 @@ export function CoachInsightCard({ habitId, habitName, userId, serverUrl }: Deta
     return () => { cancelled = true; };
   }, [fadeAnim, habitId, userId, serverUrl, habitName]);
 
-  async function dismiss() {
+  const dismiss = async () => {
     await AsyncStorage.setItem(getDismissKey(habitId), "1");
     Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       setDismissed(true);
     });
-  }
+  };
+
+  return { insights, dismissed, loading, fadeAnim, dismiss };
+}
+
+export function CoachInsightCard({ habitId, habitName, userId, serverUrl }: DetailProps) {
+  const { insights, dismissed, loading, fadeAnim, dismiss } = useCoachInsights({
+    habitId, habitName, userId, serverUrl,
+  });
 
   if (dismissed || loading || insights.length === 0) return null;
 
@@ -388,6 +394,104 @@ export function CoachInsightCard({ habitId, habitName, userId, serverUrl }: Deta
           ))}
         </Stack>
       </Card>
+    </Animated.View>
+  );
+}
+
+// ── Subtle inline coach (restyled for habit detail page) ───────────────
+
+export function CoachInsightInline({ habitId, habitName, userId, serverUrl }: DetailProps) {
+  const { insights, dismissed, loading, fadeAnim, dismiss } = useCoachInsights({
+    habitId, habitName, userId, serverUrl,
+  });
+
+  if (dismissed || loading || insights.length === 0) return null;
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim }}>
+      <View
+        style={{
+          backgroundColor: colors.bgRaised,
+          borderRadius: radius.lg,
+          padding: spacing.lg,
+          gap: spacing.md,
+        }}
+      >
+        <Row style={{ justifyContent: "space-between" }}>
+          <Row gap={spacing.sm}>
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: radius.pill,
+                backgroundColor: `${colors.purple}14`,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon icon={AiMagicIcon} size={14} color={colors.purple} />
+            </View>
+            <Typography
+              style={{
+                fontFamily: fonts.bodySemibold,
+                fontSize: 13,
+                lineHeight: 16,
+                color: colors.purple,
+              }}
+            >
+              Coach
+            </Typography>
+          </Row>
+          <Pressable
+            onPress={dismiss}
+            hitSlop={12}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: radius.pill,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon icon={Cancel01Icon} size={14} color={colors.fgDim} />
+          </Pressable>
+        </Row>
+
+        {insights.map((insight, i) => (
+          <View key={i}>
+            {i > 0 && (
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: colors.border,
+                  marginBottom: spacing.md,
+                }}
+              />
+            )}
+            <Typography
+              style={{
+                fontFamily: fonts.bodySemibold,
+                fontSize: 14,
+                lineHeight: 19,
+                color: colors.fg,
+              }}
+            >
+              {insight.headline}
+            </Typography>
+            <Typography
+              style={{
+                fontFamily: fonts.body,
+                fontSize: 13,
+                lineHeight: 19,
+                color: colors.fgMuted,
+                marginTop: 2,
+              }}
+            >
+              {insight.detail}
+            </Typography>
+          </View>
+        ))}
+      </View>
     </Animated.View>
   );
 }

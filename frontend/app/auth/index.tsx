@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { Screen, Stack } from "@/components/layout";
+import { ScribbleUnderline } from "@/components/scribble-underline";
 import { Typography } from "@/components/typography";
 import { Avatar } from "@/components/avatar";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
@@ -34,17 +35,22 @@ export default function DemoPickerScreen() {
     <Screen contentStyle={{ flexGrow: 1, justifyContent: "center" }}>
       <Stack gap={spacing.xxl} style={{ alignItems: "center" }}>
         <Stack gap={spacing.sm} style={{ alignItems: "center" }}>
-          <Typography
-            style={{
-              fontFamily: fonts.heading,
-              fontSize: 34,
-              lineHeight: 40,
-              color: colors.fg,
-              textAlign: "center",
-            }}
-          >
-            presence
-          </Typography>
+          <View>
+            <Typography
+              style={{
+                fontFamily: fonts.headingItalic,
+                fontSize: 32,
+                lineHeight: 38,
+                color: colors.fg,
+                textAlign: "center",
+              }}
+            >
+              presence
+            </Typography>
+            <View style={{ marginTop: -4, alignItems: "center" }}>
+              <ScribbleUnderline color={colors.primary} />
+            </View>
+          </View>
           <Typography variant="bodyMuted" style={{ textAlign: "center" }}>
             Who&apos;s demoing today?
           </Typography>
@@ -55,7 +61,8 @@ export default function DemoPickerScreen() {
             flexDirection: "row",
             flexWrap: "wrap",
             justifyContent: "center",
-            gap: spacing.xl,
+            rowGap: spacing.xxl,
+            columnGap: spacing.xxxl,
           }}
         >
           {DEMO_USERS.map((user) => {
@@ -71,7 +78,7 @@ export default function DemoPickerScreen() {
                   alignItems: "center",
                   gap: spacing.sm,
                   opacity: isDisabled && !isLoading ? 0.4 : 1,
-                  width: 100,
+                  width: 110,
                 }}
               >
                 {isLoading ? (
