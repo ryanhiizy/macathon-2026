@@ -17,22 +17,39 @@ import { Typography, Eyebrow } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { CoachInsightCard } from "@/components/CoachInsightCard";
 import { colors, radius, spacing, fonts } from "@/lib/theme";
-import { fetchHabitDetail, type HabitDetailView } from "@/lib/habits";
+import { fetchHabitDetail, getMockHabitDetail, type HabitDetailView } from "@/lib/habits";
 import { useAuth } from "@/lib/auth-context";
 
 export default function HabitDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, demoSession } = useAuth();
   const [habit, setHabit] = useState<HabitDetailView | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!id || !user) return;
+    if (!id) {
+      setHabit(null);
+      setLoading(false);
+      return;
+    }
+
+    if (demoSession) {
+      setHabit(getMockHabitDetail(id));
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      setHabit(null);
+      setLoading(false);
+      return;
+    }
+
     const data = await fetchHabitDetail(id, user.id);
     setHabit(data);
     setLoading(false);
-  }, [id, user]);
+  }, [demoSession, id, user]);
 
   useEffect(() => {
     load();

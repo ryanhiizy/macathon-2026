@@ -1,27 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withSequence,
   withTiming,
-  Easing,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { FavouriteIcon } from "@hugeicons/core-free-icons";
+import { AnimatedPress } from "@/components/animated-press";
 import { Icon } from "@/components/icon";
 import { Typography } from "@/components/typography";
-import { AnimatedPress } from "@/components/animated-press";
-import { colors, spacing } from "@/lib/theme";
 import { fetchLikeState, toggleLike } from "@/lib/likes";
+import { colors, spacing } from "@/lib/theme";
 
 type FloatingHeart = { id: number; dx: number };
 
 type Props = {
   initialCount: number;
   tint?: string;
-  /** When provided, likes are persisted to Supabase. Without it, likes are local-only. */
   snapId?: string;
 };
 
@@ -31,7 +30,6 @@ export function LikeButton({ initialCount, tint, snapId }: Props) {
   const [floaters, setFloaters] = useState<FloatingHeart[]>([]);
   const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Fetch initial like state from backend
   useEffect(() => {
     if (!snapId) return;
     fetchLikeState(snapId).then(({ count, liked: isLiked }) => {
@@ -51,22 +49,19 @@ export function LikeButton({ initialCount, tint, snapId }: Props) {
     const next = !liked;
     setLiked(next);
 
-    // Optimistic count update
     if (backendCount !== null) {
-      setBackendCount((c) => (c ?? 0) + (next ? 1 : -1));
+      setBackendCount((count) => (count ?? 0) + (next ? 1 : -1));
     }
 
     Haptics.impactAsync(
       next ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
     ).catch(() => {});
 
-    // Persist to backend
     if (snapId) {
       toggleLike(snapId).catch(() => {
-        // Revert on failure
         setLiked(!next);
         if (backendCount !== null) {
-          setBackendCount((c) => (c ?? 0) + (next ? -1 : 1));
+          setBackendCount((count) => (count ?? 0) + (next ? -1 : 1));
         }
       });
     }
@@ -80,15 +75,15 @@ export function LikeButton({ initialCount, tint, snapId }: Props) {
       ];
       setFloaters((prev) => [...prev, ...newFloaters]);
       const timeoutId = setTimeout(() => {
-        setFloaters((prev) => prev.filter((f) => !newFloaters.some((n) => n.id === f.id)));
+        setFloaters((prev) => prev.filter((floater) => !newFloaters.some((item) => item.id === floater.id)));
         timeoutRefs.current = timeoutRefs.current.filter((activeId) => activeId !== timeoutId);
       }, 900);
       timeoutRefs.current.push(timeoutId);
     }
   };
 
-  // Use backend count when available, otherwise fall back to local mock count
   const count = backendCount !== null ? backendCount : initialCount + (liked ? 1 : 0);
+  const iconColor = liked ? colors.red : (tint ?? colors.fg);
 
   return (
     <AnimatedPress onPress={onPress} haptic={false} scale={0.95} style={{ position: "relative" }}>
@@ -96,31 +91,27 @@ export function LikeButton({ initialCount, tint, snapId }: Props) {
         <Icon
           icon={FavouriteIcon}
           size={18}
-          color={liked ? colors.red : (tint ?? colors.fg)}
+          color={iconColor}
           strokeWidth={liked ? 2.2 : 1.7}
         />
-        <Typography variant="meta" color={liked ? colors.red : (tint ?? colors.fg)}>
+        <Typography variant="meta" color={iconColor}>
           {count}
         </Typography>
       </View>
-      {floaters.map((f, i) => (
-        <FloatHeart key={f.id} dx={f.dx} delay={i * 60} />
+      {floaters.map((floater, index) => (
+        <FloatHeart key={floater.id} dx={floater.dx} delay={index * 60} />
       ))}
     </AnimatedPress>
   );
 }
 
 function FloatHeart({ dx, delay }: { dx: number; delay: number }) {
-  const ty = useSharedValue(0);
+  const translateY = useSharedValue(0);
   const opacity = useSharedValue(0);
-  const s = useSharedValue(0.6);
+  const scale = useSharedValue(0.6);
 
   const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: dx },
-      { translateY: ty.value },
-      { scale: s.value },
-    ],
+    transform: [{ translateX: dx }, { translateY: translateY.value }, { scale: scale.value }],
     opacity: opacity.value,
   }));
 
@@ -132,30 +123,23 @@ function FloatHeart({ dx, delay }: { dx: number; delay: number }) {
         withTiming(0, { duration: 520, easing: Easing.out(Easing.quad) }),
       ),
     );
-    ty.value = withDelay(
+    translateY.value = withDelay(
       delay,
       withTiming(-34, { duration: 700, easing: Easing.out(Easing.cubic) }),
     );
-    s.value = withDelay(
+    scale.value = withDelay(
       delay,
       withSequence(
         withTiming(1.15, { duration: 180, easing: Easing.out(Easing.quad) }),
         withTiming(0.8, { duration: 520, easing: Easing.out(Easing.quad) }),
       ),
     );
-  }, [delay, opacity, s, ty]);
+  }, [delay, opacity, scale, translateY]);
 
   return (
     <Animated.View
       pointerEvents="none"
-      style={[
-        {
-          position: "absolute",
-          left: 4,
-          top: 0,
-        },
-        style,
-      ]}
+      style={[{ position: "absolute", left: 4, top: 0 }, style]}
     >
       <Icon icon={FavouriteIcon} size={14} color={colors.red} strokeWidth={2.4} />
     </Animated.View>

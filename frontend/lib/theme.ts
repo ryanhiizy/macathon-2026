@@ -41,7 +41,7 @@ export const palette = {
   purple300: "#A699D0",
   magenta600: "#A02F6F",
   magenta400: "#CE5D97",
-  magenta300: "#E47DA8",
+  magenta300: "#E47DA8"
 } as const;
 
 export const colors = {
@@ -79,7 +79,7 @@ export const colors = {
   cyan: palette.cyan400,
   blue: palette.blue400,
   purple: palette.purple400,
-  magenta: palette.magenta400,
+  magenta: palette.magenta400
 } as const;
 
 // Soft tints derived from accent colors (10% alpha hex suffix).
@@ -92,7 +92,7 @@ export const tint = {
   cyan: palette.cyan400 + "22",
   blue: palette.blue400 + "1f",
   purple: palette.purple400 + "22",
-  magenta: palette.magenta400 + "1f",
+  magenta: palette.magenta400 + "1f"
 } as const;
 
 const accentTints: Record<string, string> = {
@@ -103,7 +103,7 @@ const accentTints: Record<string, string> = {
   [colors.cyan]: tint.cyan,
   [colors.blue]: tint.blue,
   [colors.purple]: tint.purple,
-  [colors.magenta]: tint.magenta,
+  [colors.magenta]: tint.magenta
 };
 
 export const tintFor = (accent: string): string => {
@@ -115,7 +115,7 @@ export const radius = {
   md: 18,
   lg: 24,
   xl: 32,
-  pill: 999,
+  pill: 999
 } as const;
 
 export const spacing = {
@@ -126,92 +126,92 @@ export const spacing = {
   xl: 24,
   xxl: 32,
   xxxl: 40,
-  huge: 56,
+  huge: 56
 } as const;
 
 export const fonts = {
   heading: "Merriweather_700Bold",
+  headingLight: "Merriweather_400Regular",
   headingItalic: "Merriweather_400Regular_Italic",
   body: "Inter_400Regular",
   bodyMedium: "Inter_500Medium",
   bodySemibold: "Inter_600SemiBold",
-  bodyBold: "Inter_700Bold",
+  bodyBold: "Inter_700Bold"
 } as const;
 
 // Typography — small sizes get a touch more letter-spacing and mixed case.
-// No all-caps. Small text leans on italic + color rather than tracking.
+// No all-caps. Small text leans on color rather than tracking.
 export const type = {
   display: {
     fontFamily: fonts.heading,
     fontSize: 40,
     lineHeight: 52,
-    color: colors.fg,
+    color: colors.fg
   },
   h1: {
     fontFamily: fonts.heading,
     fontSize: 30,
     lineHeight: 40,
-    color: colors.fg,
+    color: colors.fg
   },
   h2: {
     fontFamily: fonts.heading,
     fontSize: 24,
     lineHeight: 32,
-    color: colors.fg,
+    color: colors.fg
   },
   h3: {
     fontFamily: fonts.heading,
     fontSize: 19,
     lineHeight: 26,
-    color: colors.fg,
+    color: colors.fg
   },
   lede: {
     fontFamily: fonts.body,
     fontSize: 17,
     lineHeight: 26,
-    color: colors.fgMuted,
+    color: colors.fgMuted
   },
   body: {
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.fg,
+    color: colors.fg
   },
   bodyMuted: {
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.fgMuted,
+    color: colors.fgMuted
   },
   label: {
     fontFamily: fonts.bodySemibold,
     fontSize: 14,
     lineHeight: 18,
-    color: colors.fg,
+    color: colors.fg
   },
   meta: {
     fontFamily: fonts.body,
     fontSize: 12.5,
     lineHeight: 16,
-    color: colors.fgMuted,
+    color: colors.fgMuted
   },
   metaItalic: {
     fontFamily: fonts.body,
     fontSize: 12.5,
     lineHeight: 16,
-    fontStyle: "italic" as const,
-    color: colors.fgFaint,
+    color: colors.fgFaint
   },
   caption: {
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 18,
-    color: colors.fgMuted,
+    color: colors.fgMuted
   },
   tiny: {
     fontFamily: fonts.bodyMedium,
     fontSize: 11,
     lineHeight: 14,
-    color: colors.fgMuted,
-  },
+    color: colors.fgMuted
+  }
 } as const;

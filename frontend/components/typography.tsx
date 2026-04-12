@@ -60,7 +60,7 @@ export function Typography({
       {...rest}
       style={[
         base,
-        italic && !serif && { fontStyle: "italic" },
+        italic && !serif && { fontStyle: "italic" as const },
         serifOverride,
         color != null && { color },
         style,
@@ -105,7 +105,7 @@ export const Tiny = (p: Omit<Props, "variant">) => (
 );
 
 // Legacy helper: keep name for existing call sites.
-// No longer all-caps — now a softer italic micro-label in the accent color.
+// No longer all-caps — now a softer micro-label in the accent color.
 export const Eyebrow = ({ color: c, ...rest }: Omit<Props, "variant">) => (
   <Typography
     variant="metaItalic"

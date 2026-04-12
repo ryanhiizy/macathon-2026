@@ -10,8 +10,8 @@ import { AnimatedPress } from "@/components/animated-press";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 import { HABIT_ICONS, ACCENT_OPTIONS } from "@/lib/mock";
 import { createHabit } from "@/lib/habits";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 
 const TIME_SUGGESTIONS = [
   "6:00 AM",
@@ -93,12 +93,7 @@ export default function CreateHabit() {
   const canSave = name.trim().length > 0;
 
   async function handleCreate() {
-    if (!canSave || saving) return;
-    if (!user?.id) {
-      console.warn("[create-habit] no authenticated user");
-      return;
-    }
-
+    if (!canSave || saving || !user) return;
     setSaving(true);
 
     const circleId = await getOrCreateCircle(user.id);
