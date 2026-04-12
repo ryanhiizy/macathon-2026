@@ -248,19 +248,19 @@ function CircleCard({
               style={[
                 styles.joinBtn,
                 joined
-                  ? { backgroundColor: circle.accent + "18", borderColor: circle.accent + "40" }
+                  ? { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }
                   : { backgroundColor: colors.fg, borderColor: colors.fg },
               ]}
             >
               {joined ? (
                 <Row gap={4}>
-                  <Icon icon={Tick02Icon} size={14} color={circle.accent} strokeWidth={2.2} />
+                  <Icon icon={Tick02Icon} size={14} color={colors.primary} strokeWidth={2.2} />
                   <Typography
                     style={{
                       fontFamily: fonts.bodySemibold,
                       fontSize: 12,
                       lineHeight: 16,
-                      color: circle.accent,
+                      color: colors.primary,
                     }}
                   >
                     Joined

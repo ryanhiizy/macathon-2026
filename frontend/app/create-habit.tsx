@@ -199,7 +199,7 @@ export default function CreateHabit() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Row style={{ paddingTop: spacing.sm, gap: spacing.md }}>
+        <Row style={{ paddingTop: spacing.lg, gap: spacing.md }}>
           <AnimatedPress onPress={() => router.back()} hitSlop={12} scale={0.88}>
             <Icon icon={ArrowLeft02Icon} size={24} color={colors.fg} />
           </AnimatedPress>
@@ -255,8 +255,9 @@ export default function CreateHabit() {
             style={{
               fontFamily: fonts.heading,
               fontSize: 26,
+              lineHeight: 34,
               color: colors.fg,
-              paddingVertical: spacing.sm,
+              paddingVertical: spacing.md,
               borderBottomWidth: 2,
               borderBottomColor: colors.border,
             }}

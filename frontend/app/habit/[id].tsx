@@ -9,11 +9,12 @@ import {
   Clock01Icon,
   Camera01Icon,
   Edit02Icon,
+  Cancel01Icon,
 } from "@hugeicons/core-free-icons";
-import { Screen, Row, Stack } from "@/components/layout";
+import { Screen, Row } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { Icon } from "@/components/icon";
-import { CoachInsightInline } from "@/components/CoachInsightCard";
+import { CoachInsightTeaser } from "@/components/CoachInsightCard";
 import { colors, palette, radius, spacing, fonts, tintFor } from "@/lib/theme";
 import {
   fetchHabitDetail,
@@ -97,27 +98,28 @@ export default function HabitDetail() {
   }
 
   return (
-    <Screen>
-      {/* Header */}
-      <Row style={{ justifyContent: "space-between" }}>
-        {backButton}
-        <Pressable
-          onPress={() => router.push(`/edit-habit/${id}`)}
-          hitSlop={8}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: radius.pill,
-            backgroundColor: colors.ui,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon icon={Edit02Icon} size={20} color={colors.fg} />
-        </Pressable>
-      </Row>
-
-      {/* Habit identity */}
+    <Screen
+      contentStyle={{ paddingBottom: spacing.sm }}
+      stickyHeader={
+        <Row style={{ justifyContent: "space-between" }}>
+          {backButton}
+          <Pressable
+            onPress={() => router.push(`/edit-habit/${id}`)}
+            hitSlop={8}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: radius.pill,
+              backgroundColor: colors.ui,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon icon={Edit02Icon} size={20} color={colors.fg} />
+          </Pressable>
+        </Row>
+      }
+    >
       <Row gap={spacing.lg}>
         <View
           style={{
@@ -150,7 +152,6 @@ export default function HabitDetail() {
         </View>
       </Row>
 
-      {/* Streak strip */}
       <View
         style={{
           flexDirection: "row",
@@ -180,7 +181,8 @@ export default function HabitDetail() {
         />
       </View>
 
-      {/* This week */}
+      <CoachInsightTeaser habitId={habit.id} habitName={habit.name} />
+
       <View>
         <Typography
           style={{
@@ -188,27 +190,53 @@ export default function HabitDetail() {
             fontSize: 18,
             lineHeight: 22,
             color: colors.fg,
-            marginBottom: spacing.md,
+            marginBottom: spacing.lg,
           }}
         >
           This week
         </Typography>
-        <Row gap={6} style={{ justifyContent: "space-between" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            backgroundColor: colors.bgRaised,
+            borderRadius: radius.lg,
+            padding: spacing.md,
+            gap: spacing.xs,
+          }}
+        >
           {habit.history.map((day, i) => {
             const isToday = i === habit.history.length - 1;
+            const isMissed = !isToday && !day.done;
             return (
-              <Stack key={i} gap={spacing.xs} style={{ flex: 1, alignItems: "center" }}>
+              <View
+                key={i}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  gap: spacing.sm,
+                  paddingVertical: spacing.sm,
+                  borderRadius: radius.md,
+                  backgroundColor: "transparent",
+                }}
+              >
+                <Typography
+                  variant="tiny"
+                  color={isToday ? colors.fg : colors.fgDim}
+                  style={isToday ? { fontFamily: fonts.bodyBold } : undefined}
+                >
+                  {day.day}
+                </Typography>
                 <View
                   style={{
-                    width: "100%",
-                    aspectRatio: 1,
+                    width: 36,
+                    height: 36,
                     borderRadius: radius.pill,
                     backgroundColor: day.done
-                      ? colors.fg
-                      : isToday
-                        ? colors.bgSunk
-                        : colors.bgRaised,
-                    borderWidth: isToday && !day.done ? 1.5 : 0,
+                      ? colors.green
+                      : isMissed
+                        ? colors.red
+                        : "transparent",
+                    borderWidth: isToday ? 1.5 : 0,
                     borderColor: colors.fgDim,
                     alignItems: "center",
                     justifyContent: "center",
@@ -217,26 +245,37 @@ export default function HabitDetail() {
                   {day.done ? (
                     <Icon
                       icon={Tick02Icon}
-                      size={16}
-                      color={colors.bg}
+                      size={18}
+                      color={colors.white}
                       strokeWidth={2.8}
+                    />
+                  ) : isMissed ? (
+                    <Icon
+                      icon={Cancel01Icon}
+                      size={16}
+                      color={colors.white}
+                      strokeWidth={2.4}
                     />
                   ) : null}
                 </View>
-                <Typography
-                  variant="tiny"
-                  color={isToday ? colors.fg : day.done ? colors.fg : colors.fgDim}
-                  style={isToday ? { fontFamily: fonts.bodyBold } : undefined}
-                >
-                  {day.day}
-                </Typography>
-              </Stack>
+                {isToday && (
+                  <Typography
+                    style={{
+                      fontFamily: fonts.bodySemibold,
+                      fontSize: 9,
+                      lineHeight: 12,
+                      color: habit.accent,
+                    }}
+                  >
+                    Today
+                  </Typography>
+                )}
+              </View>
             );
           })}
-        </Row>
+        </View>
       </View>
 
-      {/* Last 30 days — contribution graph */}
       <ContributionGraph
         data={habit.monthHistory}
         accent={habit.accent}
@@ -244,14 +283,10 @@ export default function HabitDetail() {
         scheduled={habit.totalScheduled}
       />
 
-      {/* Coach insights */}
-      <CoachInsightInline habitId={habit.id} habitName={habit.name} />
-
-      {/* Prove button */}
       <Pressable
         onPress={() => router.push(`/camera/${habit.id}`)}
         style={{
-          height: 52,
+          height: 54,
           borderRadius: radius.pill,
           backgroundColor: colors.fg,
           alignItems: "center",
@@ -320,28 +355,29 @@ function ContributionGraph({
   completed: number;
   scheduled: number;
 }) {
-  const COLS = 6;
-  const ROWS = 5;
+  const ROWS = 7;
   const GAP = 4;
 
-  const grid = useMemo(() => {
-    const cells: boolean[] = [];
-    for (let i = 0; i < COLS * ROWS; i++) {
-      cells.push(data[i] ?? false);
-    }
-    return cells;
+  const { grid, cols } = useMemo(() => {
+    const totalDays = data.length;
+    const c = Math.ceil(totalDays / ROWS);
+    const cells: (boolean | null)[] = [];
+    const padCount = c * ROWS - totalDays;
+    for (let i = 0; i < padCount; i++) cells.push(null);
+    for (let i = 0; i < totalDays; i++) cells.push(data[i]);
+    return { grid: cells, cols: c };
   }, [data]);
 
-  const monthLabels = useMemo(() => {
-    const labels: string[] = [];
-    for (let c = 0; c < COLS; c++) {
-      const dayIndex = c * ROWS;
-      const d = new Date();
-      d.setDate(d.getDate() - (data.length - 1 - dayIndex));
-      labels.push(d.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
-    }
-    return labels;
+  const dateRange = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - (data.length - 1));
+    const fmt = (d: Date) =>
+      d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return `${fmt(start)} – ${fmt(end)}`;
   }, [data]);
+
+  const pct = scheduled > 0 ? Math.round((completed / scheduled) * 100) : 0;
 
   return (
     <View>
@@ -362,8 +398,8 @@ function ContributionGraph({
         >
           Last 30 days
         </Typography>
-        <Typography variant="metaItalic">
-          {completed} of {scheduled}
+        <Typography variant="caption" color={colors.fgMuted}>
+          {completed}/{scheduled} ({pct}%)
         </Typography>
       </Row>
 
@@ -375,18 +411,23 @@ function ContributionGraph({
         }}
       >
         <View style={{ flexDirection: "row", gap: GAP }}>
-          {Array.from({ length: COLS }).map((_, col) => (
+          {Array.from({ length: cols }).map((_, col) => (
             <View key={col} style={{ flex: 1, gap: GAP }}>
               {Array.from({ length: ROWS }).map((_, row) => {
                 const idx = col * ROWS + row;
-                const done = grid[idx];
+                const cell = grid[idx];
+                const isEmpty = cell === null;
                 return (
                   <View
                     key={row}
                     style={{
                       aspectRatio: 1,
                       borderRadius: 4,
-                      backgroundColor: done ? accent : `${palette.base300}40`,
+                      backgroundColor: isEmpty
+                        ? "transparent"
+                        : cell
+                          ? accent
+                          : `${palette.base300}30`,
                     }}
                   />
                 );
@@ -398,20 +439,39 @@ function ContributionGraph({
         <Row
           style={{
             justifyContent: "space-between",
-            marginTop: spacing.sm,
-            paddingHorizontal: 2,
+            alignItems: "center",
+            marginTop: spacing.md,
           }}
         >
-          {monthLabels
-            .filter((_, i) => i % 2 === 0)
-            .map((label) => (
-              <Typography key={label} variant="tiny" color={colors.fgDim}>
-                {label}
-              </Typography>
-            ))}
+          <Typography variant="tiny" color={colors.fgDim}>
+            {dateRange}
+          </Typography>
+          <Row gap={spacing.xs} style={{ alignItems: "center" }}>
+          <Typography variant="tiny" color={colors.fgDim}>
+            Missed
+          </Typography>
+          <View
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 2,
+              backgroundColor: `${palette.base300}30`,
+            }}
+          />
+          <View
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 2,
+              backgroundColor: accent,
+            }}
+          />
+          <Typography variant="tiny" color={colors.fgDim}>
+            Done
+          </Typography>
+          </Row>
         </Row>
       </View>
     </View>
   );
 }
-

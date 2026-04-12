@@ -9,7 +9,6 @@ import {
   CameraRotated01Icon,
   FlashIcon,
   FlashOffIcon,
-  Tick02Icon,
   Clock01Icon,
 } from "@hugeicons/core-free-icons";
 import { Row, Stack } from "@/components/layout";

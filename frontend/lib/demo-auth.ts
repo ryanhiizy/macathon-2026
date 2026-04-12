@@ -1,4 +1,5 @@
 import { authStorage } from "@/lib/auth-storage";
+import { normalizeUsername } from "@/lib/supabase";
 
 export type DemoSession = {
   id: string;
@@ -46,6 +47,31 @@ export async function getDemoSession() {
 export async function signOutDemoUser() {
   await authStorage.removeItem(DEMO_AUTH_KEY);
   emit(null);
+}
+
+export async function updateDemoProfile(updates: {
+  displayName: string;
+  handle: string;
+  bio: string;
+}) {
+  const session = await getDemoSession();
+
+  if (!session) {
+    throw new Error("No demo session found.");
+  }
+
+  const normalizedHandle = normalizeUsername(updates.handle) || session.handle;
+
+  const nextSession: DemoSession = {
+    ...session,
+    displayName: updates.displayName.trim() || session.displayName,
+    handle: normalizedHandle,
+    bio: updates.bio.trim() || session.bio,
+  };
+
+  await authStorage.setItem(DEMO_AUTH_KEY, JSON.stringify(nextSession));
+  emit(nextSession);
+  return nextSession;
 }
 
 export function onDemoAuthStateChange(listener: (session: DemoSession | null) => void) {

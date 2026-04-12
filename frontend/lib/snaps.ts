@@ -32,6 +32,16 @@ function buildPromptText(habitName: string) {
   return `Show yourself doing ${habitName.toLowerCase()}.`;
 }
 
+const EMOJI_RE = /^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u;
+
+function moveLeadingEmojiToEnd(text: string): string {
+  const match = text.match(EMOJI_RE);
+  if (!match) return text;
+  const emoji = match[1];
+  const rest = text.slice(match[0].length);
+  return `${rest} ${emoji}`;
+}
+
 export async function fetchAIPrompt(habitName: string, participantCount = 1): Promise<string> {
   const baseUrl = process.env.EXPO_PUBLIC_PROMPT_API_URL?.replace(/\/+$/, "");
   if (!baseUrl) {
@@ -50,7 +60,8 @@ export async function fetchAIPrompt(habitName: string, participantCount = 1): Pr
     }
 
     const data = (await response.json()) as { prompt_text?: string };
-    return data.prompt_text?.trim() || buildPromptText(habitName);
+    const raw = data.prompt_text?.trim() || buildPromptText(habitName);
+    return moveLeadingEmojiToEnd(raw);
   } catch {
     return buildPromptText(habitName);
   }
