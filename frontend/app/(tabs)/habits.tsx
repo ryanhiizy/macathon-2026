@@ -99,20 +99,33 @@ function getUrgency(habit: HabitView): Urgency {
     return { dueSoon: false, overdue: false, label: null, color: null };
   }
 
+  // Before target time but within 30 min → "due soon"
   if (diff > 0 && diff <= DUE_SOON_MINUTES) {
     return {
       dueSoon: true,
       overdue: false,
-      label: `${diff}m left`,
+      label: `${diff}m until due`,
       color: colors.warning,
     };
   }
 
-  if (diff < 0 && diff >= -60) {
+  // Window open: 0 to 30 min past target time → show remaining window time
+  if (diff <= 0 && diff > -DUE_SOON_MINUTES) {
+    const remaining = DUE_SOON_MINUTES + diff; // e.g. diff=-10 → 20m left
+    return {
+      dueSoon: true,
+      overdue: false,
+      label: remaining <= 2 ? `${remaining}m left!` : `${remaining}m left`,
+      color: remaining <= 5 ? colors.danger : colors.warning,
+    };
+  }
+
+  // Past 30 min window → missed
+  if (diff <= -DUE_SOON_MINUTES) {
     return {
       dueSoon: false,
       overdue: true,
-      label: "Overdue",
+      label: "Missed",
       color: colors.danger,
     };
   }

@@ -24,8 +24,10 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import {
   configureNotificationHandler,
   requestNotificationPermissions,
+  scheduleHabitNotifications,
   subscribeToMessageNotifications,
 } from "@/lib/notifications";
+import { fetchHabits } from "@/lib/habits";
 
 // Show notification banners even when the app is in the foreground
 configureNotificationHandler();
@@ -86,6 +88,19 @@ function AuthGate({ fontsLoaded }: { fontsLoaded: boolean }) {
     if (!userId) return;
     const unsub = subscribeToMessageNotifications(userId);
     return unsub;
+  }, [isAuthenticated, user, demoSession]);
+
+  // Schedule daily habit notifications at each habit's real target_time
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const userId = user?.id ?? demoSession?.id;
+    if (!userId || demoSession) return; // skip for demo sessions
+
+    fetchHabits(userId).then((habits) => {
+      scheduleHabitNotifications(habits).catch((err) =>
+        console.warn("[layout] notification scheduling failed:", err),
+      );
+    });
   }, [isAuthenticated, user, demoSession]);
 
   // Navigate to camera/chat when user taps a notification

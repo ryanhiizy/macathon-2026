@@ -20,6 +20,7 @@ import { AnimatedPress } from "@/components/animated-press";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 import { HABIT_ICONS, ACCENT_OPTIONS } from "@/lib/mock";
 import { createHabit } from "@/lib/habits";
+import { scheduleOneHabitNotification } from "@/lib/notifications";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 
@@ -185,6 +186,13 @@ export default function CreateHabit() {
 
     setSaving(false);
     if (result) {
+      // Schedule a daily notification at the habit's target time
+      scheduleOneHabitNotification({
+        id: result.id,
+        name: result.name,
+        category: result.category,
+        targetTime: result.target_time,
+      }).catch((err) => console.warn("[create-habit] notification scheduling failed:", err));
       router.back();
     }
   }

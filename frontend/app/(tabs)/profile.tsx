@@ -20,7 +20,7 @@ import { useAuth } from "@/lib/auth-context";
 import { DEMO_USERS, getDemoUserById, type DemoUser } from "@/lib/demo-users";
 import { generateMockHabits, type HabitView } from "@/lib/habits";
 import { pickPhoto } from "@/lib/mock";
-import { triggerDemoNotification } from "@/lib/notifications";
+import { triggerDemoNotification, testWarningNotifications } from "@/lib/notifications";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { type AppProfile, ensureProfile, supabase } from "@/lib/supabase";
 import { resolveCircleSnapPhoto } from "@/lib/circle-snap-utils";
@@ -323,6 +323,7 @@ export default function Profile() {
           </View>
 
           <DemoNotificationButton userId={user?.id} fallbackHabit={demoHabit} />
+          <TestHabitNotificationsButton userId={user?.id} />
 
           {error ? (
             <Card style={{ borderColor: colors.danger }}>
@@ -459,6 +460,75 @@ function DemoNotificationButton({
           </Typography>
           <Typography variant="metaItalic">
             {sent ? "Arriving in 5 seconds..." : "Fires a prove-it notification for your next habit"}
+          </Typography>
+        </Stack>
+      </Row>
+    </AnimatedPress>
+  );
+}
+
+function TestHabitNotificationsButton({ userId }: { userId?: string; }) {
+  const [status, setStatus] = useState<string | null>(null);
+  const resetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (resetRef.current) clearTimeout(resetRef.current);
+    },
+    [],
+  );
+
+  const handlePress = async () => {
+    if (!userId) return;
+    if (resetRef.current) clearTimeout(resetRef.current);
+
+    setStatus("Scheduling...");
+    const count = await testWarningNotifications(userId);
+    setStatus(
+      count > 0
+        ? `${count} habit(s) → notifications arriving every ~12s`
+        : "No pending habits to test",
+    );
+    resetRef.current = setTimeout(() => {
+      setStatus(null);
+      resetRef.current = null;
+    }, 8000);
+  };
+
+  return (
+    <AnimatedPress onPress={handlePress} haptic="medium">
+      <Row
+        gap={spacing.md}
+        style={{
+          paddingVertical: spacing.xs,
+          alignItems: "center",
+        }}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: radius.md,
+            backgroundColor: colors.warning,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon icon={Notification03Icon} size={20} color={colors.bg} strokeWidth={1.8} />
+        </View>
+        <Stack gap={2} style={{ flex: 1 }}>
+          <Typography
+            style={{
+              fontFamily: fonts.bodyMedium,
+              fontSize: 15,
+              lineHeight: 20,
+              color: colors.fg,
+            }}
+          >
+            Test 2-min warning
+          </Typography>
+          <Typography variant="metaItalic">
+            {status ?? "Fires the \"2 min left\" warning for each habit"}
           </Typography>
         </Stack>
       </Row>

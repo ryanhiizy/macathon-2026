@@ -91,6 +91,180 @@ export async function triggerDemoNotification(
 }
 
 // ---------------------------------------------------------------------------
+// Real habit notification scheduling — fires at each habit's target_time daily
+// ---------------------------------------------------------------------------
+
+/** Adds `addMinutes` to an hour:minute pair, wrapping at 24h. */
+function offsetHM(hour: number, minute: number, addMinutes: number) {
+  const total = hour * 60 + minute + addMinutes;
+  const wrapped = ((total % 1440) + 1440) % 1440; // keep in 0-1439
+  return { hour: Math.floor(wrapped / 60), minute: wrapped % 60 };
+}
+
+/**
+ * Cancel all previously scheduled habit notifications and reschedule
+ * for every habit passed in. Call this whenever habits change.
+ *
+ * Per habit we schedule TWO notifications:
+ *  1. At target_time — "Time to prove it: {name}"
+ *  2. At target_time + 28 min — "2 minutes left, prove it now or lose your streak: {name}"
+ */
+export async function scheduleHabitNotifications(
+  habits: HabitView[],
+): Promise<void> {
+  const granted = await requestNotificationPermissions();
+  if (!granted) return;
+
+  // Cancel all existing scheduled notifications (habit + demo) and re-create
+  await Notifications.cancelAllScheduledNotificationsAsync();
+
+  for (const habit of habits) {
+    if (habit.done) continue; // no point notifying for already-done today
+
+    const [hStr, mStr] = habit.targetTime.split(":");
+    const hour = Number(hStr);
+    const minute = Number(mStr);
+    if (Number.isNaN(hour) || Number.isNaN(minute)) continue;
+
+    const prompt = DEMO_PROMPTS[habit.category] ?? "Time to prove it.";
+
+    // 1. Main notification at target time
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `Time to prove it: ${habit.name}`,
+        body: prompt,
+        data: { habitId: habit.id, screen: "camera" },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+        hour,
+        minute,
+        repeats: true,
+      },
+    });
+
+    // 2. Urgency notification 2 min before window closes (target + 28 min)
+    const warn = offsetHM(hour, minute, 28);
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `2 minutes left, prove it now or lose your streak: ${habit.name}`,
+        body: "Your window closes in 2 minutes!",
+        data: { habitId: habit.id, screen: "camera" },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+        hour: warn.hour,
+        minute: warn.minute,
+        repeats: true,
+      },
+    });
+
+    console.log(
+      `[notifications] scheduled "${habit.name}" at ${hour}:${String(minute).padStart(2, "0")} + warning at ${warn.hour}:${String(warn.minute).padStart(2, "0")}`,
+    );
+  }
+}
+
+/**
+ * Schedule a single habit's two notifications (main + 2-min warning).
+ * Used right after creating or editing a habit.
+ */
+export async function scheduleOneHabitNotification(
+  habit: { id: string; name: string; category: string; targetTime: string },
+): Promise<string | null> {
+  const granted = await requestNotificationPermissions();
+  if (!granted) return null;
+
+  const [hStr, mStr] = habit.targetTime.split(":");
+  const hour = Number(hStr);
+  const minute = Number(mStr);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+
+  const prompt = DEMO_PROMPTS[habit.category] ?? "Time to prove it.";
+
+  // 1. Main notification
+  const id = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: `Time to prove it: ${habit.name}`,
+      body: prompt,
+      data: { habitId: habit.id, screen: "camera" },
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      hour,
+      minute,
+      repeats: true,
+    },
+  });
+
+  // 2. Urgency warning at target + 28 min
+  const warn = offsetHM(hour, minute, 28);
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: `2 minutes left, prove it now or lose your streak: ${habit.name}`,
+      body: "Your window closes in 2 minutes!",
+      data: { habitId: habit.id, screen: "camera" },
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      hour: warn.hour,
+      minute: warn.minute,
+      repeats: true,
+    },
+  });
+
+  console.log(
+    `[notifications] scheduled "${habit.name}" at ${hour}:${String(minute).padStart(2, "0")} + warning at ${warn.hour}:${String(warn.minute).padStart(2, "0")}`,
+  );
+  return id;
+}
+
+// ---------------------------------------------------------------------------
+// Test helpers — fire real habit notifications immediately for testing
+// ---------------------------------------------------------------------------
+
+/**
+ * Fire ONLY the 2-min warning notification for every un-done habit.
+ * Use the existing "Send test notification" button for the main one.
+ */
+export async function testWarningNotifications(
+  userId: string,
+): Promise<number> {
+  const granted = await requestNotificationPermissions();
+  if (!granted) return 0;
+
+  const habits = await fetchHabits(userId);
+  const pending = habits.filter((h) => !h.done);
+  if (pending.length === 0) return 0;
+
+  let delaySec = 3;
+
+  for (const habit of pending) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `2 minutes left, prove it now or lose your streak: ${habit.name}`,
+        body: "Your window closes in 2 minutes!",
+        data: { habitId: habit.id, screen: "camera" },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: delaySec,
+      },
+    });
+
+    console.log(`[test-notif] warning for "${habit.name}" at +${delaySec}s`);
+    delaySec += 8;
+  }
+
+  return pending.length;
+}
+
+// ---------------------------------------------------------------------------
 // Message push notifications (Instagram-style)
 // ---------------------------------------------------------------------------
 
