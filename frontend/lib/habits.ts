@@ -264,14 +264,17 @@ export function getMockHabitDetail(habitId: string): HabitDetailView | null {
     return null;
   }
 
-  const totalScheduled = demoHabit.history.length;
-  const totalCompleted = demoHabit.history.filter(Boolean).length;
-  const history = demoHabit.history.map((done, index) => ({
-    day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][index] ?? "Day",
-    done,
-  }));
-
   const monthHistory = generateMonthHistory(habitId);
+  const totalScheduled = monthHistory.length;
+  const totalCompleted = monthHistory.filter(Boolean).length;
+
+  // Build this-week history with real day names (last 7 days, matching fetchHabitDetail)
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const history = demoHabit.history.map((done, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    return { day: dayNames[date.getDay()], done };
+  });
 
   return {
     ...habit,
