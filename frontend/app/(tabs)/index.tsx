@@ -288,7 +288,7 @@ function SoloPost({ post, onComment, commentCount, likeCount }: { post: SoloPost
           color={colors.fgMuted}
           style={{ paddingHorizontal: spacing.xs }}
         >
-          {"\u2728"} {post.promptText}
+          {post.promptText}
         </Typography>
       ) : null}
 
@@ -357,7 +357,7 @@ function GroupPost({ post, onComment, commentCount, likeCount }: { post: GroupPo
           color={colors.fgMuted}
           style={{ paddingHorizontal: spacing.xs }}
         >
-          {"\u2728"} {post.promptText}
+          {post.promptText}
         </Typography>
       ) : null}
 

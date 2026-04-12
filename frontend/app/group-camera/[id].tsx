@@ -8,7 +8,7 @@ import {
   CameraRotated01Icon,
   FlashIcon,
   FlashOffIcon,
-  SparklesIcon,
+  Tick02Icon,
   Clock01Icon,
 } from "@hugeicons/core-free-icons";
 import { Row, Stack } from "@/components/layout";
@@ -21,10 +21,10 @@ import { HABITS } from "@/lib/mock";
 import { categoryMeta, formatTime } from "@/lib/habits";
 
 const GROUP_PROMPTS: Record<string, string> = {
-  "1": "All three of you — throw a peace sign in sync.",
-  "2": "Cheers! Clink your bottles together.",
-  "3": "Close your eyes, show your zen faces.",
-  "4": "Line your books up and show the spines.",
+  "1": "Everyone in frame — hit us with your best smile!",
+  "2": "Squad check! Show us what you're sipping.",
+  "3": "Group selfie — show us those zen vibes.",
+  "4": "Crew shot — what are y'all working on?",
 };
 
 export default function GroupCameraScreen() {
@@ -216,26 +216,21 @@ export default function GroupCameraScreen() {
             borderColor: colors.primarySoft,
           }}
         >
-          <Row gap={spacing.sm} style={{ alignItems: "flex-start" }}>
-            <View style={{ paddingTop: 2 }}>
-              <Icon icon={SparklesIcon} size={16} color={colors.primary} strokeWidth={2} />
-            </View>
-            <Stack gap={4} style={{ flex: 1 }}>
-              <Typography variant="metaItalic" color={colors.primary}>
-                A prompt for all of you
-              </Typography>
-              <Typography
-                style={{
-                  fontFamily: fonts.heading,
-                  fontSize: 17,
-                  lineHeight: 24,
-                  color: colors.fg,
-                }}
-              >
-                {prompt}
+          <Stack gap={4}>
+            <Typography variant="metaItalic" color={colors.primary}>
+              A prompt for all of you
+            </Typography>
+            <Typography
+              style={{
+                fontFamily: fonts.heading,
+                fontSize: 17,
+                lineHeight: 24,
+                color: colors.fg,
+              }}
+            >
+              {prompt}
               </Typography>
             </Stack>
-          </Row>
         </View>
 
         <View style={{ flex: 1 }} />
