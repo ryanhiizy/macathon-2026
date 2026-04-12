@@ -26,7 +26,9 @@ import { Icon } from "@/components/icon";
 import { Typography } from "@/components/typography";
 import { Row, Stack } from "@/components/layout";
 import { LikeButton } from "@/components/like-button";
-import { type Comment, COMMENTS } from "@/lib/mock";
+import { fetchComments, postComment, type CommentRow } from "@/lib/comments";
+import { useAuth } from "@/lib/auth-context";
+import { DEMO_USERS } from "@/lib/demo-users";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 
 const { height: SCREEN_H } = Dimensions.get("window");
@@ -36,9 +38,19 @@ const DISMISS_THRESHOLD = 120;
 type Props = {
   postId: string | null;
   onClose: () => void;
+  onCommentPosted?: (postId: string) => void;
 };
 
-export function CommentsSheet({ postId, onClose }: Props) {
+function formatWhen(timestamp: string) {
+  const diffMs = Date.now() - new Date(timestamp).getTime();
+  const minutes = Math.max(1, Math.floor(diffMs / (60 * 1000)));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+export function CommentsSheet({ postId, onClose, onCommentPosted }: Props) {
   const visible = postId != null;
   const [modalVisible, setModalVisible] = useState(false);
   const translateY = useSharedValue(SHEET_H);
@@ -47,8 +59,29 @@ export function CommentsSheet({ postId, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const [inputText, setInputText] = useState("");
+  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
-  const comments = postId ? COMMENTS[postId] ?? [] : [];
+  // Resolve current user info from demo users
+  const demoUser = DEMO_USERS.find((u) => u.id === user?.id);
+  const currentUser = {
+    id: user?.id ?? "anon",
+    name: demoUser?.name ?? "You",
+    handle: `@${(demoUser?.name ?? "you").toLowerCase()}`,
+    color: demoUser?.color ?? colors.purple,
+    letter: (demoUser?.name ?? "Y")[0],
+  };
+
+  // Fetch comments from DB when sheet opens
+  useEffect(() => {
+    if (!postId) return;
+    setLoading(true);
+    fetchComments(postId)
+      .then(setComments)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [postId]);
 
   const dismiss = useCallback(() => {
     Keyboard.dismiss();
@@ -98,15 +131,44 @@ export function CommentsSheet({ postId, onClose }: Props) {
   }));
 
   const handleSend = () => {
-    if (!inputText.trim()) return;
+    const body = inputText.trim();
+    if (!body || !postId) return;
     setInputText("");
     Keyboard.dismiss();
+
+    // Optimistic: add to local list immediately
+    const optimistic: CommentRow = {
+      id: `temp-${Date.now()}`,
+      post_id: postId,
+      user_id: currentUser.id,
+      display_name: currentUser.name,
+      handle: currentUser.handle,
+      avatar_color: currentUser.color,
+      avatar_letter: currentUser.letter,
+      body,
+      created_at: new Date().toISOString(),
+    };
+    setComments((prev) => [...prev, optimistic]);
+    onCommentPosted?.(postId);
+
+    // Persist to Supabase
+    postComment(postId, body, currentUser)
+      .then((saved) => {
+        // Replace optimistic with real row
+        setComments((prev) =>
+          prev.map((c) => (c.id === optimistic.id ? saved : c)),
+        );
+      })
+      .catch(() => {
+        // Remove optimistic on failure
+        setComments((prev) => prev.filter((c) => c.id !== optimistic.id));
+      });
   };
 
-  const renderComment = useCallback(({ item }: { item: Comment }) => (
+  const renderComment = useCallback(({ item }: { item: CommentRow }) => (
     <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
       <Row gap={spacing.md} style={{ alignItems: "flex-start" }}>
-        <Avatar color={item.color} letter={item.letter} size={32} ring={false} />
+        <Avatar color={item.avatar_color} letter={item.avatar_letter} size={32} ring={false} />
         <Stack gap={2} style={{ flex: 1 }}>
           <Row gap={spacing.sm}>
             <Typography
@@ -117,15 +179,15 @@ export function CommentsSheet({ postId, onClose }: Props) {
                 color: colors.fg,
               }}
             >
-              {item.name}
+              {item.display_name}
             </Typography>
-            <Typography variant="metaItalic">{item.when}</Typography>
+            <Typography variant="metaItalic">{formatWhen(item.created_at)}</Typography>
           </Row>
           <Typography variant="body" style={{ fontSize: 14, lineHeight: 20 }}>
-            {item.text}
+            {item.body}
           </Typography>
           <Row gap={spacing.md} style={{ paddingTop: 2 }}>
-            <LikeButton initialCount={item.likes} />
+            <LikeButton initialCount={0} />
             <AnimatedPress haptic={false} scale={0.95}>
               <Typography variant="metaItalic" style={{ fontFamily: fonts.bodySemibold, fontSize: 11.5 }}>
                 Reply
@@ -203,7 +265,7 @@ export function CommentsSheet({ postId, onClose }: Props) {
                   color: colors.fg,
                 }}
               >
-                Comments
+                Comments{comments.length > 0 ? ` (${comments.length})` : ""}
               </Typography>
             </View>
 
@@ -217,7 +279,9 @@ export function CommentsSheet({ postId, onClose }: Props) {
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
                 <View style={{ alignItems: "center", paddingTop: spacing.xxl }}>
-                  <Typography variant="bodyMuted">No comments yet</Typography>
+                  <Typography variant="bodyMuted">
+                    {loading ? "Loading..." : "No comments yet"}
+                  </Typography>
                 </View>
               }
             />
@@ -236,7 +300,7 @@ export function CommentsSheet({ postId, onClose }: Props) {
                 backgroundColor: colors.bg,
               }}
             >
-              <Avatar color={colors.purple} letter="B" size={30} ring={false} />
+              <Avatar color={currentUser.color} letter={currentUser.letter} size={30} ring={false} />
               <TextInput
                 ref={inputRef}
                 value={inputText}

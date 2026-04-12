@@ -28,6 +28,8 @@ import { SwipeableTabs } from "@/components/swipeable-tabs";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
 import { loadFeedPosts } from "@/lib/feed";
+import { fetchCommentCounts } from "@/lib/comments";
+import { fetchLikeCounts } from "@/lib/likes";
 import { useAuth } from "@/lib/auth-context";
 import type { FeedPost, GroupPost as GroupPostData, SoloPost as SoloPostData } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
@@ -46,11 +48,24 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [pullMessageIdx, setPullMessageIdx] = useState(0);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshFeed = useCallback(async () => {
     const nextPosts = await loadFeedPosts(user?.id);
     setPosts(nextPosts);
+
+    // Fetch real comment & like counts from DB
+    const postIds = nextPosts
+      .filter((p): p is SoloPostData | GroupPostData => p.kind !== "dispatch")
+      .map((p) => p.id);
+    const [cc, lc] = await Promise.all([
+      fetchCommentCounts(postIds),
+      fetchLikeCounts(postIds),
+    ]);
+    setCommentCounts(cc);
+    setLikeCounts(lc);
   }, [user?.id]);
 
   useEffect(
@@ -81,6 +96,13 @@ export default function Home() {
       refreshTimeoutRef.current = null;
     }, 900);
   };
+
+  const onCommentPosted = useCallback((postId: string) => {
+    setCommentCounts((prev) => ({
+      ...prev,
+      [postId]: (prev[postId] ?? 0) + 1,
+    }));
+  }, []);
 
   const friendsPosts = posts.filter((post) => post.kind !== "group");
   const circlePosts = posts.filter((post) => post.kind === "group");
@@ -160,19 +182,40 @@ export default function Home() {
               />
             }
           >
-            <FeedList posts={friendsPosts} onComment={setCommentPostId} />
+            <FeedList
+              posts={friendsPosts}
+              onComment={setCommentPostId}
+              commentCounts={commentCounts}
+              likeCounts={likeCounts}
+            />
           </ScrollView>,
           <ScrollView key="circles" {...paneScroll}>
-            <FeedList posts={circlePosts} onComment={setCommentPostId} />
+            <FeedList
+              posts={circlePosts}
+              onComment={setCommentPostId}
+              commentCounts={commentCounts}
+              likeCounts={likeCounts}
+            />
           </ScrollView>,
         ]}
       </SwipeableTabs>
-      <CommentsSheet postId={commentPostId} onClose={() => setCommentPostId(null)} />
+      <CommentsSheet
+        postId={commentPostId}
+        onClose={() => setCommentPostId(null)}
+        onCommentPosted={onCommentPosted}
+      />
     </Screen>
   );
 }
 
-function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: string) => void }) {
+type FeedListProps = {
+  posts: FeedPost[];
+  onComment: (id: string) => void;
+  commentCounts: Record<string, number>;
+  likeCounts: Record<string, number>;
+};
+
+function FeedList({ posts, onComment, commentCounts, likeCounts }: FeedListProps) {
   return (
     <Stack gap={spacing.xxl}>
       {posts.map((post) => {
@@ -194,10 +237,26 @@ function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: str
         }
 
         if (post.kind === "group") {
-          return <GroupPost key={post.id} post={post} onComment={onComment} />;
+          return (
+            <GroupPost
+              key={post.id}
+              post={post}
+              onComment={onComment}
+              dbCommentCount={commentCounts[post.id] ?? 0}
+              dbLikeCount={likeCounts[post.id] ?? 0}
+            />
+          );
         }
 
-        return <SoloPost key={post.id} post={post} onComment={onComment} />;
+        return (
+          <SoloPost
+            key={post.id}
+            post={post}
+            onComment={onComment}
+            dbCommentCount={commentCounts[post.id] ?? 0}
+            dbLikeCount={likeCounts[post.id] ?? 0}
+          />
+        );
       })}
       <Typography
         variant="metaItalic"
@@ -209,7 +268,13 @@ function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: str
   );
 }
 
-function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: string) => void }) {
+type PostProps = {
+  onComment: (id: string) => void;
+  dbCommentCount: number;
+  dbLikeCount: number;
+};
+
+function SoloPost({ post, onComment, dbCommentCount, dbLikeCount }: { post: SoloPostData } & PostProps) {
   return (
     <Stack gap={spacing.md}>
       <Row style={{ justifyContent: "space-between" }}>
@@ -238,7 +303,7 @@ function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: str
         photos={post.photos}
         overlay={
           <Row gap={spacing.xl}>
-            <LikeButton initialCount={post.likes} tint={colors.white} snapId={post.id} />
+            <LikeButton initialCount={dbLikeCount} tint={colors.white} snapId={post.id} />
             <AnimatedPress
               onPress={() => onComment(post.id)}
               style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
@@ -247,7 +312,7 @@ function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: str
             >
               <Icon icon={Comment01Icon} size={18} color={colors.white} strokeWidth={1.7} />
               <Typography variant="meta" color={colors.white}>
-                {post.comments}
+                {dbCommentCount}
               </Typography>
             </AnimatedPress>
           </Row>
@@ -257,7 +322,7 @@ function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: str
   );
 }
 
-function GroupPost({ post, onComment }: { post: GroupPostData; onComment: (id: string) => void }) {
+function GroupPost({ post, onComment, dbCommentCount, dbLikeCount }: { post: GroupPostData } & PostProps) {
   const avatars = post.participants.map((participant) => ({
     color: participant.color,
     letter: participant.letter,
@@ -309,7 +374,7 @@ function GroupPost({ post, onComment }: { post: GroupPostData; onComment: (id: s
         photos={post.photos}
         overlay={
           <Row gap={spacing.xl}>
-            <LikeButton initialCount={post.likes} tint={colors.white} snapId={post.id} />
+            <LikeButton initialCount={dbLikeCount} tint={colors.white} snapId={post.id} />
             <AnimatedPress
               onPress={() => onComment(post.id)}
               style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
@@ -318,7 +383,7 @@ function GroupPost({ post, onComment }: { post: GroupPostData; onComment: (id: s
             >
               <Icon icon={Comment01Icon} size={18} color={colors.white} strokeWidth={1.7} />
               <Typography variant="meta" color={colors.white}>
-                {post.comments}
+                {dbCommentCount}
               </Typography>
             </AnimatedPress>
           </Row>
