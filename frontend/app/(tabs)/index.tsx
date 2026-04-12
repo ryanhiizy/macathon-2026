@@ -70,14 +70,20 @@ export default function Home() {
     setRefreshing(true);
     setPullMessageIdx((index) => (index + 1) % PULL_MESSAGES.length);
     refreshTimeoutRef.current = setTimeout(() => {
-      refreshFeed().catch(() => {});
       setRefreshing(false);
       refreshTimeoutRef.current = null;
     }, 900);
   };
 
-  const friendsPosts = posts.filter((post) => post.kind !== "group");
-  const circlePosts = posts.filter((post) => post.kind === "group");
+  const feedPosts = useMemo(() => getFeedPosts(user?.id), [user?.id]);
+  const friendsPosts = useMemo(
+    () => feedPosts.filter((post) => post.kind !== "group"),
+    [feedPosts],
+  );
+  const circlePosts = useMemo(
+    () => feedPosts.filter((post) => post.kind === "group"),
+    [feedPosts],
+  );
 
   const header = (
     <Stack gap={spacing.lg}>
