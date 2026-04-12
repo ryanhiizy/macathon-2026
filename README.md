@@ -4,12 +4,13 @@
 A social habit-tracking app — Habit Tracker × BeReal × Strava. Prove your habits with live photos, compete with friends in Circles, and let AI keep it fun.
 
 ## Try it
-Since this is a native mobile app, we've hosted everything so you can just follow the steps to get it on your phone:
+Since this is a native mobile app, we've hosted everything so you can just follow the steps to get it on your iphone:
 
-IOS
+IOS installation instructions:
 1. Download Testflight
-2. Scan the QR Code below with your phone camera
-3. Access the presence app via Expo beta app
+2. Get the Expo Go beta app through: https://testflight.apple.com/join/GZJxxfUU/
+3. Scan the QR Code below with your phone camera and follow the link into Expo Go beta
+4. Access the presence app via Expo Go beta app
 
 ![Demo QR Code](demo-photos/PresenceAppDownload.png)
 
