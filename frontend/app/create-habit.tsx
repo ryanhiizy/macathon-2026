@@ -73,14 +73,30 @@ function formatTimeDisplay(hour: number, minute: number): string {
 }
 
 async function getOrCreateCircle(userId: string): Promise<string | null> {
-  const { data: memberships } = await supabase
-    .from("circle_members")
-    .select("circle_id")
-    .eq("user_id", userId)
-    .limit(1);
+  const personalInviteCode = `personal-${userId.slice(0, 8)}`;
+  const { data: existingCircle } = await supabase
+    .from("circles")
+    .select("id")
+    .eq("created_by", userId)
+    .eq("invite_code", personalInviteCode)
+    .maybeSingle();
 
-  if (memberships && memberships.length > 0) {
-    return memberships[0].circle_id;
+  if (existingCircle?.id) {
+    const { data: membership } = await supabase
+      .from("circle_members")
+      .select("circle_id")
+      .eq("circle_id", existingCircle.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!membership) {
+      await supabase.from("circle_members").insert({
+        circle_id: existingCircle.id,
+        user_id: userId,
+      });
+    }
+
+    return existingCircle.id;
   }
 
   const { data: circle, error } = await supabase
@@ -88,7 +104,7 @@ async function getOrCreateCircle(userId: string): Promise<string | null> {
     .insert({
       name: "My Habits",
       created_by: userId,
-      invite_code: `personal-${userId.slice(0, 8)}`,
+      invite_code: personalInviteCode,
     })
     .select()
     .single();

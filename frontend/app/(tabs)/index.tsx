@@ -21,6 +21,7 @@ import { Segmented } from "@/components/segmented";
 import { SwipeableTabs } from "@/components/swipeable-tabs";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
+import { filterPostsForHomeTab } from "@/lib/home-feed-tabs";
 import { fetchCommentCounts } from "@/lib/comments";
 import { getFeedPosts, loadFeedPosts } from "@/lib/feed";
 import { useAuth } from "@/lib/auth-context";
@@ -105,8 +106,8 @@ export default function Home() {
   }, []);
 
   const feedPosts = posts.length > 0 ? posts : getFeedPosts(user?.id);
-  const friendsPosts = feedPosts.filter((post) => post.kind !== "group");
-  const circlePosts = feedPosts.filter((post) => post.kind === "group");
+  const friendsPosts = filterPostsForHomeTab(feedPosts, "friends");
+  const circlePosts = filterPostsForHomeTab(feedPosts, "circles");
 
   const header = (
     <Stack gap={spacing.lg}>

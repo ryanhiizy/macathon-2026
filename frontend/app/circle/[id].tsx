@@ -239,7 +239,10 @@ export default function CircleDetail() {
                 {circle.name}
               </Typography>
               <Typography variant="metaItalic">
-                {circle.members} members · {circle.habit}
+                {circle.members} members · {circle.memberLabel}
+              </Typography>
+              <Typography variant="metaItalic" color={colors.fgFaint}>
+                {circle.habit}
               </Typography>
             </View>
           </Row>
@@ -261,7 +264,12 @@ export default function CircleDetail() {
               <LeaderboardTab accent={circle.accent} members={leaderboardMembers} userId={user?.id} />
             </ScrollView>,
             <ScrollView key="about" {...paneScroll}>
-              <AboutTab description={circle.description ?? ""} members={members} userId={user?.id} />
+              <AboutTab
+                description={circle.description ?? ""}
+                about={circle.about}
+                members={members}
+                userId={user?.id}
+              />
             </ScrollView>,
           ]}
         </SwipeableTabs>
@@ -303,6 +311,21 @@ function FeedTab({ snaps, onComment }: { snaps: CircleSnapView[]; onComment: (id
           >
             {snap.promptText}
           </Typography>
+          {snap.isGroup ? (
+            <View
+              style={{
+                alignSelf: "flex-start",
+                backgroundColor: colors.bgRaised,
+                borderRadius: radius.pill,
+                paddingHorizontal: spacing.sm,
+                paddingVertical: 6,
+              }}
+            >
+              <Typography variant="meta" color={colors.fgFaint}>
+                Group post
+              </Typography>
+            </View>
+          ) : null}
           {snap.caption ? (
             <Typography variant="body">{snap.caption}</Typography>
           ) : null}
@@ -379,9 +402,7 @@ function LeaderboardTab({ accent, members, userId }: { accent: string; members: 
                     >
                       {isYou ? "You" : m.name}
                     </Typography>
-                    <Typography variant="metaItalic">
-                      {m.lastActive ?? "Just now"}
-                    </Typography>
+                    <Typography variant="metaItalic">{memberMeta(m)}</Typography>
                   </Stack>
                   <StreakFlame days={m.streak} />
                 </Row>
@@ -395,7 +416,21 @@ function LeaderboardTab({ accent, members, userId }: { accent: string; members: 
   );
 }
 
-function AboutTab({ description, members, userId }: { description: string; members: CircleMemberView[]; userId?: string }) {
+function memberMeta(member: CircleMemberView) {
+  return [member.handle, member.vibe ?? member.lastActive].filter(Boolean).join(" · ") || "Circle member";
+}
+
+function AboutTab({
+  description,
+  about,
+  members,
+  userId,
+}: {
+  description: string;
+  about: string;
+  members: CircleMemberView[];
+  userId?: string;
+}) {
   const preview = members.slice(0, 5);
   const remaining = members.length - preview.length;
   return (
@@ -405,6 +440,13 @@ function AboutTab({ description, members, userId }: { description: string; membe
           Description
         </Typography>
         <Typography variant="lede">{description}</Typography>
+      </Stack>
+
+      <Stack gap={spacing.sm}>
+        <Typography variant="metaItalic" color={colors.fgFaint}>
+          Circle vibe
+        </Typography>
+        <Typography variant="body">{about}</Typography>
       </Stack>
 
       <Stack gap={spacing.sm}>
@@ -425,7 +467,7 @@ function AboutTab({ description, members, userId }: { description: string; membe
                   <Avatar color={m.color} letter={m.letter} size={40} ring={false} />
                   <Stack gap={2}>
                     <Typography variant="label">{m.id === userId ? "You" : m.name}</Typography>
-                    <Typography variant="metaItalic">{m.handle}</Typography>
+                    <Typography variant="metaItalic">{memberMeta(m)}</Typography>
                   </Stack>
                 </Row>
                 <StreakFlame days={m.streak} />

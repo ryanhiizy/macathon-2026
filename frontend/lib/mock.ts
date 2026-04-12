@@ -104,6 +104,7 @@ export const HABITS: Habit[] = [
 export type SoloPost = {
   id: string;
   kind: "solo";
+  circlesEligible?: boolean;
   name: string;
   handle: string;
   when: string;
@@ -121,6 +122,7 @@ export type SoloPost = {
 export type GroupPost = {
   id: string;
   kind: "group";
+  circlesEligible?: boolean;
   name: string;
   handle: string;
   when: string;
@@ -136,6 +138,7 @@ export type GroupPost = {
 export type DispatchPost = {
   id: string;
   kind: "dispatch";
+  circlesEligible?: boolean;
   name: string;
   handle: string;
   when: string;
