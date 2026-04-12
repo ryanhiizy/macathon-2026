@@ -1,8 +1,7 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, type LayoutChangeEvent } from "react-native";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { Image } from "expo-image";
 import {
   Search01Icon,
   PlusSignIcon,
@@ -10,10 +9,10 @@ import {
 import { Screen, Row, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { Icon } from "@/components/icon";
+import { Sparkline } from "@/components/sparkline";
 import { AnimatedPress } from "@/components/animated-press";
-import { StreakFlame } from "@/components/streak-flame";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
-import { fetchMyCircles, circlePhotos, type CircleView } from "@/lib/circles";
+import { fetchMyCircles, type CircleView } from "@/lib/circles";
 import { useAuth } from "@/lib/auth-context";
 
 export default function Circles() {
@@ -38,6 +37,7 @@ export default function Circles() {
   const header = (
     <Row style={{ justifyContent: "space-between" }}>
       <AnimatedPress
+        onPress={() => router.push("/search-circles")}
         style={{
           width: 44,
           height: 44,
@@ -52,7 +52,7 @@ export default function Circles() {
       <Stack gap={0} style={{ alignItems: "center" }}>
         <Typography
           style={{
-            fontFamily: fonts.heading,
+            fontFamily: fonts.headingLight,
             fontSize: 28,
             lineHeight: 32,
             color: colors.fg,
@@ -60,7 +60,6 @@ export default function Circles() {
         >
           Circles
         </Typography>
-        <Typography variant="metaItalic">{circles.length} joined</Typography>
       </Stack>
       <AnimatedPress
         onPress={() => router.push("/create-circle")}
@@ -99,8 +98,17 @@ export default function Circles() {
   );
 }
 
+const WEEK_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+
 function CircleRowView({ circle }: { circle: CircleView }) {
-  const photos = circlePhotos(circle.id);
+  const { analytics: a } = circle;
+  const todayPct = Math.round(a.todayRate * 100);
+  const [chartW, setChartW] = useState(0);
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    setChartW(e.nativeEvent.layout.width);
+  };
+
   return (
     <AnimatedPress
       onPress={() => router.push(`/circle/${circle.id}`)}
@@ -133,33 +141,97 @@ function CircleRowView({ circle }: { circle: CircleView }) {
             {circle.name}
           </Typography>
           <Typography variant="metaItalic">
-            {circle.memberCount} members · your streak {circle.myStreak}
+            {circle.members} members
           </Typography>
         </Stack>
-        <StreakFlame days={circle.myStreak} />
       </Row>
 
-      <Row gap={spacing.sm}>
-        {photos.map((uri, j) => (
-          <View
-            key={j}
-            style={{
-              flex: 1,
-              aspectRatio: 1,
-              borderRadius: radius.sm,
-              overflow: "hidden",
-              backgroundColor: colors.bgSunk,
-            }}
-          >
-            <Image
-              source={{ uri }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-              transition={300}
-            />
-          </View>
-        ))}
-      </Row>
+      <View
+        onLayout={onLayout}
+        style={{
+          backgroundColor: colors.bgRaised,
+          borderRadius: radius.md,
+          padding: spacing.lg,
+          gap: spacing.lg,
+        }}
+      >
+        <Row style={{ justifyContent: "space-between" }}>
+          <StatCell label="Today" value={`${todayPct}%`} accent={circle.accent} />
+          <StatCell label="Avg streak" value={`${a.avgStreak}d`} />
+          <StatCell label="Best" value={`${a.topStreak}d`} />
+        </Row>
+
+        {chartW > 0 && (
+          <Sparkline
+            data={a.trendLine}
+            width={chartW - spacing.lg * 2}
+            height={48}
+            color={circle.accent}
+            fillOpacity={0.15}
+          />
+        )}
+
+        <Row style={{ justifyContent: "space-between" }}>
+          {a.weekDaily.map((rate, i) => (
+            <View key={i} style={{ alignItems: "center", gap: 4 }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: rate >= 0.7 ? circle.accent : colors.border,
+                  opacity: rate >= 0.7 ? 0.5 + rate * 0.5 : 0.5,
+                }}
+              />
+              <Typography
+                style={{
+                  fontFamily: fonts.body,
+                  fontSize: 10,
+                  lineHeight: 12,
+                  color: colors.fgFaint,
+                }}
+              >
+                {WEEK_LABELS[i]}
+              </Typography>
+            </View>
+          ))}
+        </Row>
+      </View>
     </AnimatedPress>
+  );
+}
+
+function StatCell({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+}) {
+  return (
+    <Stack gap={2} style={{ alignItems: "center" }}>
+      <Typography
+        style={{
+          fontFamily: fonts.body,
+          fontSize: 11,
+          lineHeight: 14,
+          color: colors.fgFaint,
+        }}
+      >
+        {label}
+      </Typography>
+      <Typography
+        style={{
+          fontFamily: fonts.bodySemibold,
+          fontSize: 17,
+          lineHeight: 22,
+          color: accent ?? colors.fg,
+        }}
+      >
+        {value}
+      </Typography>
+    </Stack>
   );
 }

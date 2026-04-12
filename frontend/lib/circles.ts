@@ -16,19 +16,30 @@ import { supabase } from "@/lib/supabase";
 // Types
 // ---------------------------------------------------------------------------
 
+export type CircleAnalytics = {
+  todayRate: number;
+  avgStreak: number;
+  topStreak: number;
+  weekDaily: number[];
+  trendLine: number[];
+};
+
 export type CircleView = {
   id: string;
   name: string;
+  habit: string;
   description: string | null;
-  memberCount: number;
+  members: number;
   myStreak: number;
   icon: HugeiconsProps["icon"];
   accent: string;
+  analytics: CircleAnalytics;
 };
 
 export type CircleMemberView = {
   id: string;
   name: string;
+  handle: string;
   letter: string;
   color: string;
   streak: number;
@@ -53,27 +64,45 @@ export type CircleSnapView = {
 // Circle → icon / accent config (not stored in DB)
 // ---------------------------------------------------------------------------
 
-const CIRCLE_CONFIG: Record<string, { icon: HugeiconsProps["icon"]; accent: string }> = {
-  "c0000000-0000-0000-0000-000000000001": { icon: RunningShoesIcon, accent: colors.orange },  // 5K Every Day
-  "c0000000-0000-0000-0000-000000000002": { icon: Yoga01Icon, accent: colors.purple },         // Morning Flow
-  "c0000000-0000-0000-0000-000000000003": { icon: DropletIcon, accent: colors.cyan },           // Cold Plunge Club
-  "c0000000-0000-0000-0000-000000000004": { icon: BookOpen01Icon, accent: colors.green },       // Page Turners
-  "c0000000-0000-0000-0000-000000000005": { icon: SunriseIcon, accent: colors.yellow },         // Digital Sunset
-  "c0000000-0000-0000-0000-000000000006": { icon: PaintBoardIcon, accent: colors.red },         // Sketch & Create
-  "c0000000-0000-0000-0000-000000000007": { icon: CookBookIcon, accent: colors.orange },        // Kitchen Collective
-  "c0000000-0000-0000-0000-000000000008": { icon: BookOpen01Icon, accent: colors.magenta },     // Morning Pages
-  "c0000000-0000-0000-0000-000000000009": { icon: BookOpen01Icon, accent: colors.blue },        // Study Squad
-  "c0000000-0000-0000-0000-000000000010": { icon: PaintBoardIcon, accent: colors.purple },      // Guitar Daily
-  "c0000000-0000-0000-0000-000000000011": { icon: Dumbbell01Icon, accent: colors.red },         // Gym Rats
-  "c0000000-0000-0000-0000-000000000012": { icon: DropletIcon, accent: colors.cyan },           // Hydration Club
-  "c0000000-0000-0000-0000-000000000013": { icon: Yoga01Icon, accent: colors.purple },          // Meditation Circle
-  "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee": { icon: SunriseIcon, accent: colors.orange },        // Morning Crew
+type CircleConfigEntry = { icon: HugeiconsProps["icon"]; accent: string; habit: string };
+
+const CIRCLE_CONFIG: Record<string, CircleConfigEntry> = {
+  "c0000000-0000-0000-0000-000000000001": { icon: RunningShoesIcon, accent: colors.orange, habit: "Run 5 kilometers" },
+  "c0000000-0000-0000-0000-000000000002": { icon: Yoga01Icon, accent: colors.purple, habit: "10 minutes of yoga" },
+  "c0000000-0000-0000-0000-000000000003": { icon: DropletIcon, accent: colors.cyan, habit: "Cold plunge" },
+  "c0000000-0000-0000-0000-000000000004": { icon: BookOpen01Icon, accent: colors.green, habit: "Read 10 pages" },
+  "c0000000-0000-0000-0000-000000000005": { icon: SunriseIcon, accent: colors.yellow, habit: "No phone after 9pm" },
+  "c0000000-0000-0000-0000-000000000006": { icon: PaintBoardIcon, accent: colors.red, habit: "Sketch daily" },
+  "c0000000-0000-0000-0000-000000000007": { icon: CookBookIcon, accent: colors.orange, habit: "Cook dinner" },
+  "c0000000-0000-0000-0000-000000000008": { icon: BookOpen01Icon, accent: colors.magenta, habit: "Morning pages" },
+  "c0000000-0000-0000-0000-000000000009": { icon: BookOpen01Icon, accent: colors.blue, habit: "Study 1 hour" },
+  "c0000000-0000-0000-0000-000000000010": { icon: PaintBoardIcon, accent: colors.purple, habit: "15 min guitar" },
+  "c0000000-0000-0000-0000-000000000011": { icon: Dumbbell01Icon, accent: colors.red, habit: "Hit the gym" },
+  "c0000000-0000-0000-0000-000000000012": { icon: DropletIcon, accent: colors.cyan, habit: "Drink 2L of water" },
+  "c0000000-0000-0000-0000-000000000013": { icon: Yoga01Icon, accent: colors.purple, habit: "10 min meditation" },
+  "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee": { icon: SunriseIcon, accent: colors.orange, habit: "Morning walk" },
 };
 
-const DEFAULT_CONFIG = { icon: SunriseIcon, accent: colors.primary };
+const DEFAULT_CONFIG: CircleConfigEntry = { icon: SunriseIcon, accent: colors.primary, habit: "Daily habit" };
 
 function circleConfig(id: string) {
   return CIRCLE_CONFIG[id] ?? DEFAULT_CONFIG;
+}
+
+/** Generate deterministic mock analytics from circle ID. */
+function mockAnalytics(id: string, memberCount: number): CircleAnalytics {
+  // Seed from last char of ID for variety
+  const seed = id.charCodeAt(id.length - 1) / 127;
+  const todayRate = 0.6 + seed * 0.3;
+  const avgStreak = Math.round(8 + seed * 20);
+  const topStreak = Math.round(avgStreak * 1.8 + seed * 10);
+  const weekDaily = Array.from({ length: 7 }, (_, i) =>
+    Math.round((0.55 + Math.sin(i + seed * 6) * 0.2 + seed * 0.15) * 100) / 100
+  );
+  const trendLine = Array.from({ length: 14 }, (_, i) =>
+    Math.round((0.5 + Math.sin(i * 0.5 + seed * 4) * 0.15 + i * 0.015) * 100) / 100
+  );
+  return { todayRate, avgStreak, topStreak, weekDaily, trendLine };
 }
 
 // ---------------------------------------------------------------------------
@@ -301,14 +330,17 @@ export async function fetchMyCircles(userId: string): Promise<CircleView[]> {
 
   return circlesData.map((c: { id: string; name: string; description: string | null }): CircleView => {
     const config = circleConfig(c.id);
+    const memberCount = countMap.get(c.id) ?? 0;
     return {
       id: c.id,
       name: c.name,
+      habit: config.habit,
       description: c.description,
-      memberCount: countMap.get(c.id) ?? 0,
+      members: memberCount,
       myStreak: streakMap.get(c.id) ?? 0,
       icon: config.icon,
       accent: config.accent,
+      analytics: mockAnalytics(c.id, memberCount),
     };
   });
 }
@@ -331,14 +363,17 @@ export async function fetchCircle(circleId: string): Promise<CircleView | null> 
     .eq("circle_id", circleId);
 
   const config = circleConfig(circleId);
+  const memberCount = count ?? 0;
   return {
     id: data.id,
     name: data.name,
+    habit: config.habit,
     description: data.description,
-    memberCount: count ?? 0,
+    members: memberCount,
     myStreak: 0,
     icon: config.icon,
     accent: config.accent,
+    analytics: mockAnalytics(circleId, memberCount),
   };
 }
 
@@ -348,7 +383,7 @@ export async function fetchCircle(circleId: string): Promise<CircleView | null> 
 export async function fetchCircleMembers(circleId: string): Promise<CircleMemberView[]> {
   const { data, error } = await supabase
     .from("circle_members")
-    .select("user_id, current_streak, profiles(id, display_name, avatar_url)")
+    .select("user_id, current_streak, profiles(id, display_name, handle, avatar_url)")
     .eq("circle_id", circleId)
     .order("current_streak", { ascending: false });
 
@@ -363,6 +398,7 @@ export async function fetchCircleMembers(circleId: string): Promise<CircleMember
     return {
       id: row.user_id,
       name,
+      handle: profile?.handle ? `@${profile.handle}` : "",
       letter: name[0]?.toUpperCase() ?? "?",
       color: userColor(row.user_id),
       streak: row.current_streak,

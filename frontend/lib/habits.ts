@@ -8,6 +8,7 @@ import {
   CookBookIcon,
   NaturalFoodIcon,
 } from "@hugeicons/core-free-icons";
+import { HABITS as DEMO_HABITS } from "@/lib/mock";
 import { colors } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 
@@ -36,6 +37,7 @@ export type HabitView = {
   accent: string;
   streak: number;
   time: string; // formatted, e.g. "7:00 AM"
+  targetTime: string; // raw HH:MM:SS from DB
   done: boolean;
   category: string;
   circleId: string;
@@ -57,6 +59,55 @@ const CATEGORY_MAP: Record<string, { icon: typeof SunriseIcon; accent: string }>
 };
 
 const DEFAULT_CATEGORY = { icon: SunriseIcon, accent: colors.primary };
+
+// ---------------------------------------------------------------------------
+// Mock habits — times are relative to "now" so every state is always visible
+// ---------------------------------------------------------------------------
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function offsetTime(minutesFromNow: number): string {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() + minutesFromNow);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+}
+
+function mockHabit(
+  id: string,
+  name: string,
+  icon: typeof SunriseIcon,
+  accent: string,
+  streak: number,
+  minutesFromNow: number,
+  done: boolean,
+  category: string,
+  circleId: string,
+): HabitView {
+  const targetTime = offsetTime(minutesFromNow);
+  return {
+    id,
+    name,
+    icon,
+    accent,
+    streak,
+    time: formatTime(targetTime),
+    targetTime,
+    done,
+    category,
+    circleId,
+  };
+}
+
+export function generateMockHabits(): HabitView[] {
+  return [
+    mockHabit("1", "Morning walk", SunriseIcon, colors.orange, 12, -120, true, "morning", "mock-circle-1"),
+    mockHabit("3", "Meditate", Yoga01Icon, colors.purple, 23, 15, false, "meditation", "mock-circle-3"),
+    mockHabit("2", "Drink water", DropletIcon, colors.cyan, 5, -20, false, "water", "mock-circle-4"),
+    mockHabit("4", "Read 10 pages", BookOpen01Icon, colors.blue, 3, 180, false, "reading", "mock-circle-2"),
+  ];
+}
 
 export function categoryMeta(category: string) {
   return CATEGORY_MAP[category] ?? DEFAULT_CATEGORY;
@@ -129,6 +180,7 @@ export async function fetchHabits(userId: string): Promise<HabitView[]> {
       accent: meta.accent,
       streak: streakMap.get(h.circle_id) ?? 0,
       time: formatTime(h.target_time),
+      targetTime: h.target_time,
       done: statusMap.get(h.id) === "verified",
       category: h.category,
       circleId: h.circle_id,
@@ -145,6 +197,32 @@ export type HabitDetailView = HabitView & {
   totalScheduled: number;
   history: { day: string; done: boolean }[];
 };
+
+export function getMockHabitDetail(habitId: string): HabitDetailView | null {
+  const habit = generateMockHabits().find((item) => item.id === habitId);
+  const demoHabit = DEMO_HABITS.find((item) => item.id === habitId);
+
+  if (!habit || !demoHabit) {
+    return null;
+  }
+
+  const totalScheduled = demoHabit.history.length;
+  const totalCompleted = demoHabit.history.filter(Boolean).length;
+  const history = demoHabit.history.map((done, index) => ({
+    day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][index] ?? "Day",
+    done,
+  }));
+
+  return {
+    ...habit,
+    bestStreak: demoHabit.bestStreak,
+    frequency: "Daily",
+    completionRate: totalScheduled > 0 ? totalCompleted / totalScheduled : 0,
+    totalCompleted,
+    totalScheduled,
+    history,
+  };
+}
 
 /**
  * Fetch a single habit by ID with detail stats for the detail page.
@@ -228,6 +306,7 @@ export async function fetchHabitDetail(
     streak: currentStreak,
     bestStreak,
     time: formatTime(h.target_time),
+    targetTime: h.target_time,
     done: todayInstance?.status === "verified",
     category: h.category,
     circleId: h.circle_id,

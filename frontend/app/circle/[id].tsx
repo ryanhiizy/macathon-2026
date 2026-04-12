@@ -1,15 +1,8 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, ScrollView, Share, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-
-function goBack() {
-  if (router.canGoBack()) {
-    router.back();
-  } else {
-    router.replace("/(tabs)/circles");
-  }
-}
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import {
   ArrowLeft02Icon,
   Share01Icon,
@@ -22,9 +15,11 @@ import { Screen, Row, Stack, Divider } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { Segmented } from "@/components/segmented";
+import { SwipeableTabs } from "@/components/swipeable-tabs";
 import { Avatar } from "@/components/avatar";
 import { StreakFlame } from "@/components/streak-flame";
 import { AnimatedPress } from "@/components/animated-press";
+import { CommentsSheet } from "@/components/comments-sheet";
 import { LikeButton } from "@/components/like-button";
 import { PhotoCarousel } from "@/components/photo-carousel";
 import { colors, fonts, palette, radius, spacing, tintFor } from "@/lib/theme";
@@ -39,6 +34,14 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import type { HugeiconsProps } from "@hugeicons/react-native";
 
+function goBack() {
+  if (router.canGoBack()) {
+    router.back();
+  } else {
+    router.replace("/(tabs)/circles");
+  }
+}
+
 const TABS = ["Feed", "Leaderboard", "About"];
 
 export default function CircleDetail() {
@@ -49,6 +52,21 @@ export default function CircleDetail() {
   const [snaps, setSnaps] = useState<CircleSnapView[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(0);
+  const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const backX = useSharedValue(0);
+
+  const pageStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: backX.value }],
+  }));
+
+  const paneScroll = {
+    contentContainerStyle: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      paddingBottom: 120,
+    },
+    showsVerticalScrollIndicator: false,
+  } as const;
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -97,76 +115,101 @@ export default function CircleDetail() {
   }
 
   return (
-    <Screen>
-      <Row style={{ justifyContent: "space-between" }}>
-        <AnimatedPress
-          onPress={goBack}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: radius.pill,
-            backgroundColor: colors.bgRaised,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon icon={ArrowLeft02Icon} size={22} color={colors.fg} strokeWidth={1.8} />
-        </AnimatedPress>
-        <AnimatedPress
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: radius.pill,
-            backgroundColor: colors.bgRaised,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon icon={Share01Icon} size={20} color={colors.fg} strokeWidth={1.8} />
-        </AnimatedPress>
-      </Row>
+    <Animated.View style={[{ flex: 1, backgroundColor: colors.bg }, pageStyle]}>
+      <Screen scroll={false}>
+        <View style={styles.header}>
+          <Row style={{ justifyContent: "space-between" }}>
+            <AnimatedPress
+              onPress={goBack}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: radius.pill,
+                backgroundColor: colors.bgRaised,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon icon={ArrowLeft02Icon} size={22} color={colors.fg} strokeWidth={1.8} />
+            </AnimatedPress>
+            <AnimatedPress
+              onPress={() =>
+                Share.share({
+                  message: `Join my circle "${circle.name}" on presence!`,
+                })
+              }
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: radius.pill,
+                backgroundColor: colors.bgRaised,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon icon={Share01Icon} size={20} color={colors.fg} strokeWidth={1.8} />
+            </AnimatedPress>
+          </Row>
 
-      <Stack gap={spacing.md} style={{ alignItems: "center", paddingVertical: spacing.sm }}>
-        <View
-          style={{
-            width: 88,
-            height: 88,
-            borderRadius: radius.lg,
-            backgroundColor: tintFor(circle.accent),
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon icon={circle.icon} size={44} color={circle.accent} strokeWidth={1.6} />
+          <Stack gap={spacing.md} style={{ alignItems: "center", paddingVertical: spacing.sm }}>
+            <View
+              style={{
+                width: 88,
+                height: 88,
+                borderRadius: radius.lg,
+                backgroundColor: tintFor(circle.accent),
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Icon icon={circle.icon} size={44} color={circle.accent} strokeWidth={1.6} />
+            </View>
+            <View style={{ alignItems: "center", gap: spacing.xs }}>
+              <Typography
+                style={{
+                  fontFamily: fonts.heading,
+                  fontSize: 28,
+                  lineHeight: 34,
+                  color: colors.fg,
+                  textAlign: "center",
+                }}
+              >
+                {circle.name}
+              </Typography>
+              <Typography variant="metaItalic">
+                {circle.members} members · {circle.habit}
+              </Typography>
+            </View>
+          </Stack>
+
+          <Segmented options={TABS} value={tab} onChange={setTab} />
         </View>
-        <View style={{ alignItems: "center", gap: spacing.xs }}>
-          <Typography
-            style={{
-              fontFamily: fonts.heading,
-              fontSize: 28,
-              lineHeight: 34,
-              color: colors.fg,
-              textAlign: "center",
-            }}
-          >
-            {circle.name}
-          </Typography>
-          <Typography variant="metaItalic">
-            {circle.memberCount} members
-          </Typography>
-        </View>
-      </Stack>
 
-      <Segmented options={TABS} value={tab} onChange={setTab} />
-
-      {tab === 0 && <FeedTab snaps={snaps} />}
-      {tab === 1 && <LeaderboardTab accent={circle.accent} members={members} userId={user?.id} />}
-      {tab === 2 && <AboutTab description={circle.description ?? ""} members={members} userId={user?.id} />}
-    </Screen>
+        <SwipeableTabs
+          value={tab}
+          onChange={setTab}
+          backTranslateX={backX}
+          onSwipeBack={goBack}
+        >
+          {[
+            <ScrollView key="feed" {...paneScroll}>
+              <FeedTab snaps={snaps} onComment={setCommentPostId} />
+            </ScrollView>,
+            <ScrollView key="leaderboard" {...paneScroll}>
+              <LeaderboardTab accent={circle.accent} members={members} userId={user?.id} />
+            </ScrollView>,
+            <ScrollView key="about" {...paneScroll}>
+              <AboutTab description={circle.description ?? ""} members={members} userId={user?.id} />
+            </ScrollView>,
+          ]}
+        </SwipeableTabs>
+        <CommentsSheet postId={commentPostId} onClose={() => setCommentPostId(null)} />
+      </Screen>
+    </Animated.View>
   );
 }
 
-function FeedTab({ snaps }: { snaps: CircleSnapView[] }) {
+function FeedTab({ snaps, onComment }: { snaps: CircleSnapView[]; onComment: (id: string) => void }) {
   if (snaps.length === 0) {
     return (
       <View style={{ paddingTop: spacing.xxl, alignItems: "center" }}>
@@ -204,12 +247,17 @@ function FeedTab({ snaps }: { snaps: CircleSnapView[] }) {
           <PhotoCarousel photos={snap.photos} />
           <Row gap={spacing.xl}>
             <LikeButton snapId={snap.id} initialCount={0} />
-            <Row gap={spacing.xs}>
+            <AnimatedPress
+              onPress={() => onComment(snap.id)}
+              style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+              scale={0.9}
+              haptic={false}
+            >
               <Icon icon={Comment01Icon} size={18} color={colors.fg} strokeWidth={1.7} />
               <Typography variant="meta" color={colors.fg}>
                 0
               </Typography>
-            </Row>
+            </AnimatedPress>
           </Row>
         </Stack>
       ))}
@@ -218,17 +266,10 @@ function FeedTab({ snaps }: { snaps: CircleSnapView[] }) {
 }
 
 function LeaderboardTab({ accent, members, userId }: { accent: string; members: CircleMemberView[]; userId?: string }) {
-  const [scope, setScope] = useState(0);
   const ranks: HugeiconsProps["icon"][] = [Crown02Icon, Medal01Icon, Award01Icon];
   const rankColors = [colors.yellow, palette.base500, colors.orange] as string[];
   return (
     <Stack gap={spacing.lg}>
-      <Segmented
-        options={["All time", "This month"]}
-        value={scope}
-        onChange={setScope}
-        align="compact"
-      />
       <Stack gap={0}>
         {members.map((m, i) => {
           const rank = i + 1;
@@ -277,7 +318,7 @@ function LeaderboardTab({ accent, members, userId }: { accent: string; members: 
                       {isYou ? "You" : m.name}
                     </Typography>
                     <Typography variant="metaItalic">
-                      {m.streak} day streak
+                      {m.handle}
                     </Typography>
                   </Stack>
                   <StreakFlame days={m.streak} />
@@ -299,14 +340,12 @@ function AboutTab({ description, members, userId }: { description: string; membe
     <Stack gap={spacing.xl}>
       <Stack gap={spacing.sm}>
         <Typography variant="metaItalic" color={colors.fgFaint}>
-          The pact
+          Description
         </Typography>
         <Typography variant="lede">{description}</Typography>
       </Stack>
 
-      <Divider />
-
-      <Stack gap={spacing.md}>
+      <Stack gap={spacing.sm}>
         <Typography variant="metaItalic" color={colors.fgFaint}>
           Members
         </Typography>
@@ -322,7 +361,10 @@ function AboutTab({ description, members, userId }: { description: string; membe
               >
                 <Row gap={spacing.md}>
                   <Avatar color={m.color} letter={m.letter} size={40} ring={false} />
-                  <Typography variant="label">{m.id === userId ? "You" : m.name}</Typography>
+                  <Stack gap={2}>
+                    <Typography variant="label">{m.id === userId ? "You" : m.name}</Typography>
+                    <Typography variant="metaItalic">{m.handle}</Typography>
+                  </Stack>
                 </Row>
                 <StreakFlame days={m.streak} />
               </Row>
@@ -342,3 +384,15 @@ function AboutTab({ description, members, userId }: { description: string; membe
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    gap: spacing.md,
+    position: "relative",
+    backgroundColor: colors.bg,
+    zIndex: 1,
+  },
+});

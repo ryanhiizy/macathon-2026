@@ -1,5 +1,4 @@
-import { ReactNode, useRef, useState } from "react";
-import { LinearGradient } from "expo-linear-gradient";
+import { ReactNode } from "react";
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -31,17 +30,7 @@ export function Screen({
   scrollEventThrottle,
   ...rest
 }: ScreenProps) {
-  const [headerElevated, setHeaderElevated] = useState(false);
-  const headerElevatedRef = useRef(false);
-
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const nextHeaderElevated = event.nativeEvent.contentOffset.y > spacing.xs;
-
-    if (nextHeaderElevated !== headerElevatedRef.current) {
-      headerElevatedRef.current = nextHeaderElevated;
-      setHeaderElevated(nextHeaderElevated);
-    }
-
     onScroll?.(event);
   };
 
@@ -62,17 +51,8 @@ export function Screen({
   return (
     <SafeAreaView edges={edges} style={styles.screen}>
       {stickyHeader && (
-        <View
-          style={[styles.stickyHeader, headerElevated && styles.stickyHeaderElevated]}
-        >
+        <View style={styles.stickyHeader}>
           {stickyHeader}
-          {headerElevated && (
-            <LinearGradient
-              pointerEvents="none"
-              colors={[`${colors.black}1f`, `${colors.black}00`]}
-              style={styles.stickyHeaderShadow}
-            />
-          )}
         </View>
       )}
       {body}
@@ -150,17 +130,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     position: "relative",
   },
-  stickyHeaderElevated: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: `${colors.black}18`,
-  },
-  stickyHeaderShadow: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: -10,
-    height: 10,
-  },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.lg,
@@ -172,7 +141,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    paddingBottom: 120,
+    paddingBottom: 24,
     gap: spacing.xl,
   },
   fill: { flex: 1 },

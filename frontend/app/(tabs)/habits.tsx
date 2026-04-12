@@ -1,25 +1,42 @@
-import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Easing, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import Svg, { Circle } from "react-native-svg";
+import { useRouter } from "expo-router";
 import {
   Camera01Icon,
+  Fire02Icon,
   PlusSignIcon,
   Tick02Icon,
   UserAdd01Icon,
 } from "@hugeicons/core-free-icons";
+import Svg, { Circle } from "react-native-svg";
 import { CoachInsightTeaser } from "@/components/CoachInsightCard";
 import { AnimatedPress } from "@/components/animated-press";
 import { Icon } from "@/components/icon";
 import { Divider, Row, Screen, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
-import { WEEK_DAYS } from "@/lib/mock";
-import { fetchHabits, type HabitView } from "@/lib/habits";
 import { useAuth } from "@/lib/auth-context";
+import { fetchHabits, generateMockHabits, type HabitView } from "@/lib/habits";
+import { WEEK_DAYS } from "@/lib/mock";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 
 type TimeOfDay = "morning" | "afternoon" | "evening";
+
+const TIME_ORDER: TimeOfDay[] = ["morning", "afternoon", "evening"];
+const TIME_LABEL: Record<TimeOfDay, string> = {
+  morning: "Morning",
+  afternoon: "Afternoon",
+  evening: "Evening",
+};
+
+const DUE_SOON_MINUTES = 30;
+
+type Urgency = {
+  dueSoon: boolean;
+  overdue: boolean;
+  label: string | null;
+  color: string | null;
+};
 
 const greetingFor = (hour: number) => {
   if (hour < 5) return { label: "Night owl", sub: "The world's still dreaming." };
@@ -32,13 +49,6 @@ const greetingFor = (hour: number) => {
 
 const formatDate = (date: Date) =>
   date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-
-const TIME_ORDER: TimeOfDay[] = ["morning", "afternoon", "evening"];
-const TIME_LABEL: Record<TimeOfDay, string> = {
-  morning: "Morning",
-  afternoon: "Afternoon",
-  evening: "Evening",
-};
 
 function getTimeOfDay(time: string): TimeOfDay {
   if (time === "All day") return "afternoon";
@@ -56,24 +66,79 @@ function getTimeOfDay(time: string): TimeOfDay {
   return "evening";
 }
 
+function minutesUntilDue(targetTime: string): number | null {
+  const [hours, minutes] = targetTime.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  const now = new Date();
+  const targetMinutes = hours * 60 + minutes;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  return targetMinutes - nowMinutes;
+}
+
+function getUrgency(habit: HabitView): Urgency {
+  if (habit.done) {
+    return { dueSoon: false, overdue: false, label: null, color: null };
+  }
+
+  const diff = minutesUntilDue(habit.targetTime);
+  if (diff === null) {
+    return { dueSoon: false, overdue: false, label: null, color: null };
+  }
+
+  if (diff > 0 && diff <= DUE_SOON_MINUTES) {
+    return {
+      dueSoon: true,
+      overdue: false,
+      label: `${diff}m left`,
+      color: colors.warning,
+    };
+  }
+
+  if (diff < 0 && diff >= -60) {
+    return {
+      dueSoon: false,
+      overdue: true,
+      label: "Overdue",
+      color: colors.danger,
+    };
+  }
+
+  return { dueSoon: false, overdue: false, label: null, color: null };
+}
+
 export default function Habits() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, demoSession } = useAuth();
   const [habits, setHabits] = useState<HabitView[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!user) return;
     setLoading(true);
+
+    if (demoSession) {
+      setHabits(generateMockHabits());
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      setHabits([]);
+      setLoading(false);
+      return;
+    }
+
     const data = await fetchHabits(user.id);
     setHabits(data);
     setLoading(false);
-  }, [user]);
+  }, [demoSession, user]);
 
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   const completed = habits.filter((habit) => habit.done).length;
@@ -270,6 +335,7 @@ export default function Habits() {
                     <View key={habit.id}>
                       <HabitRow
                         habit={habit}
+                        urgency={getUrgency(habit)}
                         onOpen={() => router.push(`/habit/${habit.id}`)}
                         onInvite={() => router.push(`/invite/${habit.id}`)}
                         onProve={() => router.push(`/camera/${habit.id}`)}
@@ -315,25 +381,74 @@ function ProgressRing({ progress }: { progress: number }) {
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        originX={size / 2}
+        originY={size / 2}
+        rotation={-90}
       />
     </Svg>
   );
 }
 
+function PulsingDot({ color }: { color: string }) {
+  const anim = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(anim, {
+          toValue: 0.4,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [anim]);
+
+  return (
+    <Animated.View
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: color,
+        opacity: anim,
+      }}
+    />
+  );
+}
+
 function HabitRow({
   habit,
+  urgency,
   onOpen,
   onInvite,
   onProve,
 }: {
   habit: HabitView;
+  urgency: Urgency;
   onOpen: () => void;
   onInvite: () => void;
   onProve: () => void;
 }) {
+  const urgent = urgency.dueSoon || urgency.overdue;
+  const urgentColor = urgency.color ?? colors.fg;
+
   return (
-    <View style={{ paddingVertical: spacing.md, opacity: habit.done ? 0.62 : 1 }}>
+    <View
+      style={{
+        paddingVertical: spacing.md,
+        opacity: habit.done ? 0.62 : 1,
+      }}
+    >
       <Row gap={spacing.md} style={{ justifyContent: "space-between" }}>
         <AnimatedPress onPress={onOpen} haptic={false} style={{ flex: 1 }}>
           <Row gap={spacing.md} style={{ flex: 1 }}>
@@ -350,26 +465,61 @@ function HabitRow({
               <Icon icon={habit.icon} size={24} color={habit.accent} strokeWidth={1.8} />
             </View>
             <Stack gap={4} style={{ flex: 1 }}>
-              <Typography
-                style={{
-                  fontFamily: fonts.heading,
-                  fontSize: 17,
-                  lineHeight: 22,
-                  color: colors.fg,
-                  textDecorationLine: habit.done ? "line-through" : "none",
-                }}
-              >
-                {habit.name}
-              </Typography>
-              {habit.done ? (
-                <Typography variant="metaItalic" color={colors.success}>
-                  Kept today · streak {habit.streak}
+              <Row gap={spacing.sm} style={{ alignItems: "center" }}>
+                <Typography
+                  style={{
+                    fontFamily: fonts.heading,
+                    fontSize: 17,
+                    lineHeight: 22,
+                    color: colors.fg,
+                    textDecorationLine: habit.done ? "line-through" : "none",
+                  }}
+                >
+                  {habit.name}
                 </Typography>
-              ) : (
-                <Typography variant="metaItalic">
-                  {habit.time} · streak {habit.streak}
+                {urgent && urgency.label ? (
+                  <Row
+                    gap={4}
+                    style={{
+                      alignItems: "center",
+                      backgroundColor: `${urgentColor}1a`,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: radius.pill,
+                    }}
+                  >
+                    <PulsingDot color={urgentColor} />
+                    <Typography
+                      style={{
+                        fontFamily: fonts.bodySemibold,
+                        fontSize: 11,
+                        lineHeight: 14,
+                        color: urgentColor,
+                      }}
+                    >
+                      {urgency.label}
+                    </Typography>
+                  </Row>
+                ) : null}
+              </Row>
+              <Row gap={spacing.sm} style={{ alignItems: "center" }}>
+                <Typography variant="metaItalic" color={habit.done ? colors.success : undefined}>
+                  {habit.done ? "Kept today" : habit.time}
                 </Typography>
-              )}
+                <Row gap={3} style={{ alignItems: "center" }}>
+                  <Icon icon={Fire02Icon} size={13} color={colors.danger} strokeWidth={1.8} />
+                  <Typography
+                    style={{
+                      fontFamily: fonts.bodySemibold,
+                      fontSize: 12,
+                      lineHeight: 16,
+                      color: colors.danger,
+                    }}
+                  >
+                    {habit.streak}
+                  </Typography>
+                </Row>
+              </Row>
             </Stack>
           </Row>
         </AnimatedPress>
@@ -409,7 +559,7 @@ function HabitRow({
                 paddingHorizontal: spacing.lg,
                 height: 40,
                 borderRadius: radius.pill,
-                backgroundColor: colors.fg,
+                backgroundColor: urgent ? urgentColor : colors.fg,
                 alignItems: "center",
                 justifyContent: "center",
                 flexDirection: "row",

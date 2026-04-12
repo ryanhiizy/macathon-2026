@@ -172,64 +172,64 @@ export function CoachInsightTeaser({ habitId, habitName, onPress }: CompactProps
     return () => { cancelled = true; };
   }, [fadeAnim, habitId, habitName]);
 
-  async function dismiss() {
-    await AsyncStorage.setItem(getDismissKey("teaser"), "1");
-    Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-      setDismissed(true);
-    });
-  }
-
   if (dismissed || loading || !insight) return null;
+
+  const typeLabel = INSIGHT_TYPE_LABELS[insight.insight_type] ?? "Insight";
 
   return (
     <Animated.View style={{ opacity: fadeAnim }}>
       <Pressable onPress={onPress}>
-        <Card
-          style={{
-            backgroundColor: colors.bgRaised,
-            borderColor: colors.purple,
-            borderWidth: 1,
-            paddingVertical: spacing.md,
-          }}
-        >
-          <Row style={{ justifyContent: "space-between" }}>
-            <Row gap={spacing.sm} style={{ flex: 1 }}>
-              <View
+        <Row gap={spacing.md} style={{ paddingVertical: spacing.sm }}>
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: radius.pill,
+              backgroundColor: `${colors.purple}14`,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon icon={AiMagicIcon} size={17} color={colors.purple} />
+          </View>
+          <Stack gap={2} style={{ flex: 1 }}>
+            <Row gap={spacing.sm} style={{ alignItems: "center" }}>
+              <Typography
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: radius.md,
-                  backgroundColor: `${colors.purple}18`,
-                  alignItems: "center",
-                  justifyContent: "center",
+                  fontFamily: fonts.bodySemibold,
+                  fontSize: 13,
+                  lineHeight: 16,
+                  color: colors.purple,
                 }}
               >
-                <Icon icon={AiMagicIcon} size={18} color={colors.purple} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Typography
-                  style={{ fontFamily: fonts.bodySemibold, fontSize: 14, color: colors.fg }}
-                  numberOfLines={1}
-                >
-                  {insight.headline}
-                </Typography>
-                <Row gap={spacing.xs}>
-                  <Typography variant="caption" numberOfLines={1} style={{ flex: 1 }}>
-                    {insight.habit_name}
-                  </Typography>
-                  <Icon icon={ArrowRight01Icon} size={14} color={colors.fgMuted} />
-                </Row>
-              </View>
+                {typeLabel}
+              </Typography>
+              <View
+                style={{
+                  width: 3,
+                  height: 3,
+                  borderRadius: 1.5,
+                  backgroundColor: colors.fgDim,
+                }}
+              />
+              <Typography variant="meta" numberOfLines={1} style={{ flex: 1 }}>
+                {insight.habit_name}
+              </Typography>
             </Row>
-            <Pressable
-              onPress={(e) => { e.stopPropagation(); dismiss(); }}
-              hitSlop={12}
-              style={{ marginLeft: spacing.sm }}
+            <Typography
+              style={{
+                fontFamily: fonts.body,
+                fontSize: 14,
+                lineHeight: 19,
+                color: colors.fg,
+              }}
+              numberOfLines={1}
             >
-              <Icon icon={Cancel01Icon} size={14} color={colors.fgDim} />
-            </Pressable>
-          </Row>
-        </Card>
+              {insight.headline}
+            </Typography>
+          </Stack>
+          <Icon icon={ArrowRight01Icon} size={16} color={colors.fgDim} />
+        </Row>
       </Pressable>
     </Animated.View>
   );
