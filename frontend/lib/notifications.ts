@@ -1,7 +1,9 @@
 import * as Notifications from "expo-notifications";
+import { Dumbbell01Icon } from "@hugeicons/core-free-icons";
 import { fetchHabits, type HabitView } from "@/lib/habits";
 import { supabase } from "@/lib/supabase";
 import { CHAT_THREADS } from "@/lib/mock";
+import { colors } from "@/lib/theme";
 
 // ---------------------------------------------------------------------------
 // Handler — show banner even when app is foregrounded
@@ -47,6 +49,19 @@ const DEMO_PROMPTS: Record<string, string> = {
   morning: "Capture the view from your morning spot.",
 };
 
+const DEMO_GYM_HABIT: HabitView = {
+  id: "demo-gym-habit",
+  name: "Gym",
+  icon: Dumbbell01Icon,
+  accent: colors.orange,
+  streak: 0,
+  time: "6:00 PM",
+  targetTime: "18:00:00",
+  done: false,
+  category: "gym",
+  circleId: "demo-circle",
+};
+
 function promptForHabit(habit: HabitView): string {
   return DEMO_PROMPTS[habit.category] ?? "Show us something honest.";
 }
@@ -58,19 +73,13 @@ function promptForHabit(habit: HabitView): string {
  */
 export async function triggerDemoNotification(
   delaySec = 5,
-  habit?: HabitView | null,
-  userId?: string,
+  _habit?: HabitView | null,
+  _userId?: string,
 ): Promise<string | null> {
   const granted = await requestNotificationPermissions();
   if (!granted) return null;
 
-  let target = habit;
-  if (!target && userId) {
-    const habits = await fetchHabits(userId);
-    target = habits.find((h) => !h.done) ?? habits[0] ?? null;
-  }
-
-  if (!target) return null;
+  const target = DEMO_GYM_HABIT;
 
   const prompt = promptForHabit(target);
 

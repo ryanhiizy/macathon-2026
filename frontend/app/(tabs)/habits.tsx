@@ -105,7 +105,7 @@ function getUrgency(habit: HabitView): Urgency {
     return {
       dueSoon: true,
       overdue: false,
-      label: `${diff}m until due`,
+      label: `${diff}m`,
       color: colors.warning,
     };
   }

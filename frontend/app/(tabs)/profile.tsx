@@ -485,7 +485,7 @@ function DemoNotificationButton({
             Send test notification
           </Typography>
           <Typography variant="metaItalic">
-            {sent ? "Arriving in 5 seconds..." : "Fires a prove-it notification for your next habit"}
+            {sent ? "Arriving in 5 seconds..." : "Fires a prove-it notification for Gym"}
           </Typography>
         </Stack>
       </Row>
