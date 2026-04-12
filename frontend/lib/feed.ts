@@ -565,14 +565,14 @@ async function fetchRecentRealFeedPosts(userId?: string): Promise<FeedPost[]> {
     return [];
   }
 
+  // For the demo, show all recent snaps so every user sees every post
   const { data: snaps, error: snapError } = await supabase
     .from("snaps")
     .select(
       "id, user_id, habit_instance_id, storage_path, prompt_text, caption, streak_after_completion, created_at, is_group_post",
     )
-    .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(20);
 
   if (snapError || !snaps?.length) {
     return [];
@@ -629,5 +629,9 @@ export async function loadFeedPosts(userId?: string): Promise<FeedPost[]> {
     Promise.resolve(getFeedPosts(userId)),
   ]);
 
-  return [...realPosts, ...mockPosts];
+  // Deduplicate by id (real posts take priority over mocks)
+  const seen = new Set(realPosts.map((p) => p.id));
+  const uniqueMocks = mockPosts.filter((p) => !seen.has(p.id));
+
+  return [...realPosts, ...uniqueMocks];
 }

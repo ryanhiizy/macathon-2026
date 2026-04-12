@@ -13,10 +13,10 @@ export type MockUser = {
  * Generic names, random accent colors, single-letter avatars.
  */
 export const MOCK_USERS: MockUser[] = [
-  { id: "a0000000-0000-0000-0000-000000000001", name: "Sarah K.", handle: "@sarahk", color: colors.blue, letter: "S" },
-  { id: "a0000000-0000-0000-0000-000000000002", name: "Mia Chen", handle: "@miachen", color: colors.green, letter: "M" },
-  { id: "a0000000-0000-0000-0000-000000000003", name: "Jae Park", handle: "@jaepark", color: colors.cyan, letter: "J" },
-  { id: "a0000000-0000-0000-0000-000000000004", name: "Theo Vinci", handle: "@theov", color: colors.orange, letter: "T" },
+  { id: "joel", name: "Joel", handle: "@joel", color: colors.blue, letter: "J" },
+  { id: "emily", name: "Emily", handle: "@emily", color: colors.green, letter: "E" },
+  { id: "ryan", name: "Ryan", handle: "@ryan", color: colors.orange, letter: "R" },
+  { id: "a0000000-0000-0000-0000-000000000004", name: "Theo Vinci", handle: "@theov", color: colors.cyan, letter: "T" },
   { id: "a0000000-0000-0000-0000-000000000005", name: "Nina Ray", handle: "@ninaray", color: colors.magenta, letter: "N" },
   { id: "a0000000-0000-0000-0000-000000000006", name: "Omar H.", handle: "@omarh", color: colors.yellow, letter: "O" },
   { id: "a0000000-0000-0000-0000-000000000007", name: "Kai Lo", handle: "@kailo", color: colors.purple, letter: "K" },

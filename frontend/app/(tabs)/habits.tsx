@@ -378,9 +378,7 @@ function ProgressRing({ progress }: { progress: number }) {
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
-        originX={size / 2}
-        originY={size / 2}
-        rotation={-90}
+        transform={`rotate(-90, ${size / 2}, ${size / 2})`}
       />
     </Svg>
   );

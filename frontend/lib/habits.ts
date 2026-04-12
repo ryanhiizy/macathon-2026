@@ -154,8 +154,6 @@ export function formatFrequency(frequency: string): string {
  * Fetch all habits for a user, enriched with streak and today's status.
  */
 export async function fetchHabits(userId: string): Promise<HabitView[]> {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
   const { data: habits, error } = await supabase
     .from("habits")
     .select("*")
@@ -182,14 +180,19 @@ export async function fetchHabits(userId: string): Promise<HabitView[]> {
     streakMap.set(m.circle_id, m.current_streak);
   });
 
-  // Batch-fetch today's instances
+  // Batch-fetch today's instances (use local day range to match how instances are created)
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+
   const habitIds = habits.map((h: DbHabit) => h.id);
   const { data: instances } = await supabase
     .from("habit_instances")
     .select("habit_id, status")
     .in("habit_id", habitIds)
-    .gte("scheduled_for", `${today}T00:00:00`)
-    .lt("scheduled_for", `${today}T23:59:59`);
+    .gte("scheduled_for", dayStart.toISOString())
+    .lt("scheduled_for", dayEnd.toISOString());
 
   const statusMap = new Map<string, string>();
   (instances ?? []).forEach((i: { habit_id: string; status: string }) => {
@@ -312,14 +315,18 @@ export async function fetchHabitDetail(
   const currentStreak = member?.current_streak ?? 0;
   const bestStreak = member?.best_streak ?? 0;
 
-  // Today's status
-  const today = new Date().toISOString().slice(0, 10);
+  // Today's status (use local day range to match how instances are created)
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+
   const { data: todayInstance } = await supabase
     .from("habit_instances")
     .select("status")
     .eq("habit_id", habitId)
-    .gte("scheduled_for", `${today}T00:00:00`)
-    .lt("scheduled_for", `${today}T23:59:59`)
+    .gte("scheduled_for", dayStart.toISOString())
+    .lt("scheduled_for", dayEnd.toISOString())
     .limit(1)
     .single();
 

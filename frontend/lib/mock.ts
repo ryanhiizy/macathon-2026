@@ -502,10 +502,10 @@ export type Friend = {
 };
 
 export const FRIENDS: Friend[] = [
-  { id: "mu01", name: "Sarah K.", handle: "@sarahk", color: colors.blue, letter: "S" },
-  { id: "mu02", name: "Mia Chen", handle: "@miachen", color: colors.green, letter: "M" },
-  { id: "mu03", name: "Jae Park", handle: "@jaepark", color: colors.cyan, letter: "J" },
-  { id: "mu04", name: "Theo Vinci", handle: "@theov", color: colors.orange, letter: "T" },
+  { id: "joel", name: "Joel", handle: "@joel", color: colors.blue, letter: "J" },
+  { id: "emily", name: "Emily", handle: "@emily", color: colors.green, letter: "E" },
+  { id: "ryan", name: "Ryan", handle: "@ryan", color: colors.orange, letter: "R" },
+  { id: "mu04", name: "Theo Vinci", handle: "@theov", color: colors.cyan, letter: "T" },
   { id: "mu05", name: "Nina Ray", handle: "@ninaray", color: colors.magenta, letter: "N" },
   { id: "mu06", name: "Omar H.", handle: "@omarh", color: colors.yellow, letter: "O" },
   { id: "mu07", name: "Kai Lo", handle: "@kailo", color: colors.purple, letter: "K" },
@@ -517,11 +517,11 @@ export const FRIENDS: Friend[] = [
 ];
 
 export const CIRCLE_MEMBERS = [
-  { id: "mu01", name: "Sarah K.", handle: "@sarahk", letter: "S", color: colors.blue, streak: 34 },
-  { id: "you", name: "You", handle: "@brayden", letter: "B", color: colors.purple, streak: 23 },
-  { id: "mu02", name: "Mia Chen", handle: "@miachen", letter: "M", color: colors.green, streak: 19 },
-  { id: "mu03", name: "Jae Park", handle: "@jaepark", letter: "J", color: colors.cyan, streak: 47 },
-  { id: "mu04", name: "Theo Vinci", handle: "@theov", letter: "T", color: colors.orange, streak: 17 },
+  { id: "joel", name: "Joel", handle: "@joel", letter: "J", color: colors.blue, streak: 34 },
+  { id: "you", name: "You", handle: "@jack", letter: "J", color: colors.purple, streak: 23 },
+  { id: "emily", name: "Emily", handle: "@emily", letter: "E", color: colors.green, streak: 19 },
+  { id: "ryan", name: "Ryan", handle: "@ryan", letter: "R", color: colors.orange, streak: 47 },
+  { id: "mu04", name: "Theo Vinci", handle: "@theov", letter: "T", color: colors.cyan, streak: 17 },
   { id: "mu05", name: "Nina Ray", handle: "@ninaray", letter: "N", color: colors.magenta, streak: 21 },
   { id: "mu09", name: "Leo Cruz", handle: "@leocruz", letter: "L", color: colors.orange, streak: 9 },
   { id: "mu10", name: "Zoe Kim", handle: "@zoekim", letter: "Z", color: colors.cyan, streak: 28 },
@@ -618,12 +618,12 @@ export type ChatThread = {
 };
 
 export const CHAT_THREADS: ChatThread[] = [
-  { id: "dm1", name: "Sarah K.", color: colors.blue, letter: "S", lastMessage: "That sunrise walk was everything", when: "2m", unread: true, online: true },
-  { id: "dm2", name: "Mia Chen", color: colors.green, letter: "M", lastMessage: "Are we still on for the morning run?", when: "25m", unread: true, online: true },
-  { id: "dm3", name: "Morning Flow", color: colors.purple, letter: "M", lastMessage: "Jae: Great session today!", when: "1h", unread: false, online: false, isGroup: true, groupIcon: Yoga01Icon, groupMembers: [{ color: colors.purple, letter: "B" }, { color: colors.cyan, letter: "J" }, { color: colors.green, letter: "M" }] },
-  { id: "dm4", name: "Jae Park", color: colors.cyan, letter: "J", lastMessage: "Have you read Klara and the Sun?", when: "3h", unread: false, online: false },
-  { id: "dm5", name: "Theo Vinci", color: colors.orange, letter: "T", lastMessage: "Sent a photo", when: "5h", unread: false, online: true },
-  { id: "dm6", name: "5K Crew", color: colors.orange, letter: "5", lastMessage: "Nina: See everyone at 6am!", when: "6h", unread: false, online: false, isGroup: true, groupIcon: RunningShoesIcon, groupMembers: [{ color: colors.orange, letter: "T" }, { color: colors.magenta, letter: "N" }, { color: colors.blue, letter: "S" }] },
+  { id: "dm-joel", name: "Joel", color: colors.blue, letter: "J", lastMessage: "Bro did you push the camera fix yet", when: "2m", unread: true, online: true },
+  { id: "dm-emily", name: "Emily", color: colors.green, letter: "E", lastMessage: "The design looks so clean now", when: "15m", unread: true, online: true },
+  { id: "dm-ryan", name: "Ryan", color: colors.orange, letter: "R", lastMessage: "YOLO model is detecting everything now", when: "30m", unread: true, online: true },
+  { id: "group-team", name: "Macathon Team", color: colors.purple, letter: "M", lastMessage: "Ryan: Let's ship it", when: "1h", unread: false, online: false, isGroup: true, groupIcon: RunningShoesIcon, groupMembers: [{ color: colors.purple, letter: "J" }, { color: colors.blue, letter: "J" }, { color: colors.green, letter: "E" }, { color: colors.orange, letter: "R" }] },
+  { id: "dm4", name: "Theo Vinci", color: colors.cyan, letter: "T", lastMessage: "Have you tried the new prompt system?", when: "3h", unread: false, online: false },
+  { id: "group-morning", name: "Morning Crew", color: colors.magenta, letter: "M", lastMessage: "Nina: See everyone at 6am!", when: "6h", unread: false, online: false, isGroup: true, groupIcon: Yoga01Icon, groupMembers: [{ color: colors.magenta, letter: "N" }, { color: colors.cyan, letter: "T" }, { color: colors.purple, letter: "J" }] },
   { id: "dm7", name: "Nina Ray", color: colors.magenta, letter: "N", lastMessage: "That cold plunge was brutal lol", when: "1d", unread: false, online: false },
   { id: "dm8", name: "Omar H.", color: colors.yellow, letter: "O", lastMessage: "Check out this recipe I found", when: "1d", unread: false, online: false },
   { id: "dm9", name: "Kai Lo", color: colors.purple, letter: "K", lastMessage: "You coming to the meetup?", when: "2d", unread: false, online: false },
@@ -641,58 +641,57 @@ export type ChatMessage = {
 };
 
 export const CHAT_MESSAGES: Record<string, ChatMessage[]> = {
-  dm1: [
-    { id: "m1", senderId: "a", senderName: "Sarah K.", senderColor: colors.blue, senderLetter: "S", text: "Did you see the sky this morning??", when: "7:02 AM", isMe: false },
-    { id: "m2", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "YES I literally ran outside with my camera", when: "7:03 AM", isMe: true },
-    { id: "m3", senderId: "a", senderName: "Sarah K.", senderColor: colors.blue, senderLetter: "S", text: "Same!! I got the best photo from the bridge", when: "7:04 AM", isMe: false },
-    { id: "m4", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "Post it! The feed needs more sunrise content", when: "7:05 AM", isMe: true },
-    { id: "m5", senderId: "a", senderName: "Sarah K.", senderColor: colors.blue, senderLetter: "S", text: "Already did :) check my morning walk habit", when: "7:06 AM", isMe: false },
-    { id: "m6", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "12 day streak! You're on fire", when: "7:08 AM", isMe: true },
-    { id: "m7", senderId: "a", senderName: "Sarah K.", senderColor: colors.blue, senderLetter: "S", text: "That sunrise walk was everything", when: "7:10 AM", isMe: false },
+  "dm-joel": [
+    { id: "m1", senderId: "joel", senderName: "Joel", senderColor: colors.blue, senderLetter: "J", text: "Yo did you see the circles page?", when: "9:02 AM", isMe: false },
+    { id: "m2", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "Yeah it looks fire, Emily went off on the design", when: "9:03 AM", isMe: true },
+    { id: "m3", senderId: "joel", senderName: "Joel", senderColor: colors.blue, senderLetter: "J", text: "Fr. I'm almost done with the backend routes", when: "9:04 AM", isMe: false },
+    { id: "m4", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "Nice I'm wiring up the messaging rn", when: "9:05 AM", isMe: true },
+    { id: "m5", senderId: "joel", senderName: "Joel", senderColor: colors.blue, senderLetter: "J", text: "Let's get it. We shipping tonight", when: "9:06 AM", isMe: false },
+    { id: "m6", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "100%. I'll push the camera fix after this", when: "9:08 AM", isMe: true },
+    { id: "m7", senderId: "joel", senderName: "Joel", senderColor: colors.blue, senderLetter: "J", text: "Bro did you push the camera fix yet", when: "9:30 AM", isMe: false },
   ],
-  dm2: [
-    { id: "m8", senderId: "b", senderName: "Mia Chen", senderColor: colors.green, senderLetter: "M", text: "Hey! 5K tomorrow morning?", when: "Yesterday", isMe: false },
-    { id: "m9", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "Absolutely. 6:30 at the usual spot?", when: "Yesterday", isMe: true },
-    { id: "m10", senderId: "b", senderName: "Mia Chen", senderColor: colors.green, senderLetter: "M", text: "Perfect. Jae might come too", when: "Yesterday", isMe: false },
-    { id: "m11", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "The more the merrier!", when: "Yesterday", isMe: true },
-    { id: "m12", senderId: "b", senderName: "Mia Chen", senderColor: colors.green, senderLetter: "M", text: "Are we still on for the morning run?", when: "8:15 AM", isMe: false },
+  "dm-emily": [
+    { id: "m8", senderId: "emily", senderName: "Emily", senderColor: colors.green, senderLetter: "E", text: "Hey can you check the new feed layout?", when: "8:30 AM", isMe: false },
+    { id: "m9", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "Just looked, the spacing is perfect", when: "8:32 AM", isMe: true },
+    { id: "m10", senderId: "emily", senderName: "Emily", senderColor: colors.green, senderLetter: "E", text: "Thanks! I also updated the profile page", when: "8:33 AM", isMe: false },
+    { id: "m11", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "The avatar component is so smooth now", when: "8:34 AM", isMe: true },
+    { id: "m12", senderId: "emily", senderName: "Emily", senderColor: colors.green, senderLetter: "E", text: "The design looks so clean now", when: "8:45 AM", isMe: false },
   ],
-  dm3: [
-    { id: "m13", senderId: "j", senderName: "Jae Park", senderColor: colors.cyan, senderLetter: "J", text: "Great session today!", when: "6:42 PM", isMe: false },
-    { id: "m14", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "That flow was exactly what I needed.", when: "6:43 PM", isMe: true },
-    { id: "m15", senderId: "m", senderName: "Mia Chen", senderColor: colors.green, senderLetter: "M", text: "Same. Morning Flow tomorrow too?", when: "6:44 PM", isMe: false },
+  "dm-ryan": [
+    { id: "m13", senderId: "ryan", senderName: "Ryan", senderColor: colors.orange, senderLetter: "R", text: "I trained the model on more classes", when: "8:00 AM", isMe: false },
+    { id: "m14", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "How's the accuracy looking?", when: "8:02 AM", isMe: true },
+    { id: "m15", senderId: "ryan", senderName: "Ryan", senderColor: colors.orange, senderLetter: "R", text: "Way better, detecting water bottles, yoga mats, running shoes", when: "8:03 AM", isMe: false },
+    { id: "m16", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "That's huge for the demo", when: "8:04 AM", isMe: true },
+    { id: "m17", senderId: "ryan", senderName: "Ryan", senderColor: colors.orange, senderLetter: "R", text: "YOLO model is detecting everything now", when: "8:30 AM", isMe: false },
+  ],
+  "group-team": [
+    { id: "m18", senderId: "joel", senderName: "Joel", senderColor: colors.blue, senderLetter: "J", text: "Alright team, status update?", when: "7:00 AM", isMe: false },
+    { id: "m19", senderId: "emily", senderName: "Emily", senderColor: colors.green, senderLetter: "E", text: "Design system is done, all components are styled", when: "7:02 AM", isMe: false },
+    { id: "m20", senderId: "ryan", senderName: "Ryan", senderColor: colors.orange, senderLetter: "R", text: "YOLO server is running stable, prompt gen is working", when: "7:03 AM", isMe: false },
+    { id: "m21", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "Messaging and camera flow are almost done", when: "7:05 AM", isMe: true },
+    { id: "m22", senderId: "joel", senderName: "Joel", senderColor: colors.blue, senderLetter: "J", text: "We're actually gonna make it", when: "7:06 AM", isMe: false },
+    { id: "m23", senderId: "emily", senderName: "Emily", senderColor: colors.green, senderLetter: "E", text: "The app looks so good honestly", when: "7:08 AM", isMe: false },
+    { id: "m24", senderId: "ryan", senderName: "Ryan", senderColor: colors.orange, senderLetter: "R", text: "Let's ship it", when: "7:10 AM", isMe: false },
   ],
   dm4: [
-    { id: "m16", senderId: "c", senderName: "Jae Park", senderColor: colors.cyan, senderLetter: "J", text: "Have you read Klara and the Sun?", when: "4:18 PM", isMe: false },
-    { id: "m17", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "Not yet, but it's next on my list.", when: "4:20 PM", isMe: true },
+    { id: "m25", senderId: "mu04", senderName: "Theo Vinci", senderColor: colors.cyan, senderLetter: "T", text: "Have you tried the new prompt system?", when: "4:18 PM", isMe: false },
+    { id: "m26", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "Yeah it's actually really creative with the prompts", when: "4:20 PM", isMe: true },
   ],
-  dm5: [
-    { id: "m18", senderId: "d", senderName: "Theo Vinci", senderColor: colors.orange, senderLetter: "T", text: "Sent a photo", when: "2:07 PM", isMe: false },
-    { id: "m19", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "That lighting is unreal.", when: "2:10 PM", isMe: true },
-  ],
-  dm6: [
-    { id: "m20", senderId: "n", senderName: "Nina Ray", senderColor: colors.magenta, senderLetter: "N", text: "See everyone at 6am!", when: "9:12 PM", isMe: false },
-    { id: "m21", senderId: "s", senderName: "Sarah K.", senderColor: colors.blue, senderLetter: "S", text: "I'll bring gels.", when: "9:14 PM", isMe: false },
-    { id: "m22", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "Perfect. I'm setting three alarms.", when: "9:15 PM", isMe: true },
+  "group-morning": [
+    { id: "m27", senderId: "mu05", senderName: "Nina Ray", senderColor: colors.magenta, senderLetter: "N", text: "See everyone at 6am!", when: "9:12 PM", isMe: false },
+    { id: "m28", senderId: "mu04", senderName: "Theo Vinci", senderColor: colors.cyan, senderLetter: "T", text: "I'll be there, setting my alarm now", when: "9:14 PM", isMe: false },
+    { id: "m29", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "Perfect. I'm setting three alarms.", when: "9:15 PM", isMe: true },
   ],
   dm7: [
-    { id: "m23", senderId: "e", senderName: "Nina Ray", senderColor: colors.magenta, senderLetter: "N", text: "That cold plunge was brutal lol", when: "Yesterday", isMe: false },
-    { id: "m24", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "You looked way calmer than I felt.", when: "Yesterday", isMe: true },
+    { id: "m30", senderId: "mu05", senderName: "Nina Ray", senderColor: colors.magenta, senderLetter: "N", text: "That cold plunge was brutal lol", when: "Yesterday", isMe: false },
+    { id: "m31", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "You looked way calmer than I felt.", when: "Yesterday", isMe: true },
   ],
   dm8: [
-    { id: "m25", senderId: "f", senderName: "Omar H.", senderColor: colors.yellow, senderLetter: "O", text: "Check out this recipe I found", when: "Yesterday", isMe: false },
-    { id: "m26", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "Saving this for meal prep night.", when: "Yesterday", isMe: true },
+    { id: "m32", senderId: "mu06", senderName: "Omar H.", senderColor: colors.yellow, senderLetter: "O", text: "Check out this recipe I found", when: "Yesterday", isMe: false },
+    { id: "m33", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "Saving this for meal prep night.", when: "Yesterday", isMe: true },
   ],
   dm9: [
-    { id: "m27", senderId: "g", senderName: "Kai Lo", senderColor: colors.purple, senderLetter: "K", text: "You coming to the meetup?", when: "Tuesday", isMe: false },
-    { id: "m28", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "Yep, I'll be there after work.", when: "Tuesday", isMe: true },
-  ],
-  "circle-2": [
-    { id: "m29", senderId: "s", senderName: "Sarah K.", senderColor: colors.blue, senderLetter: "S", text: "Who's in for a water check tomorrow?", when: "8:02 PM", isMe: false },
-    { id: "m30", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "I'm in. Bottle stays full this time.", when: "8:05 PM", isMe: true },
-  ],
-  "circle-4": [
-    { id: "m31", senderId: "d", senderName: "Theo Vinci", senderColor: colors.orange, senderLetter: "T", text: "Coffee circle at 7am again?", when: "6:58 PM", isMe: false },
-    { id: "m32", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "B", text: "Yes. Phones down, no excuses.", when: "7:00 PM", isMe: true },
+    { id: "m34", senderId: "mu07", senderName: "Kai Lo", senderColor: colors.purple, senderLetter: "K", text: "You coming to the meetup?", when: "Tuesday", isMe: false },
+    { id: "m35", senderId: "me", senderName: "You", senderColor: colors.purple, senderLetter: "J", text: "Yep, I'll be there after work.", when: "Tuesday", isMe: true },
   ],
 };

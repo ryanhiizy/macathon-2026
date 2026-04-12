@@ -21,8 +21,10 @@ import { Segmented } from "@/components/segmented";
 import { SwipeableTabs } from "@/components/swipeable-tabs";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
+import { fetchCommentCounts } from "@/lib/comments";
 import { getFeedPosts, loadFeedPosts } from "@/lib/feed";
 import { useAuth } from "@/lib/auth-context";
+import { fetchLikeCounts } from "@/lib/likes";
 import type { FeedPost, GroupPost as GroupPostData, SoloPost as SoloPostData } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 
@@ -40,11 +42,30 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [pullMessageIdx, setPullMessageIdx] = useState(0);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshFeed = useCallback(async () => {
     const nextPosts = await loadFeedPosts(user?.id);
     setPosts(nextPosts);
+
+    const postIds = nextPosts
+      .filter((post): post is SoloPostData | GroupPostData => post.kind !== "dispatch")
+      .map((post) => post.id);
+
+    if (postIds.length === 0) {
+      setCommentCounts({});
+      setLikeCounts({});
+      return;
+    }
+
+    const [nextCommentCounts, nextLikeCounts] = await Promise.all([
+      fetchCommentCounts(postIds),
+      fetchLikeCounts(postIds),
+    ]);
+    setCommentCounts(nextCommentCounts);
+    setLikeCounts(nextLikeCounts);
   }, [user?.id]);
 
   useEffect(
@@ -59,7 +80,7 @@ export default function Home() {
   useFocusEffect(
     useCallback(() => {
       refreshFeed();
-    }, [refreshFeed])
+    }, [refreshFeed]),
   );
 
   const onRefresh = () => {
@@ -69,12 +90,19 @@ export default function Home() {
 
     setRefreshing(true);
     setPullMessageIdx((index) => (index + 1) % PULL_MESSAGES.length);
-    void refreshFeed();
     refreshTimeoutRef.current = setTimeout(() => {
+      refreshFeed().catch(() => {});
       setRefreshing(false);
       refreshTimeoutRef.current = null;
     }, 900);
   };
+
+  const onCommentPosted = useCallback((postId: string) => {
+    setCommentCounts((prev) => ({
+      ...prev,
+      [postId]: (prev[postId] ?? 0) + 1,
+    }));
+  }, []);
 
   const feedPosts = posts.length > 0 ? posts : getFeedPosts(user?.id);
   const friendsPosts = feedPosts.filter((post) => post.kind !== "group");
@@ -138,19 +166,40 @@ export default function Home() {
               />
             }
           >
-            <FeedList posts={friendsPosts} onComment={setCommentPostId} />
+            <FeedList
+              posts={friendsPosts}
+              onComment={setCommentPostId}
+              commentCounts={commentCounts}
+              likeCounts={likeCounts}
+            />
           </ScrollView>,
           <ScrollView key="circles" {...paneScroll}>
-            <FeedList posts={circlePosts} onComment={setCommentPostId} />
+            <FeedList
+              posts={circlePosts}
+              onComment={setCommentPostId}
+              commentCounts={commentCounts}
+              likeCounts={likeCounts}
+            />
           </ScrollView>,
         ]}
       </SwipeableTabs>
-      <CommentsSheet postId={commentPostId} onClose={() => setCommentPostId(null)} />
+      <CommentsSheet
+        postId={commentPostId}
+        onClose={() => setCommentPostId(null)}
+        onCommentPosted={onCommentPosted}
+      />
     </Screen>
   );
 }
 
-function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: string) => void }) {
+type FeedListProps = {
+  posts: FeedPost[];
+  onComment: (id: string) => void;
+  commentCounts: Record<string, number>;
+  likeCounts: Record<string, number>;
+};
+
+function FeedList({ posts, onComment, commentCounts, likeCounts }: FeedListProps) {
   return (
     <Stack gap={spacing.xxl}>
       {posts.map((post) => {
@@ -175,11 +224,30 @@ function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: str
           );
         }
 
+        const commentCount = commentCounts[post.id] ?? post.comments;
+        const likeCount = likeCounts[post.id] ?? post.likes;
+
         if (post.kind === "group") {
-          return <GroupPost key={post.id} post={post} onComment={onComment} />;
+          return (
+            <GroupPost
+              key={post.id}
+              post={post}
+              onComment={onComment}
+              commentCount={commentCount}
+              likeCount={likeCount}
+            />
+          );
         }
 
-        return <SoloPost key={post.id} post={post} onComment={onComment} />;
+        return (
+          <SoloPost
+            key={post.id}
+            post={post}
+            onComment={onComment}
+            commentCount={commentCount}
+            likeCount={likeCount}
+          />
+        );
       })}
       <Typography
         variant="metaItalic"
@@ -191,7 +259,13 @@ function FeedList({ posts, onComment }: { posts: FeedPost[]; onComment: (id: str
   );
 }
 
-function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: string) => void }) {
+type PostProps = {
+  onComment: (id: string) => void;
+  commentCount: number;
+  likeCount: number;
+};
+
+function SoloPost({ post, onComment, commentCount, likeCount }: { post: SoloPostData } & PostProps) {
   return (
     <Stack gap={spacing.md}>
       <Row style={{ justifyContent: "space-between" }}>
@@ -226,8 +300,8 @@ function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: str
         photos={post.photos}
         footer={
           <PostActions
-            likes={post.likes}
-            comments={post.comments}
+            likes={likeCount}
+            comments={commentCount}
             snapId={post.id}
             onComment={() => onComment(post.id)}
           />
@@ -237,7 +311,7 @@ function SoloPost({ post, onComment }: { post: SoloPostData; onComment: (id: str
   );
 }
 
-function GroupPost({ post, onComment }: { post: GroupPostData; onComment: (id: string) => void }) {
+function GroupPost({ post, onComment, commentCount, likeCount }: { post: GroupPostData } & PostProps) {
   const avatars = post.participants.map((participant) => ({
     color: participant.color,
     letter: participant.letter,
@@ -295,8 +369,8 @@ function GroupPost({ post, onComment }: { post: GroupPostData; onComment: (id: s
         photos={post.photos}
         footer={
           <PostActions
-            likes={post.likes}
-            comments={post.comments}
+            likes={likeCount}
+            comments={commentCount}
             snapId={post.id}
             onComment={() => onComment(post.id)}
           />
