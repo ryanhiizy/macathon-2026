@@ -523,14 +523,16 @@ type ProfileRow = {
   handle: string;
 };
 
+type SnapParticipantProfile = {
+  id: string;
+  display_name: string | null;
+};
+
 type SnapParticipantRow = {
   snap_id: string;
   user_id: string;
   streak_after_completion: number;
-  profiles: {
-    id: string;
-    display_name: string | null;
-  }[] | null;
+  profiles: SnapParticipantProfile | SnapParticipantProfile[] | null;
 };
 
 type HabitInstanceFeedRow = {
@@ -636,7 +638,9 @@ async function fetchRecentRealFeedPosts(userId?: string): Promise<FeedPost[]> {
       snapId: participant.snap_id,
       userId: participant.user_id,
       streakAfterCompletion: participant.streak_after_completion,
-      displayName: participant.profiles?.[0]?.display_name ?? null,
+      displayName: (Array.isArray(participant.profiles)
+        ? participant.profiles[0]?.display_name
+        : participant.profiles?.display_name) ?? null,
     })),
     snapRows
       .filter((snap) => snap.is_group_post)

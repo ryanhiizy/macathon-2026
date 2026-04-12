@@ -13,10 +13,14 @@ import { Icon } from "@/components/icon";
 import { AnimatedPress } from "@/components/animated-press";
 import { Avatar, AvatarStack } from "@/components/avatar";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
-import { FRIENDS, HABITS } from "@/lib/mock";
+import { HABITS } from "@/lib/mock";
+import type { Friend } from "@/lib/mock";
+import { DEMO_USERS } from "@/lib/demo-users";
+import { useAuth } from "@/lib/auth-context";
 import { categoryMeta, formatTime } from "@/lib/habits";
 
 export default function InviteScreen() {
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     id?: string | string[];
     name?: string | string[];
@@ -27,6 +31,20 @@ export default function InviteScreen() {
   const habitNameParam = Array.isArray(params.name) ? params.name[0] : params.name;
   const targetTimeParam = Array.isArray(params.targetTime) ? params.targetTime[0] : params.targetTime;
   const categoryParam = Array.isArray(params.category) ? params.category[0] : params.category;
+
+  // Only show the other 3 core demo users as invitable friends
+  const FRIENDS: Friend[] = useMemo(() => {
+    return DEMO_USERS
+      .filter((u) => u.id !== user?.id)
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        handle: `@${u.name.toLowerCase()}`,
+        color: u.color,
+        letter: u.name[0]?.toUpperCase() ?? "?",
+      }));
+  }, [user?.id]);
+
   const fallbackHabit = HABITS.find((h) => h.id === id);
   const habit = useMemo(() => {
     if (!id) return null;
@@ -61,7 +79,7 @@ export default function InviteScreen() {
     return FRIENDS.filter(
       (f) => f.name.toLowerCase().includes(q) || f.handle.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, FRIENDS]);
 
   const toggle = (fid: string) => {
     setSelected((prev) => {
@@ -265,6 +283,7 @@ export default function InviteScreen() {
                     targetTime: targetTimeParam ?? "",
                     category: habit.category,
                     participantCount: String(selected.size + 1),
+                    participantIds: [...selected].join(","),
                   },
                 });
               }}

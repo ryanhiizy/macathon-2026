@@ -29,6 +29,7 @@ export default function GroupCameraScreen() {
     targetTime?: string | string[];
     category?: string | string[];
     participantCount?: string | string[];
+    participantIds?: string | string[];
   }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const habitNameParam = Array.isArray(params.name) ? params.name[0] : params.name;
@@ -37,6 +38,13 @@ export default function GroupCameraScreen() {
   const participantCountParam = Array.isArray(params.participantCount)
     ? params.participantCount[0]
     : params.participantCount;
+  const participantIdsParam = Array.isArray(params.participantIds)
+    ? params.participantIds[0]
+    : params.participantIds;
+  const participantIds = useMemo(
+    () => (participantIdsParam ? participantIdsParam.split(",").filter(Boolean) : []),
+    [participantIdsParam],
+  );
   const fallbackHabit = HABITS.find((h) => h.id === id);
   const habit = useMemo(() => {
     if (!id) return null;
@@ -143,6 +151,7 @@ export default function GroupCameraScreen() {
         localUri: capturedUri,
         caption,
         promptText: prompt ?? undefined,
+        participantIds,
       });
 
       router.replace("/");
