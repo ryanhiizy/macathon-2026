@@ -14,7 +14,6 @@ import {
   CameraRotated01Icon,
   FlashIcon,
   FlashOffIcon,
-  SparklesIcon,
   Clock01Icon,
 } from "@hugeicons/core-free-icons";
 import { Row, Stack } from "@/components/layout";
@@ -300,26 +299,21 @@ export default function CameraScreen() {
             opacity: capturedUri ? 0 : 1,
           }}
         >
-          <Row gap={spacing.sm} style={{ alignItems: "flex-start" }}>
-            <View style={{ paddingTop: 2 }}>
-              <Icon icon={SparklesIcon} size={16} color={colors.primary} strokeWidth={2} />
-            </View>
-            <Stack gap={4} style={{ flex: 1 }}>
-              <Typography variant="metaItalic" color={colors.primary}>
-                Today&apos;s prompt
-              </Typography>
-              <Typography
-                style={{
-                  fontFamily: fonts.heading,
-                  fontSize: 17,
-                  lineHeight: 24,
-                  color: colors.fg,
-                }}
-              >
-                {prompt}
-              </Typography>
-            </Stack>
-          </Row>
+          <Stack gap={4}>
+            <Typography variant="metaItalic" color={colors.primary}>
+              Today&apos;s prompt
+            </Typography>
+            <Typography
+              style={{
+                fontFamily: fonts.heading,
+                fontSize: 17,
+                lineHeight: 24,
+                color: colors.fg,
+              }}
+            >
+              {prompt}
+            </Typography>
+          </Stack>
         </View>
 
         <View style={{ flex: 1 }} />
