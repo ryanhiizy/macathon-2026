@@ -22,6 +22,12 @@ export type AppProfile = {
   created_at: string;
 };
 
+export type ProfileUpdateInput = {
+  displayName: string;
+  handle: string;
+  bio: string;
+};
+
 export type PendingSignupDraft = {
   displayName: string;
   username: string;
@@ -139,6 +145,33 @@ export function buildProfileDefaults(email: string, userId: string) {
     displayName,
     handle,
   };
+}
+
+export async function updateProfile(userId: string, updates: ProfileUpdateInput) {
+  const displayName = updates.displayName.trim() || "Presence User";
+  const handle = normalizeUsername(updates.handle);
+  const bio = updates.bio.trim();
+
+  if (!handle) {
+    throw new Error("Username can't be empty.");
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: displayName,
+      handle,
+      bio: bio || null,
+    })
+    .eq("id", userId)
+    .select("id, display_name, handle, avatar_url, bio, created_at")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as AppProfile;
 }
 
 export async function savePendingSignupDraft(draft: PendingSignupDraft) {
