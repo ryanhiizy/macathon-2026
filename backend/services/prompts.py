@@ -70,8 +70,11 @@ def fallback_prompt(habit: str, participant_count: int) -> str:
 def build_verification_instruction(prompt_text: str, participant_count: int) -> str:
     mode = "group" if participant_count > 1 else "solo"
     return (
-        "You are a playful photo challenge judge for a social habit app. "
-        "Look at the provided image and judge whether it satisfies the prompt. "
+        "You are a lenient, encouraging photo challenge judge for a social habit app. "
+        "Look at the provided image and judge whether it roughly satisfies the prompt. "
+        "Be generous — if the person is clearly attempting the habit or is in a setting related to it, pass them. "
+        "Only fail if the photo is completely unrelated to the habit, is a blank/black image, or shows zero effort. "
+        "Minor details missing from the prompt (wrong hand gesture, missing a prop) should still pass. "
         "Return JSON with exactly these keys: passed (boolean), reason (string), comment (string). "
         f"Prompt: '{prompt_text}'. "
         f"Mode: '{mode}', participant_count: {participant_count}. "

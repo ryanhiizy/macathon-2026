@@ -31,6 +31,30 @@ function buildPromptText(habitName: string) {
   return `Show yourself doing ${habitName.toLowerCase()}.`;
 }
 
+export async function fetchAIPrompt(habitName: string): Promise<string> {
+  const baseUrl = process.env.EXPO_PUBLIC_PROMPT_API_URL?.replace(/\/+$/, "");
+  if (!baseUrl) {
+    return buildPromptText(habitName);
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/generate-prompt`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ habit: habitName, participant_count: 1 }),
+    });
+
+    if (!response.ok) {
+      return buildPromptText(habitName);
+    }
+
+    const data = (await response.json()) as { prompt_text?: string };
+    return data.prompt_text?.trim() || buildPromptText(habitName);
+  } catch {
+    return buildPromptText(habitName);
+  }
+}
+
 function requirePromptApiUrl() {
   const value = process.env.EXPO_PUBLIC_PROMPT_API_URL;
 
@@ -138,19 +162,20 @@ export async function getHabitCaptureMeta(habitId: string, userId: string) {
 }
 
 export async function verifySnapPhoto(params: { localUri: string; promptText: string }) {
-  const imageResponse = await fetch(params.localUri);
-  const imageBlob = await imageResponse.blob();
-  const mimeType = imageBlob.type || "image/jpeg";
-  const verifyUrl = `${requirePromptApiUrl()}/verify-photo-raw?prompt_text=${encodeURIComponent(
-    params.promptText,
-  )}&participant_count=1`;
+  const verifyUrl = `${requirePromptApiUrl()}/verify-photo`;
+
+  const formData = new FormData();
+  formData.append("prompt_text", params.promptText);
+  formData.append("participant_count", "1");
+  formData.append("file", {
+    uri: params.localUri,
+    type: "image/jpeg",
+    name: "snap.jpg",
+  } as unknown as Blob);
 
   const response = await fetch(verifyUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": mimeType,
-    },
-    body: imageBlob,
+    body: formData,
   });
 
   if (!response.ok) {
@@ -175,7 +200,7 @@ export async function verifySnapPhoto(params: { localUri: string; promptText: st
   } satisfies VerifyPhotoResult;
 }
 
-export async function getOrCreateTodayHabitInstance(habitId: string, userId: string) {
+export async function getOrCreateTodayHabitInstance(habitId: string, userId: string, promptText?: string) {
   const habit = await fetchHabitCaptureMeta(habitId, userId);
   const range = getLocalDayRange();
 
@@ -211,7 +236,7 @@ export async function getOrCreateTodayHabitInstance(habitId: string, userId: str
       scheduled_for: buildScheduledFor(habit.target_time),
       window_closes_at: buildWindowClosesAt(),
       prompt_id: `demo-${new Date().toISOString().slice(0, 10)}`,
-      prompt_text: buildPromptText(habit.name),
+      prompt_text: promptText || buildPromptText(habit.name),
     })
     .select("id")
     .single();
@@ -248,8 +273,9 @@ export async function submitSoloSnap(params: {
   userId: string;
   localUri: string;
   caption?: string;
+  promptText?: string;
 }) {
-  const { habit, habitInstanceId } = await getOrCreateTodayHabitInstance(params.habitId, params.userId);
+  const { habit, habitInstanceId } = await getOrCreateTodayHabitInstance(params.habitId, params.userId, params.promptText);
   const storagePath = await uploadSnapPhoto(params.userId, habit.circle_id, params.localUri);
   const caption = params.caption?.trim() || `Checked in for ${habit.name}.`;
 
