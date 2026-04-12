@@ -72,7 +72,7 @@ async function seedMockData(currentUserId: string) {
         sender_id: msg.isMe ? currentUserId : msg.senderId,
         sender_name: msg.isMe ? "You" : msg.senderName,
         sender_color: msg.isMe ? colors.purple : msg.senderColor,
-        sender_letter: msg.isMe ? "B" : msg.senderLetter,
+        sender_letter: msg.isMe ? "J" : msg.senderLetter,
         body: msg.text,
         created_at: msgTime.toISOString(),
       });
@@ -156,6 +156,8 @@ export function useMessages(conversationId: string | undefined) {
         },
         (payload) => {
           const m = payload.new as DbMessage;
+          // Own messages are already on screen from optimistic insert
+          if (m.sender_id === currentUser.id) return;
           const chatMsg: ChatMessage = {
             id: m.id,
             senderId: m.sender_id,
