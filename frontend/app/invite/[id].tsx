@@ -14,10 +14,44 @@ import { AnimatedPress } from "@/components/animated-press";
 import { Avatar, AvatarStack } from "@/components/avatar";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { FRIENDS, HABITS } from "@/lib/mock";
+import { categoryMeta, formatTime } from "@/lib/habits";
 
 export default function InviteScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const habit = HABITS.find((h) => h.id === id);
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    name?: string | string[];
+    targetTime?: string | string[];
+    category?: string | string[];
+  }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const habitNameParam = Array.isArray(params.name) ? params.name[0] : params.name;
+  const targetTimeParam = Array.isArray(params.targetTime) ? params.targetTime[0] : params.targetTime;
+  const categoryParam = Array.isArray(params.category) ? params.category[0] : params.category;
+  const fallbackHabit = HABITS.find((h) => h.id === id);
+  const habit = useMemo(() => {
+    if (!id) return null;
+
+    if (habitNameParam) {
+      const meta = categoryMeta(categoryParam ?? "morning");
+      return {
+        id,
+        name: habitNameParam,
+        accent: meta.accent,
+        time: targetTimeParam ? formatTime(targetTimeParam) : "Today",
+        category: categoryParam ?? "morning",
+      };
+    }
+
+    if (!fallbackHabit) return null;
+
+    return {
+      id: fallbackHabit.id,
+      name: fallbackHabit.name,
+      accent: fallbackHabit.accent,
+      time: fallbackHabit.time,
+      category: "morning",
+    };
+  }, [categoryParam, fallbackHabit, habitNameParam, id, targetTimeParam]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
 
@@ -223,7 +257,16 @@ export default function InviteScreen() {
             </Row>
             <AnimatedPress
               onPress={() => {
-                router.replace(`/group-camera/${habit.id}`);
+                router.replace({
+                  pathname: "/group-camera/[id]",
+                  params: {
+                    id: habit.id,
+                    name: habit.name,
+                    targetTime: targetTimeParam ?? "",
+                    category: habit.category,
+                    participantCount: String(selected.size + 1),
+                  },
+                });
               }}
               haptic="medium"
               scale={0.97}
