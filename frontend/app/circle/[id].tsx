@@ -22,6 +22,7 @@ import { AnimatedPress } from "@/components/animated-press";
 import { CommentsSheet } from "@/components/comments-sheet";
 import { LikeButton } from "@/components/like-button";
 import { PhotoCarousel } from "@/components/photo-carousel";
+import { resolveCircleDetailScreenState } from "@/lib/circle-screen-state";
 import { colors, fonts, palette, radius, spacing, tintFor } from "@/lib/theme";
 import {
   fetchCircle,
@@ -69,8 +70,16 @@ export default function CircleDetail() {
   } as const;
 
   const load = useCallback(async () => {
-    if (!id) return;
     setLoading(true);
+
+    if (!id) {
+      setCircle(null);
+      setMembers([]);
+      setSnaps([]);
+      setLoading(false);
+      return;
+    }
+
     const [c, m, s] = await Promise.all([
       fetchCircle(id),
       fetchCircleMembers(id),
@@ -85,10 +94,15 @@ export default function CircleDetail() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
-  if (loading || !circle) {
+  const screenState = resolveCircleDetailScreenState({
+    loading,
+    hasCircle: Boolean(circle),
+  });
+
+  if (screenState === "loading") {
     return (
       <Screen>
         <Row style={{ justifyContent: "space-between" }}>
@@ -110,6 +124,49 @@ export default function CircleDetail() {
         <View style={{ paddingTop: spacing.xxl, alignItems: "center" }}>
           <ActivityIndicator color={colors.fgFaint} />
         </View>
+      </Screen>
+    );
+  }
+
+  if (!circle) {
+    return (
+      <Screen>
+        <Row style={{ justifyContent: "space-between" }}>
+          <AnimatedPress
+            onPress={goBack}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: radius.pill,
+              backgroundColor: colors.bgRaised,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Icon icon={ArrowLeft02Icon} size={22} color={colors.fg} strokeWidth={1.8} />
+          </AnimatedPress>
+          <View style={{ width: 44 }} />
+        </Row>
+        <Stack gap={spacing.sm} style={{ paddingTop: spacing.xxl, alignItems: "center" }}>
+          <Typography
+            style={{
+              fontFamily: fonts.heading,
+              fontSize: 24,
+              lineHeight: 30,
+              color: colors.fg,
+              textAlign: "center",
+            }}
+          >
+            Circle not found
+          </Typography>
+          <Typography
+            variant="metaItalic"
+            color={colors.fgFaint}
+            style={{ textAlign: "center", maxWidth: 280 }}
+          >
+            This circle link is unavailable or no longer exists.
+          </Typography>
+        </Stack>
       </Screen>
     );
   }

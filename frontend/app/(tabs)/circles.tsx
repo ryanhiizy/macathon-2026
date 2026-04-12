@@ -11,27 +11,39 @@ import { Typography } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { Sparkline } from "@/components/sparkline";
 import { AnimatedPress } from "@/components/animated-press";
+import { resolveCirclesLoadState } from "@/lib/circle-screen-state";
 import { colors, fonts, radius, spacing, tintFor } from "@/lib/theme";
 import { fetchMyCircles, type CircleView } from "@/lib/circles";
 import { useAuth } from "@/lib/auth-context";
 
 export default function Circles() {
-  const { user } = useAuth();
+  const { user, demoSession } = useAuth();
   const [circles, setCircles] = useState<CircleView[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!user) return;
     setLoading(true);
-    const data = await fetchMyCircles(user.id);
+
+    const loadState = resolveCirclesLoadState({
+      userId: user?.id,
+      demoSessionId: demoSession?.id,
+    });
+
+    if (loadState.kind !== "authenticated") {
+      setCircles([]);
+      setLoading(false);
+      return;
+    }
+
+    const data = await fetchMyCircles(loadState.userId);
     setCircles(data);
     setLoading(false);
-  }, [user]);
+  }, [demoSession?.id, user?.id]);
 
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load]),
   );
 
   const header = (
