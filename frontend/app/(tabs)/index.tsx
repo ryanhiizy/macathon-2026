@@ -21,7 +21,7 @@ import { Segmented } from "@/components/segmented";
 import { SwipeableTabs } from "@/components/swipeable-tabs";
 import { StreakFlame } from "@/components/streak-flame";
 import { Typography } from "@/components/typography";
-import { loadFeedPosts } from "@/lib/feed";
+import { getFeedPosts, loadFeedPosts } from "@/lib/feed";
 import { useAuth } from "@/lib/auth-context";
 import type { FeedPost, GroupPost as GroupPostData, SoloPost as SoloPostData } from "@/lib/mock";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
