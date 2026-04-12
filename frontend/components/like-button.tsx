@@ -9,9 +9,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { FavouriteIcon } from "@hugeicons/core-free-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { AnimatedPress } from "@/components/animated-press";
-import { Icon } from "@/components/icon";
 import { Typography } from "@/components/typography";
 import { fetchLikeState, toggleLike } from "@/lib/likes";
 import { colors, spacing } from "@/lib/theme";
@@ -88,12 +87,7 @@ export function LikeButton({ initialCount, tint, snapId }: Props) {
   return (
     <AnimatedPress onPress={onPress} haptic={false} scale={0.95} style={{ position: "relative" }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-        <Icon
-          icon={FavouriteIcon}
-          size={18}
-          color={iconColor}
-          strokeWidth={liked ? 2.2 : 1.7}
-        />
+        <Ionicons name={liked ? "heart" : "heart-outline"} size={18} color={iconColor} />
         <Typography variant="meta" color={iconColor}>
           {count}
         </Typography>
@@ -141,7 +135,7 @@ function FloatHeart({ dx, delay }: { dx: number; delay: number }) {
       pointerEvents="none"
       style={[{ position: "absolute", left: 4, top: 0 }, style]}
     >
-      <Icon icon={FavouriteIcon} size={14} color={colors.red} strokeWidth={2.4} />
+      <Ionicons name="heart" size={14} color={colors.red} />
     </Animated.View>
   );
 }

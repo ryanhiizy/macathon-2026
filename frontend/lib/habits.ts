@@ -59,6 +59,16 @@ const CATEGORY_MAP: Record<string, { icon: typeof SunriseIcon; accent: string }>
 };
 
 const DEFAULT_CATEGORY = { icon: SunriseIcon, accent: colors.primary };
+const CUSTOM_FREQUENCY_PREFIX = "custom:";
+const WEEKDAY_LABELS: Record<string, string> = {
+  mon: "Mon",
+  tue: "Tue",
+  wed: "Wed",
+  thu: "Thu",
+  fri: "Fri",
+  sat: "Sat",
+  sun: "Sun",
+};
 
 // ---------------------------------------------------------------------------
 // Mock habits — times are relative to "now" so every state is always visible
@@ -119,6 +129,21 @@ export function formatTime(dbTime: string): string {
   const ampm = h >= 12 ? "PM" : "AM";
   const hour12 = h % 12 || 12;
   return `${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+export function formatFrequency(frequency: string): string {
+  if (frequency === "daily") return "Daily";
+  if (frequency === "weekdays") return "Weekdays";
+  if (frequency === "weekends") return "Weekends";
+  if (frequency.startsWith(CUSTOM_FREQUENCY_PREFIX)) {
+    const labels = frequency
+      .slice(CUSTOM_FREQUENCY_PREFIX.length)
+      .split(",")
+      .map((day) => WEEKDAY_LABELS[day])
+      .filter(Boolean);
+    return labels.length > 0 ? labels.join(" ") : "Custom";
+  }
+  return frequency;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,6 +224,8 @@ export type HabitDetailView = HabitView & {
   totalCompleted: number;
   totalScheduled: number;
   history: { day: string; done: boolean }[];
+  /** Last 30 days, oldest → newest. true = completed that day. */
+  monthHistory: boolean[];
 };
 
 export function getMockHabitDetail(habitId: string): HabitDetailView | null {
@@ -216,15 +243,44 @@ export function getMockHabitDetail(habitId: string): HabitDetailView | null {
     done,
   }));
 
+  const monthHistory = generateMonthHistory(habitId);
+
   return {
     ...habit,
     bestStreak: demoHabit.bestStreak,
-    frequency: "Daily",
+    frequency: formatFrequency("daily"),
     completionRate: totalScheduled > 0 ? totalCompleted / totalScheduled : 0,
     totalCompleted,
     totalScheduled,
     history,
+    monthHistory,
   };
+}
+
+function generateMonthHistory(habitId: string): boolean[] {
+  const patterns: Record<string, boolean[]> = {
+    "1": [
+      true,true,true,false,true,true,true,true,false,true,
+      true,true,true,true,false,false,true,true,true,true,
+      true,false,true,true,true,true,true,true,true,true,
+    ],
+    "2": [
+      false,true,false,true,true,false,true,false,false,true,
+      true,false,true,true,false,true,false,true,true,true,
+      false,true,true,false,true,true,false,false,true,true,
+    ],
+    "3": [
+      true,true,true,true,true,false,true,true,true,true,
+      true,true,false,true,true,true,true,true,true,false,
+      true,true,true,true,true,true,true,true,true,true,
+    ],
+    "4": [
+      false,false,true,false,true,true,false,false,true,true,
+      false,true,false,true,true,false,true,true,false,true,
+      true,false,true,false,true,true,true,false,true,true,
+    ],
+  };
+  return patterns[habitId] ?? patterns["1"]!;
 }
 
 /**
@@ -305,6 +361,18 @@ export async function fetchHabitDetail(
     });
   }
 
+  // Last 30 days for contribution graph
+  const monthHistory: boolean[] = [];
+  for (let d = 29; d >= 0; d--) {
+    const date = new Date();
+    date.setDate(date.getDate() - d);
+    const dateStr = date.toISOString().slice(0, 10);
+    const instance = allInstances.find((i) =>
+      i.scheduled_for.startsWith(dateStr)
+    );
+    monthHistory.push(instance?.status === "verified");
+  }
+
   return {
     id: h.id,
     name: h.name,
@@ -317,11 +385,12 @@ export async function fetchHabitDetail(
     done: todayInstance?.status === "verified",
     category: h.category,
     circleId: h.circle_id,
-    frequency: h.frequency === "daily" ? "Daily" : h.frequency,
+    frequency: formatFrequency(h.frequency),
     completionRate,
     totalCompleted,
     totalScheduled,
     history,
+    monthHistory,
   };
 }
 
@@ -333,6 +402,7 @@ export async function createHabit(habit: {
   category: string;
   verification_mode: "verifiable" | "trust";
   target_time: string; // HH:MM or HH:MM:SS
+  frequency?: string;
   circle_id: string;
   user_id: string;
 }) {
@@ -345,6 +415,7 @@ export async function createHabit(habit: {
       category: habit.category,
       verification_mode: habit.verification_mode,
       target_time: habit.target_time,
+      frequency: habit.frequency ?? "daily",
     })
     .select()
     .single();

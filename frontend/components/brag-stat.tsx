@@ -8,16 +8,20 @@ import {
   CookBookIcon,
   SunriseIcon,
   Fire02Icon,
+  Comment01Icon,
 } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
+import { AnimatedPress } from "@/components/animated-press";
 import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icon";
+import { LikeButton } from "@/components/like-button";
 import { StreakFlame } from "@/components/streak-flame";
 import { Row, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { colors, palette, fonts, radius, spacing } from "@/lib/theme";
 
 type Props = {
+  id: string;
   name: string;
   handle: string;
   when: string;
@@ -27,6 +31,9 @@ type Props = {
   value: string;
   unit: string;
   caption: string;
+  likes: number;
+  comments: number;
+  onComment?: () => void;
 };
 
 const UNIT_ICONS: { pattern: RegExp; icon: HugeiconsProps["icon"]; accent: string }[] = [
@@ -49,6 +56,7 @@ function iconForUnit(unit: string) {
 }
 
 export function BragStat({
+  id,
   name,
   handle,
   when,
@@ -58,6 +66,9 @@ export function BragStat({
   value,
   unit,
   caption,
+  likes,
+  comments,
+  onComment,
 }: Props) {
   const { icon, accent } = iconForUnit(unit);
 
@@ -132,6 +143,19 @@ export function BragStat({
           {caption}
         </Typography>
       </View>
+
+      <Row gap={spacing.md} style={{ paddingHorizontal: spacing.xs }}>
+        <LikeButton initialCount={likes} snapId={id} />
+        <AnimatedPress
+          onPress={onComment}
+          style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}
+          scale={0.9}
+          haptic={false}
+        >
+          <Icon icon={Comment01Icon} size={18} color={colors.fg} strokeWidth={1.7} />
+          <Typography variant="meta">{comments}</Typography>
+        </AnimatedPress>
+      </Row>
     </Stack>
   );
 }
