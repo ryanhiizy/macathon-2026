@@ -153,7 +153,7 @@ function CircleRowView({ circle }: { circle: CircleView }) {
             {circle.name}
           </Typography>
           <Typography variant="metaItalic">
-            {circle.members} members
+            {circle.members} members · {circle.memberLabel}
           </Typography>
         </Stack>
       </Row>

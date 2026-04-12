@@ -4,11 +4,12 @@ import {
   BookOpen01Icon,
   Yoga01Icon,
   RunningShoesIcon,
-  Coffee02Icon,
   PaintBoardIcon,
 } from "@hugeicons/core-free-icons";
 import { Dumbbell01Icon, CookBookIcon } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
+import { buildCircleVariation } from "@/lib/circle-variation";
+import { mergeCircleSnapsForFeed, resolveCircleSnapPhoto } from "./circle-snap-utils";
 import { colors } from "@/lib/theme";
 import { supabase } from "@/lib/supabase";
 
@@ -29,6 +30,8 @@ export type CircleView = {
   name: string;
   habit: string;
   description: string | null;
+  about: string;
+  memberLabel: string;
   members: number;
   myStreak: number;
   icon: HugeiconsProps["icon"];
@@ -40,6 +43,7 @@ export type CircleMemberView = {
   id: string;
   name: string;
   handle: string;
+  vibe?: string;
   letter: string;
   color: string;
   streak: number;
@@ -87,22 +91,6 @@ const DEFAULT_CONFIG: CircleConfigEntry = { icon: SunriseIcon, accent: colors.pr
 
 function circleConfig(id: string) {
   return CIRCLE_CONFIG[id] ?? DEFAULT_CONFIG;
-}
-
-/** Generate deterministic mock analytics from circle ID. */
-function mockAnalytics(id: string, memberCount: number): CircleAnalytics {
-  // Seed from last char of ID for variety
-  const seed = id.charCodeAt(id.length - 1) / 127;
-  const todayRate = 0.6 + seed * 0.3;
-  const avgStreak = Math.round(8 + seed * 20);
-  const topStreak = Math.round(avgStreak * 1.8 + seed * 10);
-  const weekDaily = Array.from({ length: 7 }, (_, i) =>
-    Math.round((0.55 + Math.sin(i + seed * 6) * 0.2 + seed * 0.15) * 100) / 100
-  );
-  const trendLine = Array.from({ length: 14 }, (_, i) =>
-    Math.round((0.5 + Math.sin(i * 0.5 + seed * 4) * 0.15 + i * 0.015) * 100) / 100
-  );
-  return { todayRate, avgStreak, topStreak, weekDaily, trendLine };
 }
 
 // ---------------------------------------------------------------------------
@@ -211,37 +199,6 @@ export function circlePhotos(circleId: string): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// Mock storage_path → Unsplash photo URL mapping
-// ---------------------------------------------------------------------------
-
-const PHOTO_MAP: Record<string, string> = {
-  "mock/sarah-walk.jpg":    "photo-1551632811-561732d1e306",
-  "mock/mia-yoga.jpg":      "photo-1544367567-0f2fcb009e0b",
-  "mock/water-group.jpg":   "photo-1553531384-cc64ac80f931",
-  "mock/nina-meditate.jpg": "photo-1506126613408-eca07ce68773",
-  "mock/jae-book.jpg":      "photo-1544947950-fa07a98d237f",
-  "mock/theo-plunge.jpg":   "photo-1504309092620-4d0ec726efa4",
-  "mock/ava-sketch.jpg":    "photo-1513364776144-60967b0f800f",
-  "mock/leo-run.jpg":       "photo-1542291026-7eec264c27ff",
-  "mock/zoe-run.jpg":       "photo-1483721310020-03333e577078",
-  "mock/omar-nophone.jpg":  "photo-1507842217343-583bb7270b66",
-  "mock/kai-guitar.jpg":    "photo-1510915361894-db8b60106cb1",
-  "mock/ravi-cook.jpg":     "photo-1556910103-1c02745aae4d",
-  "mock/ella-journal.jpg":  "photo-1517842645767-c639042777db",
-  "mock/group-yoga.jpg":    "photo-1599901860904-17e6ed7083a0",
-  "mock/group-run.jpg":     "photo-1552674605-db6ffd4facb5",
-};
-
-function storageToPhoto(path: string): { uri: string } {
-  const unsplashId = PHOTO_MAP[path];
-  if (unsplashId) {
-    return { uri: `https://images.unsplash.com/${unsplashId}?w=800&h=800&fit=crop&q=80` };
-  }
-  // Fallback: use a proven working photo
-  return { uri: `https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&h=800&fit=crop&q=80` };
-}
-
-// ---------------------------------------------------------------------------
 // User color mapping (matches demo-users.ts and mock-users.ts)
 // ---------------------------------------------------------------------------
 
@@ -280,6 +237,148 @@ function timeAgo(dateStr: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+const FALLBACK_MEMBER_COLORS = [
+  colors.blue,
+  colors.green,
+  colors.orange,
+  colors.purple,
+  colors.cyan,
+  colors.magenta,
+];
+
+function buildVariationInput({
+  circleId,
+  name,
+  habit,
+  memberCount,
+}: {
+  circleId: string;
+  name: string;
+  habit: string;
+  memberCount: number;
+}) {
+  return buildCircleVariation({
+    circleId,
+    name,
+    habit,
+    memberCount,
+  });
+}
+
+function hasUsefulDescription(description: string | null | undefined): description is string {
+  if (!description) return false;
+  const normalized = description.trim();
+  if (normalized.length < 28) return false;
+  return !/daily habit|habit group|show up daily/i.test(normalized);
+}
+
+function buildCircleView({
+  circleId,
+  name,
+  description,
+  memberCount,
+  myStreak,
+}: {
+  circleId: string;
+  name: string;
+  description: string | null;
+  memberCount: number;
+  myStreak: number;
+}): CircleView {
+  const config = circleConfig(circleId);
+  const variation = buildVariationInput({
+    circleId,
+    name,
+    habit: config.habit,
+    memberCount,
+  });
+
+  return {
+    id: circleId,
+    name,
+    habit: config.habit,
+    description: hasUsefulDescription(description) ? description.trim() : variation.description,
+    about: variation.about,
+    memberLabel: variation.memberLabel,
+    members: memberCount,
+    myStreak,
+    icon: config.icon,
+    accent: config.accent,
+    analytics: variation.analytics,
+  };
+}
+
+function buildFallbackMembers({
+  circleId,
+  habit,
+  memberCount,
+  existingMembers,
+}: {
+  circleId: string;
+  habit: string;
+  memberCount: number;
+  existingMembers: CircleMemberView[];
+}): CircleMemberView[] {
+  if (existingMembers.length === 0) {
+    return existingMembers;
+  }
+
+  const variation = buildVariationInput({
+    circleId,
+    name: circleId,
+    habit,
+    memberCount,
+  });
+  return existingMembers.map((member, index) => {
+    const flavor = variation.fallbackMemberFlavor[index % variation.fallbackMemberFlavor.length];
+    return {
+      ...member,
+      handle: member.handle || (flavor ? `@${flavor.archetype.replace(/\s+/g, "-")}-${index + 1}` : ""),
+      vibe: member.vibe ?? flavor?.vibe,
+      color: member.color || FALLBACK_MEMBER_COLORS[index % FALLBACK_MEMBER_COLORS.length] || colors.primary,
+    };
+  });
+}
+
+function buildFallbackSnaps({
+  circleId,
+  habit,
+  realCount,
+}: {
+  circleId: string;
+  habit: string;
+  realCount: number;
+}): CircleSnapView[] {
+  const variation = buildVariationInput({
+    circleId,
+    name: circleId,
+    habit,
+    memberCount: realCount,
+  });
+  const photos = circlePhotos(circleId);
+
+  return variation.fallbackPosts.map((post, index): CircleSnapView => {
+    const isGroup = index === 1;
+    const photoIndex = index % photos.length;
+    const primaryPhoto = photos[photoIndex] ?? photos[0];
+    const secondaryPhoto = photos[(photoIndex + 1) % photos.length] ?? photos[0];
+
+    return {
+      id: post.id,
+      userId: `${circleId}-fallback-user-${index + 1}`,
+      name: post.name,
+      letter: post.name[0]?.toUpperCase() ?? "?",
+      color: FALLBACK_MEMBER_COLORS[index % FALLBACK_MEMBER_COLORS.length] ?? colors.primary,
+      streak: Math.max(2, variation.analytics.avgStreak - index * 3),
+      promptText: post.promptText,
+      caption: post.caption,
+      photos: isGroup ? [{ uri: primaryPhoto }, { uri: secondaryPhoto }] : [{ uri: primaryPhoto }],
+      when: post.when,
+      isGroup,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -329,19 +428,14 @@ export async function fetchMyCircles(userId: string): Promise<CircleView[]> {
   });
 
   return circlesData.map((c: { id: string; name: string; description: string | null }): CircleView => {
-    const config = circleConfig(c.id);
     const memberCount = countMap.get(c.id) ?? 0;
-    return {
-      id: c.id,
+    return buildCircleView({
+      circleId: c.id,
       name: c.name,
-      habit: config.habit,
       description: c.description,
-      members: memberCount,
+      memberCount,
       myStreak: streakMap.get(c.id) ?? 0,
-      icon: config.icon,
-      accent: config.accent,
-      analytics: mockAnalytics(c.id, memberCount),
-    };
+    });
   });
 }
 
@@ -362,25 +456,21 @@ export async function fetchCircle(circleId: string): Promise<CircleView | null> 
     .select("*", { count: "exact", head: true })
     .eq("circle_id", circleId);
 
-  const config = circleConfig(circleId);
   const memberCount = count ?? 0;
-  return {
-    id: data.id,
+  return buildCircleView({
+    circleId,
     name: data.name,
-    habit: config.habit,
     description: data.description,
-    members: memberCount,
+    memberCount,
     myStreak: 0,
-    icon: config.icon,
-    accent: config.accent,
-    analytics: mockAnalytics(circleId, memberCount),
-  };
+  });
 }
 
 /**
  * Fetch all members of a circle, sorted by streak (descending).
  */
 export async function fetchCircleMembers(circleId: string): Promise<CircleMemberView[]> {
+  const config = circleConfig(circleId);
   const { data, error } = await supabase
     .from("circle_members")
     .select("user_id, current_streak, profiles(id, display_name, handle, avatar_url)")
@@ -392,18 +482,26 @@ export async function fetchCircleMembers(circleId: string): Promise<CircleMember
     return [];
   }
 
-  return data.map((row: any): CircleMemberView => {
+  const members = data.map((row: any): CircleMemberView => {
     const profile = row.profiles;
     const name = profile?.display_name ?? "Unknown";
     return {
       id: row.user_id,
       name,
       handle: profile?.handle ? `@${profile.handle}` : "",
+      vibe: undefined,
       letter: name[0]?.toUpperCase() ?? "?",
       color: userColor(row.user_id),
       streak: row.current_streak,
       avatarUrl: profile?.avatar_url ?? null,
     };
+  });
+
+  return buildFallbackMembers({
+    circleId,
+    habit: config.habit,
+    memberCount: members.length,
+    existingMembers: members,
   });
 }
 
@@ -413,31 +511,38 @@ export async function fetchCircleMembers(circleId: string): Promise<CircleMember
  * (snaps→profiles direct vs snaps→circles→profiles).
  */
 export async function fetchCircleSnaps(circleId: string): Promise<CircleSnapView[]> {
+  const config = circleConfig(circleId);
   const { data: snapRows, error } = await supabase
     .from("snaps")
     .select("id, user_id, prompt_text, caption, storage_path, streak_after_completion, is_group_post, created_at")
     .eq("circle_id", circleId)
     .order("created_at", { ascending: false });
 
-  if (error || !snapRows || snapRows.length === 0) {
+  if (error) {
     if (error) console.warn("[circles] snaps fetch error:", error.message);
-    return [];
+    return buildFallbackSnaps({
+      circleId,
+      habit: config.habit,
+      realCount: 0,
+    });
   }
 
   // Batch-fetch profiles for all snap authors
-  const userIds = [...new Set(snapRows.map((s: any) => s.user_id))];
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, display_name, avatar_url")
-    .in("id", userIds);
+  const userIds = [...new Set((snapRows ?? []).map((s: any) => s.user_id))];
+  const { data: profiles } = userIds.length === 0
+    ? { data: [] }
+    : await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url")
+        .in("id", userIds);
 
-  const profileMap = new Map(
-    (profiles ?? []).map((p: any) => [p.id, p])
-  );
-
-  return snapRows.map((snap: any): CircleSnapView => {
+  const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+  const realSnaps = (snapRows ?? []).map((snap: any): CircleSnapView => {
     const profile = profileMap.get(snap.user_id);
     const name = profile?.display_name ?? "Unknown";
+    const storagePublicUrl = supabase.storage
+      .from("snaps")
+      .getPublicUrl(snap.storage_path).data.publicUrl;
     return {
       id: snap.id,
       userId: snap.user_id,
@@ -447,9 +552,16 @@ export async function fetchCircleSnaps(circleId: string): Promise<CircleSnapView
       streak: snap.streak_after_completion,
       promptText: snap.prompt_text,
       caption: snap.caption,
-      photos: [storageToPhoto(snap.storage_path)],
+      photos: [resolveCircleSnapPhoto(snap.storage_path, storagePublicUrl)],
       when: timeAgo(snap.created_at),
       isGroup: snap.is_group_post,
     };
   });
+  const fallbackSnaps = buildFallbackSnaps({
+    circleId,
+    habit: config.habit,
+    realCount: realSnaps.length,
+  }).filter((fallbackSnap) => !realSnaps.some((realSnap) => realSnap.id === fallbackSnap.id));
+
+  return mergeCircleSnapsForFeed(realSnaps, fallbackSnaps);
 }
