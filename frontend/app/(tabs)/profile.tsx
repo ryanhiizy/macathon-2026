@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Share, StyleSheet, View } from "react-nat
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import {
-  Fire03Icon,
+  ArrowDown01Icon,
   Notification03Icon,
   PencilEdit02Icon,
   Settings02Icon,
@@ -12,9 +12,8 @@ import {
 import { Avatar } from "@/components/avatar";
 import { AnimatedPress } from "@/components/animated-press";
 import { Icon } from "@/components/icon";
-import { Card, Divider, Row, Screen, Stack } from "@/components/layout";
+import { Card, Row, Screen, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
-import { ProgressBar } from "@/components/ui-controls";
 import { useAuth } from "@/lib/auth-context";
 import { getDemoUserById } from "@/lib/demo-users";
 import { generateMockHabits, type HabitView } from "@/lib/habits";
@@ -25,7 +24,6 @@ import { type AppProfile, ensureProfile, supabase } from "@/lib/supabase";
 
 const POSTS = Array.from({ length: 9 }).map((_, index) => ({
   photoIdx: index,
-  habit: ["Morning walk", "Hydrate", "Meditate", "Read", "Run"][index % 5],
 }));
 
 const FALLBACK_STATS = {
@@ -33,8 +31,10 @@ const FALLBACK_STATS = {
   bestStreak: 21,
   friends: 42,
   circles: 3,
-  weeklyConsistency: 0.78,
 };
+
+const FALLBACK_BIO =
+  "Stacking small habits into something bigger. Currently chasing 100 days of morning walks.";
 
 export default function Profile() {
   const { user, demoSession, signOut } = useAuth();
@@ -107,7 +107,7 @@ export default function Profile() {
   const bio =
     profile?.bio ??
     demoSession?.bio ??
-    "Your bio will show up here once profile editing lands.";
+    FALLBACK_BIO;
   const joinedLabel = formatJoinDate(profile?.created_at ?? demoSession?.createdAt ?? null);
   const avatarLetter = displayName.slice(0, 1).toUpperCase() || "P";
 
@@ -118,8 +118,6 @@ export default function Profile() {
     { label: "Friends", value: String(stats.friends) },
     { label: "Circles", value: String(stats.circles) },
   ];
-  const consistencyPct = Math.round(stats.weeklyConsistency * 100);
-
   const handleShareProfile = async () => {
     try {
       await Share.share({
@@ -136,16 +134,22 @@ export default function Profile() {
 
   const header = (
     <Row style={{ justifyContent: "space-between", alignItems: "center" }}>
-      <Typography
-        style={{
-          fontFamily: fonts.heading,
-          fontSize: 20,
-          lineHeight: 24,
-          color: colors.fg,
-        }}
+      <AnimatedPress
+        style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+        haptic="light"
       >
-        @{handle}
-      </Typography>
+        <Typography
+          style={{
+            fontFamily: fonts.heading,
+            fontSize: 20,
+            lineHeight: 24,
+            color: colors.fg,
+          }}
+        >
+          @{handle}
+        </Typography>
+        <Icon icon={ArrowDown01Icon} size={18} color={colors.fgDim} strokeWidth={2} />
+      </AnimatedPress>
       <Pressable
         disabled={signingOut}
         onPress={handleSignOut}
@@ -192,7 +196,7 @@ export default function Profile() {
               >
                 {displayName}
               </Typography>
-              <Typography variant="metaItalic">@{handle} · joined {joinedLabel}</Typography>
+              <Typography variant="metaItalic">@{handle} — joined {joinedLabel}</Typography>
             </Stack>
             <Typography
               variant="lede"
@@ -226,7 +230,7 @@ export default function Profile() {
             </Row>
           </Stack>
 
-          <Row style={{ justifyContent: "space-between", paddingVertical: spacing.md }}>
+          <Row style={{ justifyContent: "space-between", paddingVertical: spacing.xs }}>
             {statsList.map((stat) => (
               <View key={stat.label} style={{ alignItems: "center", flex: 1 }}>
                 <Typography
@@ -244,94 +248,29 @@ export default function Profile() {
             ))}
           </Row>
 
-          <Divider />
-
-          <Stack gap={spacing.sm}>
-            <Row style={{ justifyContent: "space-between" }}>
-              <Typography
-                style={{
-                  fontFamily: fonts.heading,
-                  fontSize: 18,
-                  lineHeight: 22,
-                  color: colors.fg,
-                }}
-              >
-                Weekly consistency
-              </Typography>
-              <Row gap={spacing.xs}>
-                <Icon icon={Fire03Icon} size={16} color={colors.primary} />
-                <Typography
-                  variant="caption"
-                  color={colors.primary}
-                  style={{ fontFamily: fonts.bodyBold }}
-                >
-                  {consistencyPct}%
-                </Typography>
-              </Row>
-            </Row>
-            <ProgressBar color={colors.primary} progress={stats.weeklyConsistency} />
-          </Stack>
-
-          <Divider />
-
           <DemoNotificationButton userId={user?.id} fallbackHabit={demoHabit} />
 
-          <Divider />
-
-          <Stack gap={spacing.md}>
-            <Typography
-              style={{
-                fontFamily: fonts.heading,
-                fontSize: 18,
-                lineHeight: 22,
-                color: colors.fg,
-              }}
-            >
-              Recent proofs
-            </Typography>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-              {POSTS.map((post, index) => (
-                <View key={index} style={{ width: "31.8%" }}>
-                  <View
-                    style={{
-                      aspectRatio: 1,
-                      borderRadius: radius.sm,
-                      overflow: "hidden",
-                      backgroundColor: colors.bgSunk,
-                    }}
-                  >
-                    <Image
-                      source={pickPhoto(post.photoIdx)}
-                      style={{ width: "100%", height: "100%" }}
-                      contentFit="cover"
-                      transition={240}
-                    />
-                    <View
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        padding: 6,
-                        backgroundColor: `${colors.black}70`,
-                      }}
-                    >
-                      <Typography
-                        color={colors.bg}
-                        style={{
-                          fontFamily: fonts.heading,
-                          fontSize: 10.5,
-                          lineHeight: 13,
-                        }}
-                      >
-                        {post.habit}
-                      </Typography>
-                    </View>
-                  </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+            {POSTS.map((post, index) => (
+              <View key={index} style={{ width: "31.8%" }}>
+                <View
+                  style={{
+                    aspectRatio: 1,
+                    borderRadius: radius.sm,
+                    overflow: "hidden",
+                    backgroundColor: colors.bgSunk,
+                  }}
+                >
+                  <Image
+                    source={pickPhoto(post.photoIdx)}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="cover"
+                    transition={240}
+                  />
                 </View>
-              ))}
-            </View>
-          </Stack>
+              </View>
+            ))}
+          </View>
 
           {error ? (
             <Card style={{ borderColor: colors.danger }}>
