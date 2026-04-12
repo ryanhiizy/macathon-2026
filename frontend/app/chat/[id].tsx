@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -25,6 +25,7 @@ import {
   type ChatMessage,
 } from "@/lib/mock";
 import { useMessages } from "@/lib/messages";
+import { setActiveConversation } from "@/lib/notifications";
 import { colors, fonts, spacing } from "@/lib/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -38,6 +39,12 @@ export default function Chat() {
   }, [id]);
   const { messages, sendMessage: sendToDb } = useMessages(id);
   const [text, setText] = useState("");
+
+  // Suppress notifications while viewing this conversation
+  useEffect(() => {
+    setActiveConversation(id ?? null);
+    return () => setActiveConversation(null);
+  }, [id]);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
   const sendMessage = () => {

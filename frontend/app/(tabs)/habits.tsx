@@ -314,7 +314,17 @@ export default function Habits() {
                       habit={habit}
                       urgency={getUrgency(habit)}
                       onOpen={() => router.push(`/habit/${habit.id}`)}
-                      onInvite={() => router.push(`/invite/${habit.id}`)}
+                      onInvite={() =>
+                        router.push({
+                          pathname: "/invite/[id]",
+                          params: {
+                            id: habit.id,
+                            name: habit.name,
+                            targetTime: habit.targetTime,
+                            category: habit.category,
+                          },
+                        })
+                      }
                       onProve={() => router.push(`/camera/${habit.id}`)}
                     />
                   ))}

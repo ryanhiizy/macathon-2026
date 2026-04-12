@@ -24,6 +24,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import {
   configureNotificationHandler,
   requestNotificationPermissions,
+  subscribeToMessageNotifications,
 } from "@/lib/notifications";
 
 // Show notification banners even when the app is in the foreground
@@ -71,21 +72,32 @@ export default function RootLayout() {
 function AuthGate({ fontsLoaded }: { fontsLoaded: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { authReady, authError, isAuthenticated } = useAuth();
+  const { authReady, authError, isAuthenticated, user, demoSession } = useAuth();
 
   // Request notification permissions on launch
   useEffect(() => {
     requestNotificationPermissions().catch(() => {});
   }, []);
 
-  // Navigate to camera when user taps a notification
+  // Subscribe to message push notifications globally
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const userId = user?.id ?? demoSession?.id;
+    if (!userId) return;
+    const unsub = subscribeToMessageNotifications(userId);
+    return unsub;
+  }, [isAuthenticated, user, demoSession]);
+
+  // Navigate to camera/chat when user taps a notification
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as
-        | { habitId?: string; screen?: string }
+        | { habitId?: string; conversationId?: string; screen?: string }
         | undefined;
       if (data?.screen === "camera" && data.habitId) {
         router.push(`/camera/${data.habitId}`);
+      } else if (data?.screen === "chat" && data.conversationId) {
+        router.push(`/chat/${data.conversationId}`);
       }
     });
     return () => sub.remove();

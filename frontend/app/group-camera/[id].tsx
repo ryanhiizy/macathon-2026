@@ -1,117 +1,71 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CameraView, useCameraPermissions, type CameraType, type FlashMode } from "expo-camera";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
-} from "react-native-reanimated";
 import {
   Cancel01Icon,
   CameraRotated01Icon,
   FlashIcon,
   FlashOffIcon,
-  SparklesIcon,
-  Tick02Icon,
   Clock01Icon,
 } from "@hugeicons/core-free-icons";
 import { Row, Stack } from "@/components/layout";
 import { Typography } from "@/components/typography";
 import { Icon } from "@/components/icon";
 import { AnimatedPress } from "@/components/animated-press";
-import { Avatar } from "@/components/avatar";
 import { ShutterButton, useShutterFlash } from "@/components/shutter";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { HABITS } from "@/lib/mock";
-
-function ReadyDot() {
-  const pulse = useSharedValue(0);
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 900, easing: Easing.out(Easing.quad) }),
-        withTiming(0, { duration: 0 }),
-      ),
-      -1,
-      false,
-    );
-  }, [pulse]);
-
-  const ringStyle = useAnimatedStyle(() => ({
-    opacity: 0.55 * (1 - pulse.value),
-    transform: [{ scale: 1 + pulse.value * 1.2 }],
-  }));
-
-  return (
-    <View
-      style={{
-        position: "absolute",
-        bottom: -2,
-        right: -2,
-        width: 18,
-        height: 18,
-      }}
-    >
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderRadius: 9,
-            backgroundColor: colors.success,
-          },
-          ringStyle,
-        ]}
-      />
-      <View
-        style={{
-          width: 18,
-          height: 18,
-          borderRadius: 9,
-          backgroundColor: colors.success,
-          borderWidth: 2,
-          borderColor: colors.bg,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon icon={Tick02Icon} size={10} color={colors.bg} strokeWidth={3} />
-      </View>
-    </View>
-  );
-}
+import { categoryMeta, formatTime } from "@/lib/habits";
 
 const GROUP_PROMPTS: Record<string, string> = {
-  "1": "All three of you — throw a peace sign in sync.",
-  "2": "Cheers! Clink your bottles together.",
-  "3": "Close your eyes, show your zen faces.",
-  "4": "Line your books up and show the spines.",
+  "1": "Everyone in frame — hit us with your best smile!",
+  "2": "Squad check! Show us what you're sipping.",
+  "3": "Group selfie — show us those zen vibes.",
+  "4": "Crew shot — what are y'all working on?",
 };
 
-const PARTICIPANTS = [
-  { letter: "B", color: colors.purple, name: "You", ready: true },
-  { letter: "M", color: colors.green, name: "Mia", ready: true },
-  { letter: "J", color: colors.cyan, name: "Jae", ready: false },
-];
-
 export default function GroupCameraScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const habit = HABITS.find((h) => h.id === id);
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    name?: string | string[];
+    targetTime?: string | string[];
+    category?: string | string[];
+    participantCount?: string | string[];
+  }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const habitNameParam = Array.isArray(params.name) ? params.name[0] : params.name;
+  const targetTimeParam = Array.isArray(params.targetTime) ? params.targetTime[0] : params.targetTime;
+  const categoryParam = Array.isArray(params.category) ? params.category[0] : params.category;
+  const fallbackHabit = HABITS.find((h) => h.id === id);
+  const habit = useMemo(() => {
+    if (!id) return null;
+
+    if (habitNameParam) {
+      const meta = categoryMeta(categoryParam ?? "morning");
+      return {
+        id,
+        name: habitNameParam,
+        accent: meta.accent,
+        time: targetTimeParam ? formatTime(targetTimeParam) : "Today",
+      };
+    }
+
+    if (!fallbackHabit) return null;
+
+    return {
+      id: fallbackHabit.id,
+      name: fallbackHabit.name,
+      accent: fallbackHabit.accent,
+      time: fallbackHabit.time,
+    };
+  }, [categoryParam, fallbackHabit, habitNameParam, id, targetTimeParam]);
   const prompt = habit ? (GROUP_PROMPTS[habit.id] ?? "Get together — make the photo count.") : null;
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
   const { trigger: triggerFlash, Flash } = useShutterFlash();
-
-  const allReady = PARTICIPANTS.every((p) => p.ready);
 
   if (!habit) {
     return (
@@ -182,7 +136,16 @@ export default function GroupCameraScreen() {
             >
               <Icon icon={Cancel01Icon} size={20} color={colors.bg} />
             </AnimatedPress>
-            <Stack gap={2} style={{ alignItems: "center" }}>
+            <Stack
+              gap={2}
+              style={{
+                alignItems: "center",
+                backgroundColor: colors.black + "80",
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.xs,
+                borderRadius: radius.pill,
+              }}
+            >
               <Row gap={spacing.xs}>
                 <View
                   style={{
@@ -213,7 +176,7 @@ export default function GroupCameraScreen() {
                   color={colors.bg}
                   style={{ opacity: 0.85 }}
                 >
-                  Ends in 42 min
+                  {habit.time}
                 </Typography>
               </Row>
             </Stack>
@@ -249,86 +212,24 @@ export default function GroupCameraScreen() {
             borderColor: colors.primarySoft,
           }}
         >
-          <Row gap={spacing.sm} style={{ alignItems: "flex-start" }}>
-            <View style={{ paddingTop: 2 }}>
-              <Icon icon={SparklesIcon} size={16} color={colors.primary} strokeWidth={2} />
-            </View>
-            <Stack gap={4} style={{ flex: 1 }}>
-              <Typography variant="metaItalic" color={colors.primary}>
-                A prompt for all of you
-              </Typography>
-              <Typography
-                style={{
-                  fontFamily: fonts.heading,
-                  fontSize: 17,
-                  lineHeight: 24,
-                  color: colors.fg,
-                }}
-              >
-                {prompt}
+          <Stack gap={4}>
+            <Typography variant="metaItalic" color={colors.primary}>
+              A prompt for all of you
+            </Typography>
+            <Typography
+              style={{
+                fontFamily: fonts.heading,
+                fontSize: 17,
+                lineHeight: 24,
+                color: colors.fg,
+              }}
+            >
+              {prompt}
               </Typography>
             </Stack>
-          </Row>
         </View>
 
         <View style={{ flex: 1 }} />
-
-        <View
-          style={{
-            marginHorizontal: spacing.lg,
-            marginBottom: spacing.md,
-            padding: spacing.md,
-            borderRadius: radius.lg,
-            backgroundColor: colors.bg + "f2",
-          }}
-        >
-          <Row gap={spacing.sm} style={{ justifyContent: "space-between" }}>
-            <Typography variant="metaItalic" color={colors.fgMuted}>
-              {allReady ? "Everyone is ready" : "Waiting for everyone"}
-            </Typography>
-            <Typography
-              color={colors.fgMuted}
-              style={{ fontFamily: fonts.bodyBold, fontSize: 12 }}
-            >
-              {PARTICIPANTS.filter((p) => p.ready).length}/{PARTICIPANTS.length}
-            </Typography>
-          </Row>
-          <Row gap={spacing.md} style={{ marginTop: spacing.md }}>
-            {PARTICIPANTS.map((p, i) => (
-              <Stack key={i} gap={spacing.xs} style={{ alignItems: "center", flex: 1 }}>
-                <View style={{ position: "relative" }}>
-                  <Avatar color={p.color} letter={p.letter} size={44} ring={false} />
-                  {p.ready ? (
-                    <ReadyDot />
-                  ) : (
-                    <View
-                      style={{
-                        position: "absolute",
-                        bottom: -2,
-                        right: -2,
-                        width: 18,
-                        height: 18,
-                        borderRadius: 9,
-                        backgroundColor: colors.bgRaised,
-                        borderWidth: 2,
-                        borderColor: colors.bg,
-                      }}
-                    />
-                  )}
-                </View>
-                <Typography
-                  style={{
-                    fontFamily: fonts.bodyMedium,
-                    fontSize: 11,
-                    color: p.ready ? colors.fg : colors.fgFaint,
-                  }}
-                >
-                  {p.name}
-                </Typography>
-              </Stack>
-            ))}
-          </Row>
-        </View>
 
         <View style={{ paddingBottom: spacing.lg }}>
           <Row style={{ justifyContent: "space-around", alignItems: "center", paddingHorizontal: spacing.xl }}>

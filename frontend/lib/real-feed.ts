@@ -103,7 +103,17 @@ export function resolveSnapPhoto(path: string, storagePublicUrl?: string): { uri
   return { uri: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=800&h=800&fit=crop&q=80" };
 }
 
+function mockCounts(id: string): { likes: number; comments: number } {
+  let hash = 0;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return { likes: 12 + (hash % 55), comments: 2 + (hash % 10) };
+}
+
 export function buildRealFeedPost(input: BuildRealFeedPostInput): FeedPost {
+  const counts = mockCounts(input.snap.id);
+
   if (input.snap.isGroupPost) {
     const participants = normalizeParticipants(input.participants, input.authorName);
     const groupPost: GroupPost = {
@@ -115,8 +125,8 @@ export function buildRealFeedPost(input: BuildRealFeedPostInput): FeedPost {
       circlesEligible: input.circlesEligible,
       promptText: input.snap.promptText || undefined,
       caption: input.snap.caption || `Checked in for ${input.habitName || "your habit"}.`,
-      likes: 0,
-      comments: 0,
+      likes: counts.likes,
+      comments: counts.comments,
       photos: [resolveSnapPhoto(input.snap.storagePath, input.storagePublicUrl)],
       participants,
     };
@@ -140,8 +150,8 @@ export function buildRealFeedPost(input: BuildRealFeedPostInput): FeedPost {
     photos: [resolveSnapPhoto(input.snap.storagePath, input.storagePublicUrl)],
     promptText: input.snap.promptText || undefined,
     caption: input.snap.caption || `Checked in for ${input.habitName || "your habit"}.`,
-    likes: 0,
-    comments: 0,
+    likes: counts.likes,
+    comments: counts.comments,
   };
   return soloPost;
 }

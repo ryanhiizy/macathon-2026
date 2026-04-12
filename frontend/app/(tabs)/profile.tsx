@@ -23,10 +23,9 @@ import { pickPhoto } from "@/lib/mock";
 import { triggerDemoNotification } from "@/lib/notifications";
 import { colors, fonts, radius, spacing } from "@/lib/theme";
 import { type AppProfile, ensureProfile, supabase } from "@/lib/supabase";
+import { resolveCircleSnapPhoto } from "@/lib/circle-snap-utils";
 
-const POSTS = Array.from({ length: 9 }).map((_, index) => ({
-  photoIdx: index,
-}));
+type SnapPhoto = { uri: string };
 
 const FALLBACK_STATS = {
   habits: 6,
@@ -41,6 +40,7 @@ const FALLBACK_BIO =
 export default function Profile() {
   const { user, demoSession, signOut } = useAuth();
   const [profile, setProfile] = useState<AppProfile | null>(null);
+  const [snapPhotos, setSnapPhotos] = useState<SnapPhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
@@ -59,12 +59,14 @@ export default function Profile() {
 
     if (demoSession) {
       setProfile(null);
+      setSnapPhotos([]);
       setLoading(false);
       return;
     }
 
     if (!user) {
       setError("No signed-in user found.");
+      setSnapPhotos([]);
       setLoading(false);
       return;
     }
@@ -82,6 +84,25 @@ export default function Profile() {
         setError(profileError.message);
       } else {
         setProfile(data);
+      }
+
+      const { data: snaps } = await supabase
+        .from("snaps")
+        .select("storage_path")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(9);
+
+      if (snaps && snaps.length > 0) {
+        const photos = snaps.map((snap) => {
+          const publicUrl = supabase.storage
+            .from("snaps")
+            .getPublicUrl(snap.storage_path).data.publicUrl;
+          return resolveCircleSnapPhoto(snap.storage_path, publicUrl);
+        });
+        setSnapPhotos(photos);
+      } else {
+        setSnapPhotos([]);
       }
     } catch (loadError: unknown) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load profile.");
@@ -277,8 +298,11 @@ export default function Profile() {
           </Row>
 
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-            {POSTS.map((post, index) => (
-              <View key={index} style={{ width: "31.8%" }}>
+            {(snapPhotos.length > 0
+              ? snapPhotos.map((photo, index) => ({ key: `snap-${index}`, source: photo }))
+              : Array.from({ length: 9 }).map((_, index) => ({ key: `mock-${index}`, source: pickPhoto(index) }))
+            ).map((item) => (
+              <View key={item.key} style={{ width: "31.8%" }}>
                 <View
                   style={{
                     aspectRatio: 1,
@@ -288,7 +312,7 @@ export default function Profile() {
                   }}
                 >
                   <Image
-                    source={pickPhoto(post.photoIdx)}
+                    source={item.source}
                     style={{ width: "100%", height: "100%" }}
                     contentFit="cover"
                     transition={240}
