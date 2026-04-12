@@ -147,6 +147,31 @@ export function formatFrequency(frequency: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Demo time overrides — makes habits always show urgency states regardless of
+// actual target_time. Cycles through: done → overdue → due soon → upcoming.
+// ---------------------------------------------------------------------------
+
+// Urgency offsets applied to not-yet-done habits so at least one is overdue,
+// one is due-soon, and the rest are upcoming. Already-done habits keep their
+// real status (avoids "already posted" errors) and get a past time.
+const NOT_DONE_OFFSETS = [-20, 15, 180]; // overdue, due-soon, upcoming
+
+function applyDemoTimes(habits: HabitView[]): HabitView[] {
+  let notDoneIdx = 0;
+  return habits.map((h) => {
+    if (h.done) {
+      // Already verified — keep done, just shift time to the past
+      const targetTime = offsetTime(-120);
+      return { ...h, targetTime, time: formatTime(targetTime) };
+    }
+    const mins = NOT_DONE_OFFSETS[notDoneIdx % NOT_DONE_OFFSETS.length];
+    notDoneIdx++;
+    const targetTime = offsetTime(mins);
+    return { ...h, targetTime, time: formatTime(targetTime) };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // CRUD
 // ---------------------------------------------------------------------------
 
@@ -199,7 +224,7 @@ export async function fetchHabits(userId: string): Promise<HabitView[]> {
     statusMap.set(i.habit_id, i.status);
   });
 
-  return habits.map((h: DbHabit): HabitView => {
+  const views = habits.map((h: DbHabit): HabitView => {
     const meta = categoryMeta(h.category);
     return {
       id: h.id,
@@ -214,6 +239,9 @@ export async function fetchHabits(userId: string): Promise<HabitView[]> {
       circleId: h.circle_id,
     };
   });
+
+  // Apply demo time overrides so urgency states always show
+  return applyDemoTimes(views);
 }
 
 /** Extended view for the habit detail page. */
