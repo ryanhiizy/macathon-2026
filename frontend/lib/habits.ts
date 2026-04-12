@@ -151,23 +151,23 @@ export function formatFrequency(frequency: string): string {
 // actual target_time. Cycles through: done → overdue → due soon → upcoming.
 // ---------------------------------------------------------------------------
 
-const DEMO_TIME_OFFSETS: { minutesFromNow: number; done: boolean }[] = [
-  { minutesFromNow: -120, done: true },  // completed earlier today
-  { minutesFromNow: -20, done: false },  // overdue (red)
-  { minutesFromNow: 15, done: false },   // due soon (yellow)
-  { minutesFromNow: 180, done: false },  // upcoming, no urgency
-];
+// Urgency offsets applied to not-yet-done habits so at least one is overdue,
+// one is due-soon, and the rest are upcoming. Already-done habits keep their
+// real status (avoids "already posted" errors) and get a past time.
+const NOT_DONE_OFFSETS = [-20, 15, 180]; // overdue, due-soon, upcoming
 
 function applyDemoTimes(habits: HabitView[]): HabitView[] {
-  return habits.map((h, i) => {
-    const override = DEMO_TIME_OFFSETS[i % DEMO_TIME_OFFSETS.length];
-    const targetTime = offsetTime(override.minutesFromNow);
-    return {
-      ...h,
-      targetTime,
-      time: formatTime(targetTime),
-      done: override.done,
-    };
+  let notDoneIdx = 0;
+  return habits.map((h) => {
+    if (h.done) {
+      // Already verified — keep done, just shift time to the past
+      const targetTime = offsetTime(-120);
+      return { ...h, targetTime, time: formatTime(targetTime) };
+    }
+    const mins = NOT_DONE_OFFSETS[notDoneIdx % NOT_DONE_OFFSETS.length];
+    notDoneIdx++;
+    const targetTime = offsetTime(mins);
+    return { ...h, targetTime, time: formatTime(targetTime) };
   });
 }
 
