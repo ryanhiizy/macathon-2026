@@ -22,12 +22,15 @@ export type DbMessage = {
 function useCurrentUser() {
   const { user, demoSession } = useAuth();
   if (user) {
-    return { id: user.id, name: "You", color: colors.purple, letter: "J" };
+    const name = user.user_metadata?.display_name ?? user.email?.split("@")[0] ?? "User";
+    const letter = name.charAt(0).toUpperCase();
+    return { id: user.id, name, color: colors.purple, letter };
   }
   if (demoSession) {
-    return { id: demoSession.id, name: "You", color: colors.purple, letter: "J" };
+    const name = demoSession.displayName ?? "Demo User";
+    return { id: demoSession.id, name, color: colors.purple, letter: name.charAt(0).toUpperCase() };
   }
-  return { id: "anon", name: "You", color: colors.purple, letter: "J" };
+  return { id: "anon", name: "User", color: colors.purple, letter: "U" };
 }
 
 // ── Seed mock data ────────────────────────────────────────────────
@@ -254,7 +257,7 @@ export function useThreads() {
       // Get latest message per conversation
       const { data: latestMessages } = await supabase
         .from("messages")
-        .select("conversation_id, body, sender_name, created_at")
+        .select("conversation_id, body, sender_id, sender_name, created_at")
         .order("created_at", { ascending: false });
 
       if (cancelled) return;
@@ -265,7 +268,7 @@ export function useThreads() {
       }
 
       // Group by conversation, take the latest
-      const latestByConvo = new Map<string, { body: string; sender_name: string; created_at: string }>();
+      const latestByConvo = new Map<string, { body: string; sender_id: string; sender_name: string; created_at: string }>();
       for (const msg of latestMessages) {
         if (!latestByConvo.has(msg.conversation_id)) {
           latestByConvo.set(msg.conversation_id, msg);
@@ -277,10 +280,11 @@ export function useThreads() {
         const latest = latestByConvo.get(thread.id);
         if (!latest) return thread;
 
+        const isMe = latest.sender_id === currentUser.id;
         return {
           ...thread,
           lastMessage:
-            latest.sender_name === "You"
+            isMe
               ? `You: ${latest.body}`
               : thread.isGroup
                 ? `${latest.sender_name}: ${latest.body}`
