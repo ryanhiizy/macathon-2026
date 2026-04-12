@@ -20,7 +20,7 @@ IOS installation instructions:
 2. Get a notification around your target time
 3. Open the in-app camera and receive an AI-generated photo prompt
 4. Take a live photo following the prompt
-5. YOLO object detection verifies the photo on the backend
+5.  Vision model detection verifies the photo on the backend
 6. Your verified snap posts to your Circles' feed — miss the window and your streak resets
 
 ## Tech Stack
