@@ -51,9 +51,7 @@ export default function Home() {
     const nextPosts = await loadFeedPosts(user?.id);
     setPosts(nextPosts);
 
-    const postIds = nextPosts
-      .filter((post): post is SoloPostData | GroupPostData => post.kind !== "dispatch")
-      .map((post) => post.id);
+    const postIds = nextPosts.map((post) => post.id);
 
     if (postIds.length === 0) {
       setCommentCounts({});
@@ -204,6 +202,9 @@ function FeedList({ posts, onComment, commentCounts, likeCounts }: FeedListProps
   return (
     <Stack gap={spacing.xxl}>
       {posts.map((post) => {
+        const commentCount = commentCounts[post.id] ?? post.comments;
+        const likeCount = likeCounts[post.id] ?? post.likes;
+
         if (post.kind === "dispatch") {
           return (
             <BragStat
@@ -218,15 +219,12 @@ function FeedList({ posts, onComment, commentCounts, likeCounts }: FeedListProps
               value={post.value}
               unit={post.unit}
               caption={post.caption}
-              likes={post.likes}
-              comments={post.comments}
+              likes={likeCount}
+              comments={commentCount}
               onComment={() => onComment(post.id)}
             />
           );
         }
-
-        const commentCount = commentCounts[post.id] ?? post.comments;
-        const likeCount = likeCounts[post.id] ?? post.likes;
 
         if (post.kind === "group") {
           return (
