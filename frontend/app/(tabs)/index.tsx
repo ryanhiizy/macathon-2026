@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -37,6 +37,7 @@ const PULL_MESSAGES = [
 export default function Home() {
   const router = useRouter();
   const { user } = useAuth();
+  const seededPosts = useMemo(() => getFeedPosts(user?.id), [user?.id]);
   const [feedIdx, setFeedIdx] = useState(0);
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -77,6 +78,10 @@ export default function Home() {
     [],
   );
 
+  useEffect(() => {
+    setPosts(seededPosts);
+  }, [seededPosts]);
+
   useFocusEffect(
     useCallback(() => {
       refreshFeed();
@@ -91,9 +96,12 @@ export default function Home() {
     setRefreshing(true);
     setPullMessageIdx((index) => (index + 1) % PULL_MESSAGES.length);
     refreshTimeoutRef.current = setTimeout(() => {
-      refreshFeed().catch(() => {});
-      setRefreshing(false);
-      refreshTimeoutRef.current = null;
+      refreshFeed()
+        .catch(() => {})
+        .finally(() => {
+          setRefreshing(false);
+          refreshTimeoutRef.current = null;
+        });
     }, 900);
   };
 
@@ -104,7 +112,7 @@ export default function Home() {
     }));
   }, []);
 
-  const feedPosts = posts.length > 0 ? posts : getFeedPosts(user?.id);
+  const feedPosts = posts;
   const friendsPosts = feedPosts.filter((post) => post.kind !== "group");
   const circlePosts = feedPosts.filter((post) => post.kind === "group");
 
