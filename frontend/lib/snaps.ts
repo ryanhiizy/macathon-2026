@@ -1,3 +1,4 @@
+import { File as ExpoFile } from "expo-file-system";
 import { supabase } from "@/lib/supabase";
 
 type HabitCaptureMeta = {
@@ -252,11 +253,11 @@ export async function getOrCreateTodayHabitInstance(habitId: string, userId: str
 }
 
 export async function uploadSnapPhoto(userId: string, circleId: string, localUri: string) {
-  const response = await fetch(localUri);
-  const blob = await response.blob();
+  const file = new ExpoFile(localUri);
+  const arrayBuffer = await file.arrayBuffer();
   const filePath = `${circleId}/${userId}/${Date.now()}.jpg`;
 
-  const { error } = await supabase.storage.from("snaps").upload(filePath, blob, {
+  const { error } = await supabase.storage.from("snaps").upload(filePath, arrayBuffer, {
     contentType: "image/jpeg",
     upsert: false,
   });
