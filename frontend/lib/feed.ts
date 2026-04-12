@@ -1,4 +1,5 @@
 import { MOCK_USERS } from "@/lib/mock-users";
+import { buildSnapParticipantMap } from "@/lib/feed-participants";
 import type { FeedPost } from "@/lib/mock";
 import { DEMO_USERS } from "@/lib/demo-users";
 import { buildRealFeedPost } from "@/lib/real-feed";
@@ -522,6 +523,16 @@ type ProfileRow = {
   handle: string;
 };
 
+type SnapParticipantRow = {
+  snap_id: string;
+  user_id: string;
+  streak_after_completion: number;
+  profiles: {
+    id: string;
+    display_name: string | null;
+  }[] | null;
+};
+
 type HabitInstanceFeedRow = {
   id: string;
   habit_id: string;
@@ -586,17 +597,16 @@ async function fetchRecentRealFeedPosts(userId?: string): Promise<FeedPost[]> {
   const circleIds = [
     ...new Set(snapRows.map((snap) => snap.circle_id).filter((circleId): circleId is string => Boolean(circleId))),
   ];
-  const groupCircleIds = [...new Set(snapRows.filter((snap) => snap.is_group_post && snap.circle_id).map((snap) => snap.circle_id as string))];
+  const groupSnapIds = [...new Set(snapRows.filter((snap) => snap.is_group_post).map((snap) => snap.id))];
 
-  const [{ data: profiles }, { data: habitInstances }, { data: groupMembers }, { data: circleMemberships }] = await Promise.all([
+  const [{ data: profiles }, { data: habitInstances }, { data: groupParticipants }, { data: circleMemberships }] = await Promise.all([
     supabase.from("profiles").select("id, display_name, handle").in("id", profileIds),
     supabase.from("habit_instances").select("id, habit_id").in("id", habitInstanceIds),
-    groupCircleIds.length > 0
+    groupSnapIds.length > 0
       ? supabase
-          .from("circle_members")
-          .select("circle_id, user_id, current_streak, profiles(id, display_name)")
-          .in("circle_id", groupCircleIds)
-          .order("current_streak", { ascending: false })
+          .from("snap_participants")
+          .select("snap_id, user_id, streak_after_completion, profiles(id, display_name)")
+          .in("snap_id", groupSnapIds)
       : Promise.resolve({ data: [] }),
     circleIds.length > 0
       ? supabase.from("circle_members").select("circle_id").in("circle_id", circleIds)
@@ -611,16 +621,8 @@ async function fetchRecentRealFeedPosts(userId?: string): Promise<FeedPost[]> {
     (habitInstances ?? []).map((instance) => [instance.id, instance as HabitInstanceFeedRow]),
   );
   const habitMap = new Map((habits ?? []).map((habit) => [habit.id, habit as HabitRow]));
-  const circleParticipantMap = new Map<string, ReturnType<typeof buildCircleParticipant>[]>();
   const circleMemberCountMap = new Map<string, number>();
-
-  (groupMembers ?? []).forEach((member: any) => {
-    const participant = buildCircleParticipant(member);
-    const existing: ReturnType<typeof buildCircleParticipant>[] =
-      circleParticipantMap.get(member.circle_id) ?? [];
-    existing.push(participant);
-    circleParticipantMap.set(member.circle_id, existing);
-  });
+  const typedGroupParticipants = (groupParticipants ?? []) as SnapParticipantRow[];
 
   (circleMemberships ?? []).forEach((row: any) => {
     circleMemberCountMap.set(
@@ -628,6 +630,27 @@ async function fetchRecentRealFeedPosts(userId?: string): Promise<FeedPost[]> {
       (circleMemberCountMap.get(row.circle_id) ?? 0) + 1,
     );
   });
+
+  const snapParticipantMap = buildSnapParticipantMap(
+    typedGroupParticipants.map((participant) => ({
+      snapId: participant.snap_id,
+      userId: participant.user_id,
+      streakAfterCompletion: participant.streak_after_completion,
+      displayName: participant.profiles?.[0]?.display_name ?? null,
+    })),
+    snapRows
+      .filter((snap) => snap.is_group_post)
+      .map((snap) => {
+        const profile = profileMap.get(snap.user_id);
+        return {
+          snapId: snap.id,
+          userId: snap.user_id,
+          streakAfterCompletion: snap.streak_after_completion,
+          displayName: profile?.display_name ?? null,
+        };
+      }),
+    colorForUser,
+  );
 
   return snapRows.map((snap) => {
     const profile = profileMap.get(snap.user_id);
@@ -654,23 +677,12 @@ async function fetchRecentRealFeedPosts(userId?: string): Promise<FeedPost[]> {
       authorLetter: displayName.slice(0, 1).toUpperCase() || "P",
       authorColor: colorForUser(snap.user_id),
       habitName: habit?.name || "Habit check-in",
-      participants: snap.circle_id ? circleParticipantMap.get(snap.circle_id) ?? [] : [],
+      participants: snap.is_group_post ? snapParticipantMap.get(snap.id) ?? [] : [],
       when: formatWhen(snap.created_at),
       storagePublicUrl,
       circlesEligible: snap.is_group_post || circleMemberCount > 1,
     });
   });
-}
-
-function buildCircleParticipant(member: any) {
-  const name = member.profiles?.display_name ?? "Presence User";
-  return {
-    id: member.user_id as string,
-    name,
-    letter: name.slice(0, 1).toUpperCase() || "P",
-    color: colorForUser(member.user_id as string),
-    streak: member.current_streak as number,
-  };
 }
 
 export async function loadFeedPosts(userId?: string): Promise<FeedPost[]> {
