@@ -1,5 +1,6 @@
 # presence
 *Built at Macathon 2026.*
+devpost: https://devpost.com/software/presence-6ay0vb
 
 A social habit-tracking app — Habit Tracker × BeReal × Strava. Prove your habits with live photos, compete with friends in Circles, and let AI keep it fun.
 
